@@ -24,7 +24,7 @@ public class CameraRenderer {
     {
 
         //Invoke our draw renderers from our meshes and such
-        var sortingSettings = new SortingSettings();
+        var sortingSettings = new SortingSettings(camera);
         var drawingSettings = new DrawingSettings(unlitShaderTag,sortingSettings); //Idicate which shader passes are allowed
         var filterSettings = new FilteringSettings(RenderQueueRange.all); //Ideicate which queues are allowed
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
