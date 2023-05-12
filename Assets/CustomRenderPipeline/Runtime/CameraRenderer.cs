@@ -4,11 +4,17 @@ public class CameraRenderer {
     ScriptableRenderContext context;
     Camera camera;
     const string bufferName = "Render Camera";
+    static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit");
     CommandBuffer buffer = new CommandBuffer { name = bufferName };
+    CullingResults cullingResults;
     public void Render(ScriptableRenderContext context, Camera camera)
     {
         this.context = context;
         this.camera = camera;
+        if (!Cull()) //Cull objects if they return false in cull function
+        {
+            return;
+        }
         Setup();
         DrawVisibleGeometry(); //Skybox has its own dedicated command buffer
         //You need to submit the draw command to the command buffer
@@ -16,6 +22,12 @@ public class CameraRenderer {
     }
     void DrawVisibleGeometry()
     {
+
+        //Invoke our draw renderers from our meshes and such
+        var sortingSettings = new SortingSettings();
+        var drawingSettings = new DrawingSettings(unlitShaderTag,sortingSettings); //Idicate which shader passes are allowed
+        var filterSettings = new FilteringSettings(RenderQueueRange.all); //Ideicate which queues are allowed
+        context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
         context.DrawSkybox(camera);
     }
     void Setup()
@@ -26,6 +38,16 @@ public class CameraRenderer {
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
+    }
+    bool Cull()
+    {
+        ScriptableCullingParameters p;
+        if(camera.TryGetCullingParameters(out p))
+        {
+            cullingResults = context.Cull(ref p);
+            return true;
+        }
+        return false;
     }
     void Submit()
     {
