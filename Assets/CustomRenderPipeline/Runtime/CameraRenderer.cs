@@ -25,10 +25,17 @@ public class CameraRenderer {
 
         //Invoke our draw renderers from our meshes and such
         var sortingSettings = new SortingSettings(camera);
+        sortingSettings.criteria = SortingCriteria.CommonOpaque;
         var drawingSettings = new DrawingSettings(unlitShaderTag,sortingSettings); //Idicate which shader passes are allowed
-        var filterSettings = new FilteringSettings(RenderQueueRange.all); //Ideicate which queues are allowed
+        var filterSettings = new FilteringSettings(RenderQueueRange.opaque); //Ideicate which queues are allowed
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
         context.DrawSkybox(camera);
+        //Time to draw transparent geometry. This makes sure the skybox doesn't draw over transparent geo
+        sortingSettings.criteria = SortingCriteria.CommonTransparent;
+        drawingSettings.sortingSettings = sortingSettings;
+        filterSettings.renderQueueRange = RenderQueueRange.transparent;
+
+        context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
     }
     void Setup()
     {
