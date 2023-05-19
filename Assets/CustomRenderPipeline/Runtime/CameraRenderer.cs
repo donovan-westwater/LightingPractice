@@ -7,6 +7,15 @@ public class CameraRenderer {
     static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit");
     CommandBuffer buffer = new CommandBuffer { name = bufferName };
     CullingResults cullingResults;
+    static Material errorMaterial; //used for unsupported mats
+    static ShaderTagId[] legacyShaderTagIds = {
+        new ShaderTagId("Always"),
+        new ShaderTagId("ForwardBase"),
+        new ShaderTagId("PrepassBase"),
+        new ShaderTagId("Vertex"),
+        new ShaderTagId("VertexLMRGBM"),
+        new ShaderTagId("VertexLM")
+    };
     public void Render(ScriptableRenderContext context, Camera camera)
     {
         this.context = context;
@@ -17,8 +26,37 @@ public class CameraRenderer {
         }
         Setup();
         DrawVisibleGeometry(); //Skybox has its own dedicated command buffer
+        //We want to handle material types not supported by our setup (Legacy shaders)
+        DrawUnsupportedShaders();
         //You need to submit the draw command to the command buffer
         Submit();
+    }
+    void DrawUnsupportedShaders()
+    {
+        //Setup error material to draw when bad shaders are used
+        if (errorMaterial == null)
+        {
+            errorMaterial =
+                new Material(Shader.Find("Hidden/InternalErrorShader"));
+        }
+        //We are drawing legacy shaders starting with the first legacy pass
+        //using default sorting settings for the camera
+        //We dont care about the settings since these are all invalid!
+        var drawingSettings = new DrawingSettings(
+            legacyShaderTagIds[0], new SortingSettings(camera)
+        )
+        {
+            overrideMaterial = errorMaterial
+        };
+        //Add the rest of the passes to the drawing settings
+        for (int i = 1; i < legacyShaderTagIds.Length; i++)
+        {
+            drawingSettings.SetShaderPassName(i, legacyShaderTagIds[i]);
+        }
+        var filteringSettings = FilteringSettings.defaultValue;
+        context.DrawRenderers(
+            cullingResults, ref drawingSettings, ref filteringSettings
+        );
     }
     void DrawVisibleGeometry()
     {
