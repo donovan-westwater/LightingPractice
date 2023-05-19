@@ -22,6 +22,9 @@ public class CameraRenderer {
     {
         this.context = context;
         this.camera = camera;
+#if UNITY_EDITOR
+        PrepareForSceneWindow();
+#endif
         if (!Cull()) //Cull objects if they return false in cull function
         {
             return;
@@ -73,8 +76,16 @@ public class CameraRenderer {
             context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
         }
     }
+    void PrepareForSceneWindow()
+    {
+        if (camera.cameraType == CameraType.SceneView)
+        {
+            //UI wont show up in scene view without this!
+            ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+        }
+    }
 #endif
-    void DrawVisibleGeometry()
+        void DrawVisibleGeometry()
     {
 
         //Invoke our draw renderers from our meshes and such
