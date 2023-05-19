@@ -7,6 +7,7 @@ public class CameraRenderer {
     static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit");
     CommandBuffer buffer = new CommandBuffer { name = bufferName };
     CullingResults cullingResults;
+#if UNITY_EDITOR
     static Material errorMaterial; //used for unsupported mats
     static ShaderTagId[] legacyShaderTagIds = {
         new ShaderTagId("Always"),
@@ -16,6 +17,7 @@ public class CameraRenderer {
         new ShaderTagId("VertexLMRGBM"),
         new ShaderTagId("VertexLM")
     };
+#endif
     public void Render(ScriptableRenderContext context, Camera camera)
     {
         this.context = context;
@@ -26,11 +28,16 @@ public class CameraRenderer {
         }
         Setup();
         DrawVisibleGeometry(); //Skybox has its own dedicated command buffer
+#if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
         DrawUnsupportedShaders();
+        //Draw gizmos in the editor
+        DrawGizmos();
+#endif
         //You need to submit the draw command to the command buffer
         Submit();
     }
+#if UNITY_EDITOR
     void DrawUnsupportedShaders()
     {
         //Setup error material to draw when bad shaders are used
@@ -58,6 +65,15 @@ public class CameraRenderer {
             cullingResults, ref drawingSettings, ref filteringSettings
         );
     }
+    void DrawGizmos()
+    {
+        if (UnityEditor.Handles.ShouldRenderGizmos())
+        {
+            context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
+            context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
+        }
+    }
+#endif
     void DrawVisibleGeometry()
     {
 
