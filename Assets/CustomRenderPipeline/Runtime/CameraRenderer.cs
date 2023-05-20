@@ -4,6 +4,7 @@ public class CameraRenderer {
     ScriptableRenderContext context;
     Camera camera;
     const string bufferName = "Render Camera";
+    string sampleName = bufferName;
     static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit");
     CommandBuffer buffer = new CommandBuffer { name = bufferName };
     CullingResults cullingResults;
@@ -23,6 +24,7 @@ public class CameraRenderer {
         this.context = context;
         this.camera = camera;
 #if UNITY_EDITOR
+        PrepareBuffer();
         PrepareForSceneWindow();
 #endif
         if (!Cull()) //Cull objects if they return false in cull function
@@ -84,6 +86,12 @@ public class CameraRenderer {
             ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
         }
     }
+    //Make sure each camera gets their own scope
+    //Want to make sure samples are attached to the correct cameras
+    void PrepareBuffer()
+    {
+        buffer.name = sampleName = camera.name;
+    }
 #endif
         void DrawVisibleGeometry()
     {
@@ -105,9 +113,13 @@ public class CameraRenderer {
     void Setup()
     {
         context.SetupCameraProperties(camera);
+        //Clear flags for cam layers and combining results for multiple cameras
+        CameraClearFlags flags = camera.clearFlags;
         //Make suer we are workinngwith a clean frame
-        buffer.ClearRenderTarget(true, true, Color.clear);
-        buffer.BeginSample(bufferName);
+        buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color,
+            flags == CameraClearFlags.Color ?
+                camera.backgroundColor.linear : Color.clear);
+        buffer.BeginSample(sampleName);
         ExecuteBuffer();
 
     }
@@ -123,7 +135,7 @@ public class CameraRenderer {
     }
     void Submit()
     {
-        buffer.EndSample(bufferName); //Finished storinng commands to submit
+        buffer.EndSample(sampleName); //Finished storinng commands to submit
         ExecuteBuffer();
         context.Submit();
     }
