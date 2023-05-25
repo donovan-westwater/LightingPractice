@@ -3,7 +3,7 @@ Shader "Unlit/Custom-Unlit"
     //Tutorial for ref: https://catlikecoding.com/unity/tutorials/custom-srp/draw-calls/
     Properties
     {
-        
+        _BaseColor("Color",Color) = (1.0,1.0,0.0,1.0)
     }
     SubShader
     {
