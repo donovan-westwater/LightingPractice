@@ -19,7 +19,8 @@ public class CameraRenderer {
         new ShaderTagId("VertexLM")
     };
 #endif
-    public void Render(ScriptableRenderContext context, Camera camera)
+    public void Render(ScriptableRenderContext context, Camera camera,
+        bool useDynamicBatching, bool useGPUInstancing) //Provided by RP
     {
         this.context = context;
         this.camera = camera;
@@ -32,7 +33,7 @@ public class CameraRenderer {
             return;
         }
         Setup();
-        DrawVisibleGeometry(); //Skybox has its own dedicated command buffer
+        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
         DrawUnsupportedShaders();
@@ -93,13 +94,15 @@ public class CameraRenderer {
         buffer.name = sampleName = camera.name;
     }
 #endif
-        void DrawVisibleGeometry()
+        void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
     {
 
         //Invoke our draw renderers from our meshes and such
-        var sortingSettings = new SortingSettings(camera);
+    var sortingSettings = new SortingSettings(camera);
         sortingSettings.criteria = SortingCriteria.CommonOpaque;
         var drawingSettings = new DrawingSettings(unlitShaderTag,sortingSettings); //Idicate which shader passes are allowed
+        drawingSettings.enableDynamicBatching = useDynamicBatching; //Temproary, trying out another from of call bundling
+        drawingSettings.enableInstancing = useGPUInstancing; //GPU instancing doesn't work with dynamic batching
         var filterSettings = new FilteringSettings(RenderQueueRange.opaque); //Ideicate which queues are allowed
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
         context.DrawSkybox(camera);
