@@ -9,7 +9,9 @@
 #define UNITY_MATRIX_V unity_MatrixV //See above
 #define UNITY_MATRIX_VP unity_MatrixVP //See above
 #define UNITY_MATRIX_P glstate_matrix_projection //See above
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl" //Redfines macros to access instanced data arrays instead
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
+
 /*
 //Functions that handles the actual transform process from local to world
 float3 TransformObjectToWorld(float3 positionOS) {
