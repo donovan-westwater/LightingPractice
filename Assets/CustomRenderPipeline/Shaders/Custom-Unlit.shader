@@ -3,12 +3,18 @@ Shader "Unlit/Custom-Unlit"
     //Tutorial for ref: https://catlikecoding.com/unity/tutorials/custom-srp/draw-calls/
     Properties
     {
+        _BaseMap("Texture", 2D) = "white" {}
         _BaseColor("Color",Color) = (1.0,1.0,0.0,1.0)
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Src Blend", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Dst Blend", Float) = 0
+        [Enum(Off, 0, On, 1)] _ZWrite("Z Write", Float) = 1
     }
     SubShader
     {
         Pass
         {
+            Blend [_SrcBlend] [_DstBlend]
+            ZWrite[_ZWrite] //want to be able to disable writing to depth buffer for transparent rendering
             //Fun fact: you can put non HLSL code in here, so we need to tell Unity what lang we are using!
             HLSLPROGRAM
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
