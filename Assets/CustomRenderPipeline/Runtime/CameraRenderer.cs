@@ -5,7 +5,8 @@ public class CameraRenderer {
     Camera camera;
     const string bufferName = "Render Camera";
     string sampleName = bufferName;
-    static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit");
+    static ShaderTagId unlitShaderTag = new ShaderTagId("SRPDefaultUnlit"),
+        litShaderTag = new ShaderTagId("CustomLit");
     CommandBuffer buffer = new CommandBuffer { name = bufferName };
     CullingResults cullingResults;
 #if UNITY_EDITOR
@@ -103,6 +104,7 @@ public class CameraRenderer {
         var drawingSettings = new DrawingSettings(unlitShaderTag,sortingSettings); //Idicate which shader passes are allowed
         drawingSettings.enableDynamicBatching = useDynamicBatching; //Temproary, trying out another from of call bundling
         drawingSettings.enableInstancing = useGPUInstancing; //GPU instancing doesn't work with dynamic batching
+        drawingSettings.SetShaderPassName(1, litShaderTag); //Setup custom lighting shader pass
         var filterSettings = new FilteringSettings(RenderQueueRange.opaque); //Ideicate which queues are allowed
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filterSettings);
         context.DrawSkybox(camera);
