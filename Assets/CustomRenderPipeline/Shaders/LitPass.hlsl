@@ -3,6 +3,9 @@
 #ifndef CUSTOM_LIT_PASS_INCLUDED
 #define CUSTOM_LIT_PASS_INCLUDED
 #include "../ShaderLibrary/Common.hlsl"
+#include "../ShaderLibrary/CustomSurface.hlsl"
+#include "../ShaderLibrary/CustomLight.hlsl"
+#include "../ShaderLibrary/CustomLighting.hlsl"
 //Want to support textures
 // Cannot be per material
 TEXTURE2D(_BaseMap);
@@ -48,11 +51,17 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
 	float4 base = baseMap * baseColor;
-	base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
+	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
 		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
 	#endif 
-	return base;
+	Surface surface;
+	surface.normal = normalize(input.normalWS);
+	surface.color = base.rgb;
+	float3 color = GetLighting(surface);
+	surface.alpha = base.a;
+
+	return float4(color, surface.alpha);
 }
 
 #endif
