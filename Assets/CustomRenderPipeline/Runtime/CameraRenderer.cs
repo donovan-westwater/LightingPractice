@@ -20,6 +20,7 @@ public class CameraRenderer {
         new ShaderTagId("VertexLM")
     };
 #endif
+    Lighting lighting = new Lighting();
     public void Render(ScriptableRenderContext context, Camera camera,
         bool useDynamicBatching, bool useGPUInstancing) //Provided by RP
     {
@@ -34,6 +35,7 @@ public class CameraRenderer {
             return;
         }
         Setup();
+        lighting.Setup(context);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
