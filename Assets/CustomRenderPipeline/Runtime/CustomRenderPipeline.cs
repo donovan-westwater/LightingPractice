@@ -10,6 +10,7 @@ public class CustomRenderPipeline : RenderPipeline
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;//Enable batching to improve preformance
+        GraphicsSettings.lightsUseLinearIntensity = true; //Want lights to use linear
     }
     CameraRenderer camRenderer = new CameraRenderer();
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)

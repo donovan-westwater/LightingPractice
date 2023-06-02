@@ -35,7 +35,7 @@ public class CameraRenderer {
             return;
         }
         Setup();
-        lighting.Setup(context);
+        lighting.Setup(context,cullingResults);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
