@@ -7,7 +7,7 @@ float3 IncomingLight(Surface surface, Light light) {
 }
 //Calculates lighting based on light source
 float3 GetLighting(Surface surface, BRDF brdf, Light light) {
-	return IncomingLight(surface, light) * brdf.diffuse;
+	return IncomingLight(surface, light) * DirectBRDF(surface, brdf, light);
 }
 //Calculates lighting using the surface normals
 float3 GetLighting(Surface surface, BRDF brdf) {

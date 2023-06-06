@@ -13,4 +13,6 @@ CBUFFER_END
 float4x4 unity_MatrixVP; //View matrix or world to camera matrix
 float4x4 unity_MatrixV;
 float4x4 glstate_matrix_projection;
+//View direction used for the reflection calculation
+float3 _WorldSpaceCameraPos;
 #endif
