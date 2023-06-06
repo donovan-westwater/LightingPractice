@@ -5,6 +5,7 @@
 #include "../ShaderLibrary/Common.hlsl"
 #include "../ShaderLibrary/CustomSurface.hlsl"
 #include "../ShaderLibrary/CustomLight.hlsl"
+#include "../ShaderLibrary/BRDF.hlsl"
 #include "../ShaderLibrary/CustomLighting.hlsl"
 //Want to support textures
 // Cannot be per material
@@ -17,6 +18,8 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
 	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
 	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+	UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
+	UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct Attributes {
@@ -58,7 +61,10 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	Surface surface;
 	surface.normal = normalize(input.normalWS);
 	surface.color = base.rgb;
-	float3 color = GetLighting(surface);
+	surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic); //Get property frome lit shader
+	surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Smoothness); //Get proeprty from lit shader
+	BRDF brdf = GetBRDF(surface); //Get the the lighting properties that result from a given surface
+	float3 color = GetLighting(surface,brdf);
 	surface.alpha = base.a;
 
 	return float4(color, surface.alpha);

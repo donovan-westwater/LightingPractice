@@ -19,6 +19,7 @@ Shader "Unlit/Custom-Unlit"
             ZWrite[_ZWrite] //want to be able to disable writing to depth buffer for transparent rendering
             //Fun fact: you can put non HLSL code in here, so we need to tell Unity what lang we are using!
             HLSLPROGRAM
+            #pragma target 3.5 //Helps with differences in webGL and OpenGL
             #pragma shader_feature _CLIPPING
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex UnlitPassVertex //This is the name of the vertex step
