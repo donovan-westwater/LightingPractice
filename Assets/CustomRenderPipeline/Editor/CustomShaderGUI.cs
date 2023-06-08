@@ -7,6 +7,7 @@ public class CustomShaderGUI : ShaderGUI
 	MaterialEditor editor; //Underlying editor object rsponsible for showing/editing materials
 	Object[] materials; //The materials being edited. OBject array because targets property returns objects
 	MaterialProperty[] properties; //The properties of selected materials
+	bool showPresets;
 	//RenderQueue setter for assigning renderQueue property
 	RenderQueue RenderQueue
 	{
@@ -26,11 +27,15 @@ public class CustomShaderGUI : ShaderGUI
 		editor = materialEditor;
 		materials = materialEditor.targets;
 		this.properties = properties;
-
-		OpaquePreset();
-		ClipPreset();
-		FadePreset();
-		TransparentPreset();
+		EditorGUILayout.Space();
+		showPresets = EditorGUILayout.Foldout(showPresets, "Presets", true);
+		if (showPresets)
+		{
+			OpaquePreset();
+			ClipPreset();
+			FadePreset();
+			TransparentPreset();
+		}
 	}
 	void SetProperty(string name, float value)
     {
