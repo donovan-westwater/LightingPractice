@@ -36,4 +36,5 @@ Shader "Custom RP/Custom-Lit"
             ENDHLSL
         }
     }
+    CustomEditor "CustomShaderGUI"
 }
