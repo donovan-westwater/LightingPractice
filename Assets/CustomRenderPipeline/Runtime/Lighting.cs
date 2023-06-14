@@ -22,6 +22,7 @@ public class Lighting
 		dirLightColors = new Vector4[maxDirLightCount],
 		dirLightDirections = new Vector4[maxDirLightCount];
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
+	Shadows shadows = new Shadows(); //Class used to handle the shadow draw calls
 	public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
 	{
 		this.cullingResults = cullingResults;
@@ -29,6 +30,7 @@ public class Lighting
 		buffer.BeginSample(bufferName);
 		//Setup the directional light to submit
 		//SetupDirectionalLight();
+		shadows.Setup(context, cullingResults, shadowSettings);
 		SetupLights();
 		//Finish setting up command buffer
 		buffer.EndSample(bufferName);
@@ -60,6 +62,8 @@ public class Lighting
 		dirLightColors[index] = visibleLight.finalColor;
 		//Negate forward vector for the light
 		dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+		//Reserve a shadow for the light if there is enough room
+		shadows.ReserveDirectionalShadows(visibleLight.light, index);
 
 	}
 }
