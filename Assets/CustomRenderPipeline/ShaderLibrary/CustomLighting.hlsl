@@ -3,7 +3,9 @@
 //Does a basic directional light calculation with surface normal
 float3 IncomingLight(Surface surface, Light light) {
 	//saturate clamps value between 0 and 1
-	return saturate(dot(surface.normal, light.direction)) * light.color;
+	float lIn = saturate(dot(surface.normal, light.direction));
+	//lIn = lerp(0.5,1,ceil(lIn)); Cell Shading mode!
+	return lIn * light.color;
 }
 //Calculates lighting based on light source
 float3 GetLighting(Surface surface, BRDF brdf, Light light) {

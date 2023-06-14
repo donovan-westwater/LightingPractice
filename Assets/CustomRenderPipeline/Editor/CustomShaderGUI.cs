@@ -8,6 +8,7 @@ public class CustomShaderGUI : ShaderGUI
 	Object[] materials; //The materials being edited. OBject array because targets property returns objects
 	MaterialProperty[] properties; //The properties of selected materials
 	bool showPresets;
+	bool HasPremultiplyAlpha => HasProperty("_PremulAlpha");
 	//RenderQueue setter for assigning renderQueue property
 	RenderQueue RenderQueue
 	{
@@ -37,16 +38,24 @@ public class CustomShaderGUI : ShaderGUI
 			TransparentPreset();
 		}
 	}
-	void SetProperty(string name, float value)
+
+	bool SetProperty(string name, float value)
     {
 		//Find the properties in the shader and assign the correct values
-		FindProperty(name, properties).floatValue = value;
+		MaterialProperty property = FindProperty(name, properties);
+		if(property != null)
+        {
+			property.floatValue = value;
+			return true;
+        }
+		return false;
     }
 	//Handles property-keyword combos
 	void SetProperty(string name, string keyword, bool value)
     {
-		SetProperty(name, value ? 1f : 0f);
-		SetKeyword(keyword, value);
+		if (SetProperty(name, value ? 1f : 0f)){
+			SetKeyword(keyword, value);
+		}
 	}
 	void SetKeyword(string keyword,bool enabled)
     {
@@ -66,6 +75,8 @@ public class CustomShaderGUI : ShaderGUI
             }
         }
     }
+	bool HasProperty(string name) =>
+		FindProperty(name, properties, false) != null;
 	//A Button created via GUILayout.Button to handle preset settings
 	bool PresetButton(string name)
     {
@@ -115,7 +126,7 @@ public class CustomShaderGUI : ShaderGUI
 	}
 	void TransparentPreset()
     {
-		if (PresetButton("Transparent"))
+		if (HasPremultiplyAlpha && PresetButton("Transparent"))
 		{
 			Clipping = false;
 			PremultiplyAlpha = true;

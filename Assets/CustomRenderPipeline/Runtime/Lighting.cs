@@ -22,7 +22,7 @@ public class Lighting
 		dirLightColors = new Vector4[maxDirLightCount],
 		dirLightDirections = new Vector4[maxDirLightCount];
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
-	public void Setup(ScriptableRenderContext context, CullingResults cullingResults)
+	public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
 	{
 		this.cullingResults = cullingResults;
 		//Start command buffer setup

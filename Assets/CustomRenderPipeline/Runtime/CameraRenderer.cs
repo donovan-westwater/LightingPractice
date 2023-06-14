@@ -22,7 +22,7 @@ public class CameraRenderer {
 #endif
     Lighting lighting = new Lighting();
     public void Render(ScriptableRenderContext context, Camera camera,
-        bool useDynamicBatching, bool useGPUInstancing) //Provided by RP
+        bool useDynamicBatching, bool useGPUInstancing, ShadowSettings shadowSettings) //Provided by RP
     {
         this.context = context;
         this.camera = camera;
@@ -30,12 +30,12 @@ public class CameraRenderer {
         PrepareBuffer();
         PrepareForSceneWindow();
 #endif
-        if (!Cull()) //Cull objects if they return false in cull function
+        if (!Cull(shadowSettings.maxDistance)) //Cull objects if they return false in cull function
         {
             return;
         }
         Setup();
-        lighting.Setup(context,cullingResults);
+        lighting.Setup(context,cullingResults,shadowSettings);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
@@ -130,11 +130,12 @@ public class CameraRenderer {
         ExecuteBuffer();
 
     }
-    bool Cull()
+    bool Cull(float maxDistance)
     {
         ScriptableCullingParameters p;
         if(camera.TryGetCullingParameters(out p))
         {
+            p.shadowDistance = Mathf.Min(maxDistance,camera.farClipPlane); //Define max distance for shadows, cull beyond that
             cullingResults = context.Cull(ref p);
             return true;
         }

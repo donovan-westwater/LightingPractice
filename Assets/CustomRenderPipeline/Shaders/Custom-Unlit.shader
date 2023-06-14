@@ -28,4 +28,5 @@ Shader "Unlit/Custom-Unlit"
             ENDHLSL
         }
     }
+    CustomEditor "CustomShaderGUI"
 }
