@@ -32,12 +32,17 @@ public class Lighting
 		//SetupDirectionalLight();
 		shadows.Setup(context, cullingResults, shadowSettings);
 		SetupLights();
+		shadows.Render();
 		//Finish setting up command buffer
 		buffer.EndSample(bufferName);
 		//Submit buffer
 		context.ExecuteCommandBuffer(buffer);
 		buffer.Clear();
 	}
+	public void Cleanup()
+    {
+		shadows.Cleanup();
+    }
 	void SetupLights()
     {
 		//Retrive data relvant to the lights - Array allows for multiple lights
@@ -66,4 +71,5 @@ public class Lighting
 		shadows.ReserveDirectionalShadows(visibleLight.light, index);
 
 	}
+
 }

@@ -34,8 +34,9 @@ public class CameraRenderer {
         {
             return;
         }
-        Setup();
+        //Want to setup shadows first before drawing the actual objects
         lighting.Setup(context,cullingResults,shadowSettings);
+        Setup();
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
         //We want to handle material types not supported by our setup (Legacy shaders)
@@ -43,6 +44,8 @@ public class CameraRenderer {
         //Draw gizmos in the editor
         DrawGizmos();
 #endif
+        //Cleanup tmp info used by lights and shaodws
+        lighting.Cleanup();
         //You need to submit the draw command to the command buffer
         Submit();
     }
