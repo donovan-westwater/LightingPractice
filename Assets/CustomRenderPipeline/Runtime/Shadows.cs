@@ -83,9 +83,35 @@ public class Shadows
 		buffer.SetRenderTarget(dirShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 		//Clear depth as that is what we are using for shadows
 		buffer.ClearRenderTarget(true, false, Color.clear);
+		buffer.BeginSample(bufferName);
+		//Render shadows for each of the directional lights in our setup
+		for(int i = 0; i < ShadowedDirectionalLightCount; i++)
+        {
+			RenderDirectionalShadows(i, atlasSize); //Assign the size of the tile assoiated with the shadow
+        }
+		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
 	}
+	//Rendering a specifc shadow for a specific directional light
+	void RenderDirectionalShadows(int index, int tileSize)
+    {
+		ShadowedDirectionalLight light = shadowedDirectionalLights[index];
+		var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+		//We want to render the scene as if the light is the camera and use the depth info to draw the shadows
+		//Since directional lights have no position, we need to create a clip space cube based on the rotation
+		//of the light
+		//We are going to calculate that using a unity function
+		//First arg: visible light index, 2-4 are for the shadow cascade, 5: texture size, 6: near plane
+		//The remaining 3 are the output parameters for view matrix and projection matrix and Shadow split data.
+		cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(index, 0, 1, Vector3.zero, tileSize, 0f
+			, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
+		//Split data is for how shadow casting objects should be culled.
+		//Save results to shadow settings
+		shadowSettings.splitData = splitData;
+		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+		context.DrawShadows(ref shadowSettings);
+    }
 	public void Cleanup()
     {
 		buffer.ReleaseTemporaryRT(dirShadowAtlasId);

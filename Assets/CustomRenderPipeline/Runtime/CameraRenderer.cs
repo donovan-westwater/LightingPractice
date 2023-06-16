@@ -35,7 +35,10 @@ public class CameraRenderer {
             return;
         }
         //Want to setup shadows first before drawing the actual objects
+        buffer.BeginSample(sampleName);
+        ExecuteBuffer();
         lighting.Setup(context,cullingResults,shadowSettings);
+        buffer.EndSample(sampleName);
         Setup();
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing); //Skybox has its own dedicated command buffer
 #if UNITY_EDITOR
