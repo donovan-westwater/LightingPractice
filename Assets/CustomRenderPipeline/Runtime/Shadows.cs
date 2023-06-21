@@ -84,6 +84,7 @@ public class Shadows
 		//Clear depth as that is what we are using for shadows
 		buffer.ClearRenderTarget(true, false, Color.clear);
 		buffer.BeginSample(bufferName);
+		ExecuteBuffer();
 		//Render shadows for each of the directional lights in our setup
 		for(int i = 0; i < ShadowedDirectionalLightCount; i++)
         {
@@ -104,12 +105,13 @@ public class Shadows
 		//We are going to calculate that using a unity function
 		//First arg: visible light index, 2-4 are for the shadow cascade, 5: texture size, 6: near plane
 		//The remaining 3 are the output parameters for view matrix and projection matrix and Shadow split data.
-		cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(index, 0, 1, Vector3.zero, tileSize, 0f
+		cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(light.visibleLightIndex, 0, 1, Vector3.zero, tileSize, 0f
 			, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
 		//Split data is for how shadow casting objects should be culled.
 		//Save results to shadow settings
 		shadowSettings.splitData = splitData;
 		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+		ExecuteBuffer();
 		context.DrawShadows(ref shadowSettings);
     }
 	public void Cleanup()

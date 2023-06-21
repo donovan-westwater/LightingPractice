@@ -9,11 +9,12 @@ public class CustomRenderPipeline : RenderPipeline
     public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
         ShadowSettings shadowSettings)
     {
+        this.shadowSettings = shadowSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;//Enable batching to improve preformance
         GraphicsSettings.lightsUseLinearIntensity = true; //Want lights to use linear
-        this.shadowSettings = shadowSettings;
+
     }
     CameraRenderer camRenderer = new CameraRenderer();
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
