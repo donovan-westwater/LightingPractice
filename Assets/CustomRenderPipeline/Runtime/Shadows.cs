@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 
 public class Shadows
 {
-	const int maxShadowedDirectionalLightCount = 1; //Shadows are expensive so we want to limit the amount of shadows per light
+	const int maxShadowedDirectionalLightCount = 4; //Shadows are expensive so we want to limit the amount of shadows per light
 	const string bufferName = "Shadows";
 	static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
 	//Command buffer used to setup and execute the shadow draw calls
@@ -85,17 +85,28 @@ public class Shadows
 		buffer.ClearRenderTarget(true, false, Color.clear);
 		buffer.BeginSample(bufferName);
 		ExecuteBuffer();
+		//Split each light into its own tile in the texture
+		int split = ShadowedDirectionalLightCount <= 1 ? 1 : 2;
+		int tileSize = atlasSize / split;
 		//Render shadows for each of the directional lights in our setup
 		for(int i = 0; i < ShadowedDirectionalLightCount; i++)
         {
-			RenderDirectionalShadows(i, atlasSize); //Assign the size of the tile assoiated with the shadow
+			RenderDirectionalShadows(i, split,tileSize); //Assign the size of the tile assoiated with the shadow
         }
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
 	}
+	//Adjust render Viewport so we can split the rt into sections
+	void SetTileViewport(int index, int split, float tileSize)
+    {
+		//Classic modlus, frac vector. Commonly used for creating grids in graphics
+		Vector2 offset = new Vector2(index % split, index / split);
+		buffer.SetViewport(new Rect(offset.x * tileSize, offset.y * tileSize, tileSize, tileSize));
+		
+    }
 	//Rendering a specifc shadow for a specific directional light
-	void RenderDirectionalShadows(int index, int tileSize)
+	void RenderDirectionalShadows(int index,int split, int tileSize)
     {
 		ShadowedDirectionalLight light = shadowedDirectionalLights[index];
 		var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
@@ -110,6 +121,7 @@ public class Shadows
 		//Split data is for how shadow casting objects should be culled.
 		//Save results to shadow settings
 		shadowSettings.splitData = splitData;
+		SetTileViewport(index, split, tileSize);
 		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
 		ExecuteBuffer();
 		context.DrawShadows(ref shadowSettings);
