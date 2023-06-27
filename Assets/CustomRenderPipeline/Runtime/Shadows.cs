@@ -9,6 +9,7 @@ public class Shadows
 	const int maxShadowedDirectionalLightCount = 4; //Shadows are expensive so we want to limit the amount of shadows per light
 	const string bufferName = "Shadows";
 	static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
+	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
 	//Command buffer used to setup and execute the shadow draw calls
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -27,6 +28,9 @@ public class Shadows
     }
 	ShadowedDirectionalLight[] shadowedDirectionalLights =
 		new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
+	//Need matrices to sample the UVs of each tile in our atlas
+	static Matrix4x4[]
+		dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount];
 	//Used to determine which light(s) gets to have shadows
 	int ShadowedDirectionalLightCount;
 	
@@ -54,6 +58,29 @@ public class Shadows
                 };
         }
 	}
+	//Takes a light matrix and converts into shadow atlas tile space
+	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
+    {
+		//Negate the z direction if revesred z buffer
+		if (SystemInfo.usesReversedZBuffer)
+		{
+			m.m20 = -m.m20;
+			m.m21 = -m.m21;
+			m.m22 = -m.m22;
+			m.m23 = -m.m23;
+		}
+		//Convert clip space to texure coords
+		float scale = 1f / split;
+		m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * scale;
+		m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * scale;
+		m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * scale;
+		m.m03 = (0.5f * (m.m03 + m.m33) + offset.x * m.m33) * scale;
+		m.m10 = (0.5f * (m.m10 + m.m30) + offset.y * m.m30) * scale;
+		m.m11 = (0.5f * (m.m11 + m.m31) + offset.y * m.m31) * scale;
+		m.m12 = (0.5f * (m.m12 + m.m32) + offset.y * m.m32) * scale;
+		m.m13 = (0.5f * (m.m13 + m.m33) + offset.y * m.m33) * scale;
+		return m;
+    }
 	//Build and Render the shadow map for all lights
 	public void Render()
     {
@@ -93,17 +120,19 @@ public class Shadows
         {
 			RenderDirectionalShadows(i, split,tileSize); //Assign the size of the tile assoiated with the shadow
         }
+		//Send shadow matrices to to GPU
+		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
 	}
 	//Adjust render Viewport so we can split the rt into sections
-	void SetTileViewport(int index, int split, float tileSize)
+	Vector2 SetTileViewport(int index, int split, float tileSize)
     {
 		//Classic modlus, frac vector. Commonly used for creating grids in graphics
 		Vector2 offset = new Vector2(index % split, index / split);
 		buffer.SetViewport(new Rect(offset.x * tileSize, offset.y * tileSize, tileSize, tileSize));
-		
+		return offset;
     }
 	//Rendering a specifc shadow for a specific directional light
 	void RenderDirectionalShadows(int index,int split, int tileSize)
@@ -121,7 +150,11 @@ public class Shadows
 		//Split data is for how shadow casting objects should be culled.
 		//Save results to shadow settings
 		shadowSettings.splitData = splitData;
-		SetTileViewport(index, split, tileSize);
+		//Create matrixx for converting world to projection space
+		dirShadowMatrices[index] = ConvertToAtlasMatrix(
+			projectionMatrix * viewMatrix,
+			SetTileViewport(index, split, tileSize),
+			split); //save the matrix we calculated so we can sample it later
 		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
 		ExecuteBuffer();
 		context.DrawShadows(ref shadowSettings);
