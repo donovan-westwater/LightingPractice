@@ -17,10 +17,12 @@ public class Lighting
 		//dirLightDirectionId = Shader.PropertyToID("_DirectionalLightDirection");
 		dirLightCountId = Shader.PropertyToID("_DirectionalLightCount"),
 		dirLightColorsId = Shader.PropertyToID("_DirectionalLightColors"),
-		dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections");
+		dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections"),
+		dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 	static Vector4[]
 		dirLightColors = new Vector4[maxDirLightCount],
-		dirLightDirections = new Vector4[maxDirLightCount];
+		dirLightDirections = new Vector4[maxDirLightCount],
+		dirLightShadowData = new Vector4[maxDirLightCount];
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
 	Shadows shadows = new Shadows(); //Class used to handle the shadow draw calls
 	public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
@@ -61,6 +63,7 @@ public class Lighting
 		buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
 		buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
 		buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
+		buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
 	}
     void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
 	{
@@ -68,7 +71,7 @@ public class Lighting
 		//Negate forward vector for the light
 		dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
 		//Reserve a shadow for the light if there is enough room
-		shadows.ReserveDirectionalShadows(visibleLight.light, index);
+		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, index);
 
 	}
 

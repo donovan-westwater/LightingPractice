@@ -4,6 +4,7 @@
 #define CUSTOM_LIT_PASS_INCLUDED
 #include "../ShaderLibrary/Common.hlsl"
 #include "../ShaderLibrary/CustomSurface.hlsl"
+#include "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/CustomLight.hlsl"
 #include "../ShaderLibrary/BRDF.hlsl"
 #include "../ShaderLibrary/CustomLighting.hlsl"
