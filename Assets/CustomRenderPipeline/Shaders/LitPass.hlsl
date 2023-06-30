@@ -62,6 +62,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
 	#endif 
 	Surface surface;
+	surface.position = input.positionWS; //pixel position for shadows
 	surface.normal = normalize(input.normalWS);
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
 	surface.color = base.rgb;
@@ -75,8 +76,6 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	BRDF brdf = GetBRDF(surface);
 #endif //Get the the lighting properties that result from a given surface
 	float3 color = GetLighting(surface,brdf);
-	
-
 	return float4(color, surface.alpha);
 }
 
