@@ -13,6 +13,7 @@ public class Shadows
 	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
 	static int cascadeCountId = Shader.PropertyToID("_CascadeCount");
 	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
+	static int shadowDistanceId = Shader.PropertyToID("_ShadowDistance");
 
 	//Culling sphers use xyz position for center and w for radius
 	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
@@ -137,6 +138,7 @@ public class Shadows
 		buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
 		buffer.SetGlobalVectorArray(cascadeCullingSphereId, cascadeCullingSpheres);
 		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
+		buffer.SetGlobalFloat(shadowDistanceId, settings.maxDistance);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 

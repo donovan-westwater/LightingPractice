@@ -65,6 +65,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.position = input.positionWS; //pixel position for shadows
 	surface.normal = normalize(input.normalWS);
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
+	surface.depth = -TransformWorldToView(input.positionWS).z;
 	surface.color = base.rgb;
 	surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic); //Get property frome lit shader
 	surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Smoothness); //Get proeprty from lit shader
