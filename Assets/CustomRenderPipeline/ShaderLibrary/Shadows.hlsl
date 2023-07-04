@@ -12,6 +12,8 @@ TEXTURE2D_SHADOW(_DirectionalShadowAtlas);
 SAMPLER_CMP(SHADOW_SAMPLER);
 
 CBUFFER_START(_CustomShadows)
+	int _CascadeCount;
+	float4 _CascadeCullingSpheres[MAX_CASCADE_COUNT];
 	float4x4 _DirectionalShadowMatrices[MAX_SHADOW_DIRECTIONAL_LIGHT_COUNT*MAX_CASCADE_COUNT];
 CBUFFER_END
 
@@ -19,6 +21,22 @@ struct DirectionalShadowData {
 	float strength;
 	int tileIndex;
 };
+struct ShadowData {
+	int cascadeIndex;
+};
+
+ShadowData GetShadowData(Surface surfaceWS) {
+	ShadowData data;
+	//Figure out which cascade should be picked to render
+	int i;
+	for (i = 0; i < _CascadeCount; i++) {
+		float4 sphere = _CascadeCullingSpheres[i];
+		float distanceSqr = DistanceSquared(surfaceWS.position, sphere.xyz);
+		if (distanceSqr < sphere.w) break;
+	}
+	data.cascadeIndex = i;
+	return data;
+}
 //Sample the shadow atlas taking a position in shadow atlas space as input
 //Attenuation determines how shadowed the point is
 //NOTICE: THIS FUNCTION ISNT WORKING?! ONLY RETURNS 0!

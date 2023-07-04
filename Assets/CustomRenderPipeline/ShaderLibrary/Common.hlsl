@@ -17,6 +17,9 @@
 float Square(float v) {
 	return v * v;
 }
+float DistanceSquared(float3 pA, float3 pB) {
+	return dot(pA - pB, pA - pB);
+}
 /*
 //Functions that handles the actual transform process from local to world
 float3 TransformObjectToWorld(float3 positionOS) {

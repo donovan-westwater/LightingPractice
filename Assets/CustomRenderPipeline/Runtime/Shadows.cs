@@ -11,6 +11,11 @@ public class Shadows
 	const string bufferName = "Shadows";
 	static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
 	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
+	static int cascadeCountId = Shader.PropertyToID("_CascadeCount");
+	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
+
+	//Culling sphers use xyz position for center and w for radius
+	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
 	//Command buffer used to setup and execute the shadow draw calls
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -129,6 +134,8 @@ public class Shadows
 			RenderDirectionalShadows(i, split,tileSize); //Assign the size of the tile assoiated with the shadow
         }
 		//Send shadow matrices to to GPU
+		buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
+		buffer.SetGlobalVectorArray(cascadeCullingSphereId, cascadeCullingSpheres);
 		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
@@ -165,6 +172,11 @@ public class Shadows
 			//Split data is for how shadow casting objects should be culled.
 			//Save results to shadow settings
 			shadowSettings.splitData = splitData;
+			if (index == 0) {
+				Vector4 cullingSphere = splitData.cullingSphere;
+				cullingSphere.w *= cullingSphere.w;
+				cascadeCullingSpheres[i] = cullingSphere; 
+			}
 			//Need to get the indices for each tile in the atlas we want to render for the current light
 			int tileIndex = tileOffset + i;
 			//Create matrixx for converting world to projection space
