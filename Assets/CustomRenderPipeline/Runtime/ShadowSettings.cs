@@ -5,8 +5,11 @@ using UnityEngine;
 public class ShadowSettings
 {
     //Defines how far away we render shadows at the maximum
-    [Min(0f)]
+    [Min(0.001f)]
     public float maxDistance = 100f;
+
+    [Range(0.001f, 1f)]
+    public float distanceFade = 0.1f;
     //What is the texture size for the shadow
     public enum TextureSize
     {
