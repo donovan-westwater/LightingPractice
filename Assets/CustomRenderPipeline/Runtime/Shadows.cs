@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 public class Shadows
 {
 	const int maxShadowedDirectionalLightCount = 4; //Shadows are expensive so we want to limit the amount of shadows per light
+	const int maxCascades = 4; //How many passes for the shadows we use to create the full picture?
 	const string bufferName = "Shadows";
 	static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
 	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
@@ -30,7 +31,7 @@ public class Shadows
 		new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
 	//Need matrices to sample the UVs of each tile in our atlas
 	static Matrix4x4[]
-		dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount];
+		dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];
 	//Used to determine which light(s) gets to have shadows
 	int ShadowedDirectionalLightCount;
 	
@@ -56,7 +57,7 @@ public class Shadows
 				{
 					visibleLightIndex = visibleLightIndex
                 };
-			return new Vector2(light.shadowStrength, ShadowedDirectionalLightCount++);
+			return new Vector2(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++);
         }
 		return Vector2.zero;
 	}
@@ -119,7 +120,8 @@ public class Shadows
 		buffer.BeginSample(bufferName);
 		ExecuteBuffer();
 		//Split each light into its own tile in the texture
-		int split = ShadowedDirectionalLightCount <= 1 ? 1 : 2;
+		int tiles = ShadowedDirectionalLightCount * settings.directional.cascadeCount; //All the tiles used during shadows, including tiles used for cascade
+		int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;//calculate number of splits for each light
 		int tileSize = atlasSize / split;
 		//Render shadows for each of the directional lights in our setup
 		for(int i = 0; i < ShadowedDirectionalLightCount; i++)
@@ -145,26 +147,36 @@ public class Shadows
     {
 		ShadowedDirectionalLight light = shadowedDirectionalLights[index];
 		var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
-		//We want to render the scene as if the light is the camera and use the depth info to draw the shadows
-		//Since directional lights have no position, we need to create a clip space cube based on the rotation
-		//of the light
-		//We are going to calculate that using a unity function
-		//First arg: visible light index, 2-4 are for the shadow cascade, 5: texture size, 6: near plane
-		//The remaining 3 are the output parameters for view matrix and projection matrix and Shadow split data.
-		cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(light.visibleLightIndex, 0, 1, Vector3.zero, tileSize, 0f
-			, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
-		//Split data is for how shadow casting objects should be culled.
-		//Save results to shadow settings
-		shadowSettings.splitData = splitData;
-		//Create matrixx for converting world to projection space
-		dirShadowMatrices[index] = ConvertToAtlasMatrix(
-			projectionMatrix * viewMatrix,
-			SetTileViewport(index, split, tileSize),
-			split); //save the matrix we calculated so we can sample it later
-		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
-		ExecuteBuffer();
-		context.DrawShadows(ref shadowSettings);
-    }
+		//Prepping for making matrices for each cascade
+		int cascadeCount = settings.directional.cascadeCount;
+		int tileOffset = index * cascadeCount;
+		Vector3 ratios = settings.directional.CascadeRatios;
+		for(int i = 0;i < cascadeCount; i++)
+        {        
+			//We want to render the scene as if the light is the camera and use the depth info to draw the shadows
+			//Since directional lights have no position, we need to create a clip space cube based on the rotation
+			//of the light
+			//We are going to calculate that using a unity function
+			//First arg: visible light index, 2-4 are for the shadow cascade, 5: texture size, 6: near plane
+			//The remaining 3 are the output parameters for view matrix and projection matrix and Shadow split data.
+			cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(light.visibleLightIndex, i, cascadeCount
+				, ratios, tileSize, 0f
+				, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
+			//Split data is for how shadow casting objects should be culled.
+			//Save results to shadow settings
+			shadowSettings.splitData = splitData;
+			//Need to get the indices for each tile in the atlas we want to render for the current light
+			int tileIndex = tileOffset + i;
+			//Create matrixx for converting world to projection space
+			dirShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
+				projectionMatrix * viewMatrix,
+				SetTileViewport(tileIndex, split, tileSize),
+				split); //save the matrix we calculated so we can sample it later
+			buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+			ExecuteBuffer();
+			context.DrawShadows(ref shadowSettings);
+		}
+	}
 	public void Cleanup()
     {
 		buffer.ReleaseTemporaryRT(dirShadowAtlasId);
