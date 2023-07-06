@@ -13,10 +13,12 @@ public class Shadows
 	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
 	static int cascadeCountId = Shader.PropertyToID("_CascadeCount");
 	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
+	static int cascadeDataId = Shader.PropertyToID("_CascadeData");
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
 
 	//Culling sphers use xyz position for center and w for radius
 	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
+	static Vector4[] cascadeData = new Vector4[maxCascades]; //Data used to handle shadow acne
 	//Command buffer used to setup and execute the shadow draw calls
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -138,6 +140,7 @@ public class Shadows
 		float f = 1f - settings.directional.cascadeFade;
 		buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
 		buffer.SetGlobalVectorArray(cascadeCullingSphereId, cascadeCullingSpheres);
+		buffer.SetGlobalVectorArray(cascadeDataId, cascadeData);
 		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
 		buffer.SetGlobalVector(
 			shadowDistanceFadeId,
@@ -179,9 +182,7 @@ public class Shadows
 			//Save results to shadow settings
 			shadowSettings.splitData = splitData;
 			if (index == 0) {
-				Vector4 cullingSphere = splitData.cullingSphere;
-				cullingSphere.w *= cullingSphere.w;
-				cascadeCullingSpheres[i] = cullingSphere; 
+				SetCascadeData(i, splitData.cullingSphere, tileSize);
 			}
 			//Need to get the indices for each tile in the atlas we want to render for the current light
 			int tileIndex = tileOffset + i;
@@ -191,9 +192,22 @@ public class Shadows
 				SetTileViewport(tileIndex, split, tileSize),
 				split); //save the matrix we calculated so we can sample it later
 			buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+			//buffer.SetGlobalDepthBias(0f, 3f); //Settup bias to help with shadow acne (global and slope scale)
 			ExecuteBuffer();
 			context.DrawShadows(ref shadowSettings);
+			//buffer.SetGlobalDepthBias(0f, 0f); //Reset after shadows are done
 		}
+	}
+
+	void SetCascadeData(int index,Vector4 cullingSphere, float tileSize)
+    {
+		float texelSize = 2f * cullingSphere.w / tileSize; //Blowing up samples to correct self shadowing
+		//cascadeData[index].x = 1f / cullingSphere.w;
+		cullingSphere.w *= cullingSphere.w;
+		cascadeCullingSpheres[index] = cullingSphere;
+		cascadeData[index] = new Vector4(
+			1f / cullingSphere.w,
+			texelSize*1.412136f);
 	}
 	public void Cleanup()
     {
