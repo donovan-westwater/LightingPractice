@@ -135,12 +135,13 @@ public class Shadows
 			RenderDirectionalShadows(i, split,tileSize); //Assign the size of the tile assoiated with the shadow
         }
 		//Send shadow matrices to to GPU
+		float f = 1f - settings.directional.cascadeFade;
 		buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
 		buffer.SetGlobalVectorArray(cascadeCullingSphereId, cascadeCullingSpheres);
 		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
 		buffer.SetGlobalVector(
 			shadowDistanceFadeId,
-			new Vector4(1f / settings.maxDistance, 1f / settings.distanceFade)
+			new Vector4(1f / settings.maxDistance, 1f / settings.distanceFade,1f/(1f-f*f))
 		);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
