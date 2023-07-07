@@ -34,6 +34,7 @@ public class Shadows
 	struct ShadowedDirectionalLight
     {
 		public int visibleLightIndex;
+		public float slopeScaleBias;
     }
 	ShadowedDirectionalLight[] shadowedDirectionalLights =
 		new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
@@ -53,7 +54,7 @@ public class Shadows
 		this.settings = settings;
 		ShadowedDirectionalLightCount = 0;
 	}
-	public Vector2 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
+	public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
 		//If we have enough space, assign a light if the light has shadows enabled
 		//We also want to make sure there are objects to cast shadows on as well
 		if(ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount &&
@@ -63,11 +64,13 @@ public class Shadows
 			shadowedDirectionalLights[ShadowedDirectionalLightCount] =
 				new ShadowedDirectionalLight
 				{
-					visibleLightIndex = visibleLightIndex
+					visibleLightIndex = visibleLightIndex,
+					slopeScaleBias = light.shadowBias
                 };
-			return new Vector2(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++);
+			return new Vector3(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++
+				,light.shadowNormalBias);
         }
-		return Vector2.zero;
+		return Vector3.zero;
 	}
 	//Takes a light matrix and converts into shadow atlas tile space
 	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
@@ -192,10 +195,10 @@ public class Shadows
 				SetTileViewport(tileIndex, split, tileSize),
 				split); //save the matrix we calculated so we can sample it later
 			buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
-			//buffer.SetGlobalDepthBias(0f, 3f); //Settup bias to help with shadow acne (global and slope scale)
+			buffer.SetGlobalDepthBias(0f, light.slopeScaleBias); //Settup bias to help with shadow acne (global and slope scale)
 			ExecuteBuffer();
 			context.DrawShadows(ref shadowSettings);
-			//buffer.SetGlobalDepthBias(0f, 0f); //Reset after shadows are done
+			buffer.SetGlobalDepthBias(0f, 0f); //Reset after shadows are done
 		}
 	}
 
