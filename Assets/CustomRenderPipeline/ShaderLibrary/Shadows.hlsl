@@ -56,11 +56,11 @@ ShadowData GetShadowData(Surface surfaceWS) {
 }
 //Sample the shadow atlas taking a position in shadow atlas space as input
 //Attenuation determines how shadowed the point is
-//NOTICE: THIS FUNCTION ISNT WORKING?! ONLY RETURNS 0!
 float SampleDirectionalShadowAtlas(float3 positionSTS) {
 	return SAMPLE_TEXTURE2D_SHADOW(_DirectionalShadowAtlas, SHADOW_SAMPLER, positionSTS);
 }
 //Returns the atteuation of the shadows given the data and a surface
+// NOTE: Seems to be having issues with multiple lights
 //We add some bias to help deal with shadow acne
 float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowData global, Surface surfaceWS) {
 	if (directional.strength <= 0.0) return 1.0;

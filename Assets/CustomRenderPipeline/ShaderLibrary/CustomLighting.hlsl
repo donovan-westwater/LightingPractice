@@ -14,10 +14,11 @@ float3 GetLighting(Surface surface, BRDF brdf, Light light) {
 }
 //Calculates lighting using the surface normals
 float3 GetLighting(Surface surfaceWS, BRDF brdf) {
-	ShadowData shadowData = GetShadowData(surfaceWS);
+	ShadowData shadowData = GetShadowData(surfaceWS); //shadow data canceling out multiple lights
 	float3 color = 0.0;
 	for (int i = 0; i < GetDirectionalLightCount(); i++) {
 		Light light = GetDirectionalLight(i, surfaceWS, shadowData);
+		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
 		color += GetLighting(surfaceWS, brdf,light);
 	}
 	return color;
