@@ -234,12 +234,14 @@ public class Shadows
 	void SetCascadeData(int index,Vector4 cullingSphere, float tileSize)
     {
 		float texelSize = 2f * cullingSphere.w / tileSize; //Blowing up samples to correct self shadowing
+		float filterSize = texelSize * ((float)settings.directional.filter + 1f);
 		//cascadeData[index].x = 1f / cullingSphere.w;
+		cullingSphere.w -= filterSize;
 		cullingSphere.w *= cullingSphere.w;
 		cascadeCullingSpheres[index] = cullingSphere;
 		cascadeData[index] = new Vector4(
 			1f / cullingSphere.w,
-			texelSize*1.412136f);
+			filterSize*1.412136f);
 	}
 	public void Cleanup()
     {
