@@ -35,6 +35,7 @@ Varyings ShadowCasterPassVertex(Attributes input){
 	UNITY_TRANSFER_INSTANCE_ID(input, output); //copy index from input to output for GPU instancing
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(positionWS);
+	//Prevents shadows from being clipped by the near plane of cam
 #if UNITY_REVERSED_Z
 	output.positionCS.z =
 		min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);

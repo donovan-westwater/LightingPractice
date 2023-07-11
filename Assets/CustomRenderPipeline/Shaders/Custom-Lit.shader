@@ -29,6 +29,7 @@ Shader "Custom RP/Custom-Lit"
             #pragma target 3.5 //Helps with differences in webGL and OpenGL
             #pragma shader_feature _CLIPPING
             #pragma shader_feature _PREMULTIPLY_ALPHA
+            #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex LitPassVertex //This is the name of the vertex step
             #pragma fragment LitPassFragment //This is the name of the frag step

@@ -16,12 +16,20 @@ public class ShadowSettings
         _256 = 256, _512 = 512, _1024 = 1024,
         _2048 = 2048, _4096 = 4096, _8192 = 8192
     }
+    //Used for soft shadows. Multi-samples atlas to anti alias shadows
+    public enum FilterMode
+    {
+        PCF2x2, PCF3x3, PCF5x5, PCF7x7
+    }
+
     //We define a single texture to handle the shadow maps
     [System.Serializable]
     public struct Directional
     {
         //Handles the size of the shadow map texture
         public TextureSize atlasSize;
+
+        public FilterMode filter;
         //Settings for shadow cascades
         //Each cascade adds more detail to the shadows by zooming out further
         //Start close to camera then zoom out
@@ -44,6 +52,7 @@ public class ShadowSettings
     public Directional directional = new Directional
     {
         atlasSize = TextureSize._1024,
+        filter = FilterMode.PCF2x2,
         cascadeCount = 4,
         cascadeRatio1 = 0.1f,
         cascadeRatio2 = 0.25f,

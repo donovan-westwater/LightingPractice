@@ -9,7 +9,14 @@ public class Shadows
 	const int maxShadowedDirectionalLightCount = 4; //Shadows are expensive so we want to limit the amount of shadows per light
 	const int maxCascades = 4; //How many passes for the shadows we use to create the full picture?
 	const string bufferName = "Shadows";
+	//Shader variant keywords
+	static string[] directionalFilterKeywords = {
+		"_DIRECTIONAL_PCF3",
+		"_DIRECTIONAL_PCF5",
+		"_DIRECTIONAL_PCF7",
+	};
 	static int dirShadowAtlasId = Shader.PropertyToID("_DirectionalShadowAtlas");
+	static int shadowAtlasSizeId = Shader.PropertyToID("_ShadowAtlasSize");
 	static int dirShadowMatricesId = Shader.PropertyToID("_DirectionalShadowMatrices");
 	static int cascadeCountId = Shader.PropertyToID("_CascadeCount");
 	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
@@ -35,6 +42,7 @@ public class Shadows
     {
 		public int visibleLightIndex;
 		public float slopeScaleBias;
+		public float nearPlaneOffset;
     }
 	ShadowedDirectionalLight[] shadowedDirectionalLights =
 		new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
@@ -65,7 +73,8 @@ public class Shadows
 				new ShadowedDirectionalLight
 				{
 					visibleLightIndex = visibleLightIndex,
-					slopeScaleBias = light.shadowBias
+					slopeScaleBias = light.shadowBias,
+					nearPlaneOffset = light.shadowNearPlane
                 };
 			return new Vector3(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++
 				,light.shadowNormalBias);
@@ -149,9 +158,29 @@ public class Shadows
 			shadowDistanceFadeId,
 			new Vector4(1f / settings.maxDistance, 1f / settings.distanceFade,1f/(1f-f*f))
 		);
+		SetKeywords();
+		buffer.SetGlobalVector(
+			shadowAtlasSizeId, new Vector4(atlasSize, 1f / atlasSize)
+		);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
+	}
+	//Shader Keyword setup
+	void SetKeywords()
+	{
+		int enabledIndex = (int)settings.directional.filter - 1;
+		for (int i = 0; i < directionalFilterKeywords.Length; i++)
+		{
+			if (i == enabledIndex)
+			{
+				buffer.EnableShaderKeyword(directionalFilterKeywords[i]);
+			}
+			else
+			{
+				buffer.DisableShaderKeyword(directionalFilterKeywords[i]);
+			}
+		}
 	}
 	//Adjust render Viewport so we can split the rt into sections
 	Vector2 SetTileViewport(int index, int split, float tileSize)
@@ -179,7 +208,7 @@ public class Shadows
 			//First arg: visible light index, 2-4 are for the shadow cascade, 5: texture size, 6: near plane
 			//The remaining 3 are the output parameters for view matrix and projection matrix and Shadow split data.
 			cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(light.visibleLightIndex, i, cascadeCount
-				, ratios, tileSize, 0f
+				, ratios, tileSize, light.nearPlaneOffset
 				, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
 			//Split data is for how shadow casting objects should be culled.
 			//Save results to shadow settings
