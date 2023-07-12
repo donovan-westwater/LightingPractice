@@ -47,6 +47,7 @@ Shader "Custom RP/Custom-Lit"
             HLSLPROGRAM
             #pragma target 3.5
             #pragma shader_feature _CLIPPING
+            #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
             #pragma multi_compile_instancing
             #pragma vertex ShadowCasterPassVertex
             #pragma fragment ShadowCasterPassFragment

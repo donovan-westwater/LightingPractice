@@ -69,6 +69,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.color = base.rgb;
 	surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic); //Get property frome lit shader
 	surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Smoothness); //Get proeprty from lit shader
+	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function
 #if defined(_PREMULTIPLY_ALPHA)
