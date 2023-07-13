@@ -9,7 +9,8 @@ Shader "Custom RP/Custom-Lit"
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
-        [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0
+        [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
+        [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0 //USed for transparent objects
         [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha", Float) = 0 //fade out diffuse while keeping specular
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Src Blend", Float) = 1
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Dst Blend", Float) = 0
@@ -29,6 +30,7 @@ Shader "Custom RP/Custom-Lit"
             HLSLPROGRAM
             #pragma target 3.5 //Helps with differences in webGL and OpenGL
             #pragma shader_feature _CLIPPING
+            #pragma shader_feature _RECEIVE_SHADOWS
             #pragma shader_feature _PREMULTIPLY_ALPHA
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh

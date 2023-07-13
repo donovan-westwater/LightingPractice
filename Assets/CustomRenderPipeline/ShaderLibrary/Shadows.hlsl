@@ -107,6 +107,9 @@ float FilterDirectionalShadow(float3 positionSTS) {
 // NOTE: Seems to be having issues with multiple lights
 //We add some bias to help deal with shadow acne
 float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowData global, Surface surfaceWS) {
+	#if !defined(_RECEIVE_SHADOWS)
+		return 1.0;
+	#endif
 	if (directional.strength <= 0.0) return 1.0;
 	float3 normalBias = surfaceWS.normal * (directional.normalBias * _CascadeData[global.cascadeIndex].y);
 	float3 positionSTS = mul(_DirectionalShadowMatrices[directional.tileIndex],
