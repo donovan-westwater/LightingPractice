@@ -54,8 +54,11 @@ void ShadowCasterPassFragment(Varyings input){
 	float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
 	float4 base = baseMap * baseColor;
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
-	#if defined(_CLIPPING)
+	#if defined(_SHADOWS_CLIP)
 		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
+	#elif defined(_SHADOWS_DITHER)
+		float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+		clip(base.a - dither);
 	#endif 
 	
 }

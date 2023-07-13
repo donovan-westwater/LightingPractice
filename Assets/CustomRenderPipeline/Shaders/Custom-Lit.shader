@@ -9,6 +9,7 @@ Shader "Custom RP/Custom-Lit"
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
+        [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0
         [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha", Float) = 0 //fade out diffuse while keeping specular
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Src Blend", Float) = 1
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Dst Blend", Float) = 0
@@ -46,7 +47,7 @@ Shader "Custom RP/Custom-Lit"
             ColorMask 0
             HLSLPROGRAM
             #pragma target 3.5
-            #pragma shader_feature _CLIPPING
+            #pragma shader_feature _ _SHADOWS_CLIP _SHADOWS_DITHER
             #pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
             #pragma multi_compile_instancing
             #pragma vertex ShadowCasterPassVertex
