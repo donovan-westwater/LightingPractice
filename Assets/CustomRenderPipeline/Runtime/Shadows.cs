@@ -209,6 +209,8 @@ public class Shadows
 		int cascadeCount = settings.directional.cascadeCount;
 		int tileOffset = index * cascadeCount;
 		Vector3 ratios = settings.directional.CascadeRatios;
+		//Culling factor that modulates teh radius of the previous cascade used to cull
+		float cullingFactor = Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
 		for(int i = 0;i < cascadeCount; i++)
         {        
 			//We want to render the scene as if the light is the camera and use the depth info to draw the shadows
@@ -222,6 +224,9 @@ public class Shadows
 				, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
 			//Split data is for how shadow casting objects should be culled.
 			//Save results to shadow settings
+			//First we add some culling bias to avoid using the shadow casters more than once per light
+			//We remove shadow caster passes that were covered by a previous cascade
+			splitData.shadowCascadeBlendCullingFactor = cullingFactor;
 			shadowSettings.splitData = splitData;
 			if (index == 0) {
 				SetCascadeData(i, splitData.cullingSphere, tileSize);
