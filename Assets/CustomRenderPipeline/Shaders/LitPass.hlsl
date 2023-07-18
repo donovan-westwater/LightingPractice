@@ -7,6 +7,7 @@
 #include "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/CustomLight.hlsl"
 #include "../ShaderLibrary/BRDF.hlsl"
+#include "../ShaderLibrary/GI.hlsl"
 #include "../ShaderLibrary/CustomLighting.hlsl"
 //Want to support textures
 // Cannot be per material
@@ -77,7 +78,8 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 #else
 	BRDF brdf = GetBRDF(surface);
 #endif //Get the the lighting properties that result from a given surface
-	float3 color = GetLighting(surface,brdf);
+	GI gi = GetGI(0.0);
+	float3 color = GetLighting(surface,brdf,gi);
 	return float4(color, surface.alpha);
 }
 
