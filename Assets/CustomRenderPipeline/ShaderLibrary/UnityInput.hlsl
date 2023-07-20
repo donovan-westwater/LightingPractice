@@ -8,6 +8,9 @@ CBUFFER_START(UnityPerDraw)
 	float4x4 unity_WorldToObject; //Matrix for world to object transform
 	float4 unity_LODFade; //Needs to be included even if not used
 	real4 unity_WorldTransformParams; //World Transform Params
+
+	float4 unity_LightmapST; //Var for sampled lightmap
+	float4 unity_DynamicLightmapST; //depricated lightmap var
 CBUFFER_END
 
 float4x4 unity_MatrixVP; //View matrix or world to camera matrix
