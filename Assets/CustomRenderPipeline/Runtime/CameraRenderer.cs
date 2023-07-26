@@ -107,7 +107,7 @@ public partial class CameraRenderer
 		{
 			enableDynamicBatching = useDynamicBatching, //Bundles draw calls together
 			enableInstancing = useGPUInstancing, //Turns objects into instances
-			perObjectData = PerObjectData.Lightmaps //Send the lightmaps assoiated with each object
+			perObjectData = PerObjectData.Lightmaps | PerObjectData.LightProbe //Send the lightmaps and light probes assoiated with each object
 		};
 		drawingSettings.SetShaderPassName(1, litShaderTagId);
 

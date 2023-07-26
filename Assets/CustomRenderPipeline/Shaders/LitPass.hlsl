@@ -95,7 +95,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 #else
 	BRDF brdf = GetBRDF(surface);
 #endif //Get the the lighting properties that result from a given surface
-	GI gi = GetGI(GI_FRAGMENT_DATA(input));
+	GI gi = GetGI(GI_FRAGMENT_DATA(input), surface);
 	float3 color = GetLighting(surface,brdf,gi);
 	return float4(color, surface.alpha);
 }
