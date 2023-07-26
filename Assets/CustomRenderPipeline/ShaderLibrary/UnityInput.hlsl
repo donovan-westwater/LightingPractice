@@ -19,6 +19,11 @@ CBUFFER_START(UnityPerDraw)
 	float4 unity_SHBg;
 	float4 unity_SHBb;
 	float4 unity_SHC;
+	//Light probe volume sampling
+	float4 unity_ProbeVolumeParams;
+	float4x4 unity_ProbeVolumeWorldToObject;
+	float4 unity_ProbeVolumeSizeInv;
+	float4 unity_ProbeVolumeMin;
 CBUFFER_END
 
 float4x4 unity_MatrixVP; //View matrix or world to camera matrix
