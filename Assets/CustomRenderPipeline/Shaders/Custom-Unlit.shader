@@ -13,6 +13,10 @@ Shader "Unlit/Custom-Unlit"
     }
     SubShader
     {
+        HLSLINCLUDE
+        #include "../ShaderLibrary/Common.hlsl"
+        #include "../ShaderLibrary/UnlitInput.hlsl"
+        ENDHLSL
         Pass
         {
             Blend [_SrcBlend] [_DstBlend]

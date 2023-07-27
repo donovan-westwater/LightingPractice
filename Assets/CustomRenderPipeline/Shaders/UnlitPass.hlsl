@@ -2,19 +2,19 @@
 //Basically works like a singleton
 #ifndef CUSTOM_UNLIT_PASS_INCLUDED
 #define CUSTOM_UNLIT_PASS_INCLUDED
-#include "../ShaderLibrary/Common.hlsl"
+//#include "../ShaderLibrary/Common.hlsl"
 //Want to support textures
 // Cannot be per material
-TEXTURE2D(_BaseMap);
-SAMPLER(sampler_BaseMap);
+//TEXTURE2D(_BaseMap);
+//SAMPLER(sampler_BaseMap);
 
 //We want to be able to bundle draw calls to CPU and GPU as batches (if we were using cbuffer)
 //Since cbuffer wont work with per object material properties, then we need to setup GPU instacing instead
-UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
-	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
-	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
-	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
-UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
+//UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
+//	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
+//	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
+//	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+//UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct Attributes {
 	float3 positionOS : POSITION;
@@ -34,19 +34,19 @@ Varyings UnlitPassVertex(Attributes input){
 	UNITY_TRANSFER_INSTANCE_ID(input, output); //copy index from input to output for GPU instancing
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(positionWS);
-	float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
-	output.baseUV = input.baseUV * baseST.xy + baseST.zw; //Transform UVs
+	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
+	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
 //In this case, output is for render target
 float4 UnlitPassFragment(Varyings input) : SV_TARGET{
 	UNITY_SETUP_INSTANCE_ID(input);
-	float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
-	float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base =  baseMap * baseColor;
+	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
+	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
+	float4 base = GetBase(input.baseUV);
 	#if defined(_CLIPPING)
-		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
 	#endif 
 	return base;
 }
