@@ -20,6 +20,10 @@ Shader "Custom RP/Custom-Lit"
     {
         Pass
         {
+            HLSLINCLUDE
+            #include "../ShaderLibrary/Common.hlsl"
+            #include "../ShaderLibrary/LitInput.hlsl"
+            ENDHLSL
             //Indicate we are using custom lighting approach
             Tags {
                 "LightMode" = "CustomLit"

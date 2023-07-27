@@ -2,7 +2,7 @@
 //Basically works like a singleton
 #ifndef CUSTOM_LIT_PASS_INCLUDED
 #define CUSTOM_LIT_PASS_INCLUDED
-#include "../ShaderLibrary/Common.hlsl"
+//#include "../ShaderLibrary/Common.hlsl" This is redudant now
 #include "../ShaderLibrary/CustomSurface.hlsl"
 #include "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/CustomLight.hlsl"
@@ -25,18 +25,19 @@
 #endif
 //Want to support textures
 // Cannot be per material
-TEXTURE2D(_BaseMap);
-SAMPLER(sampler_BaseMap);
+//TEXTURE2D(_BaseMap); This is redudant now
+//SAMPLER(sampler_BaseMap); This is redudant now
 
+//This is redudant now
 //We want to be able to bundle draw calls to CPU and GPU as batches (if we were using cbuffer)
 //Since cbuffer wont work with per object material properties, then we need to setup GPU instacing instead
-UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
-	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
-	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
-	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
-	UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
-	UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
-UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
+//UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
+//	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
+//	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
+//	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+//	UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
+//	UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
+//UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct Attributes {
 	float3 positionOS : POSITION;
@@ -64,20 +65,20 @@ Varyings LitPassVertex(Attributes input){
 	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 	output.positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(output.positionWS);
-	float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
-	output.baseUV = input.baseUV * baseST.xy + baseST.zw; //Transform UVs
+	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
+	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
 //In this case, output is for render target
 float4 LitPassFragment(Varyings input) : SV_TARGET{
 	UNITY_SETUP_INSTANCE_ID(input);
-	float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
-	float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base = baseMap * baseColor;
+	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
+	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
+	float4 base = GetBase(input.baseUV);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
-		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(input.baseUV); //Discard frag if 0 or less
 	#endif 
 	Surface surface;
 	surface.position = input.positionWS; //pixel position for shadows
@@ -85,8 +86,8 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
 	surface.depth = -TransformWorldToView(input.positionWS).z;
 	surface.color = base.rgb;
-	surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic); //Get property frome lit shader
-	surface.smoothness = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Smoothness); //Get proeprty from lit shader
+	surface.metallic = GetMetallic(input.baseUV); //Get property frome lit shader
+	surface.smoothness = GetSmoothness(input.baseUV); //Get proeprty from lit shader
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function

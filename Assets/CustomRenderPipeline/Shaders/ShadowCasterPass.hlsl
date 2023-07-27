@@ -2,20 +2,21 @@
 //Basically works like a singleton
 #ifndef CUSTOM_SHADOW_CASTER_PASS_INCLUDED
 #define CUSTOM_SHADOW_CASTER_PASS_INCLUDED
-#include "../ShaderLibrary/Common.hlsl"
+//#include "../ShaderLibrary/Common.hlsl" redudant
 //We want to copy the light shader since we are just doing many of the same things its doing
 //Want to support textures
 // Cannot be per material
-TEXTURE2D(_BaseMap);
-SAMPLER(sampler_BaseMap);
+//TEXTURE2D(_BaseMap);  redudant
+//SAMPLER(sampler_BaseMap);   redudant
 
+//redudant vvvvvvv
 //We want to be able to bundle draw calls to CPU and GPU as batches (if we were using cbuffer)
 //Since cbuffer wont work with per object material properties, then we need to setup GPU instacing instead
-UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
-	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
-	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
-	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
-UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
+//UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
+//	UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
+//	UNITY_DEFINE_INSTANCED_PROP(float4,_BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
+//	UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+//UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct Attributes {
 	float3 positionOS : POSITION;
@@ -43,19 +44,19 @@ Varyings ShadowCasterPassVertex(Attributes input){
 	output.positionCS.z =
 		max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
 #endif
-	float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
-	output.baseUV = input.baseUV * baseST.xy + baseST.zw; //Transform UVs
+	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
+	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	return output;
 }
 
 void ShadowCasterPassFragment(Varyings input){
 	UNITY_SETUP_INSTANCE_ID(input);
-	float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
-	float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base = baseMap * baseColor;
+	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
+	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
+	float4 base = GetBase(input.baseUV);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_SHADOWS_CLIP)
-		clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff)); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
 	#elif defined(_SHADOWS_DITHER)
 		float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 		clip(base.a - dither);
