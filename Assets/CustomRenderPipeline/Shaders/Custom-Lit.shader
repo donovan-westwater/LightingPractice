@@ -9,6 +9,8 @@ Shader "Custom RP/Custom-Lit"
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
+        [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {} //Emission map for emissive materials
+        [HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0) //Emission color
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
         [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0 //USed for transparent objects
         [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha", Float) = 0 //fade out diffuse while keeping specular
