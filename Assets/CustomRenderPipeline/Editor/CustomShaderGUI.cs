@@ -44,6 +44,7 @@ public class CustomShaderGUI : ShaderGUI
 		editor = materialEditor;
 		materials = materialEditor.targets;
 		this.properties = properties;
+		BakedEmission(); //Enable baked emission
 		EditorGUILayout.Space();
 		showPresets = EditorGUILayout.Foldout(showPresets, "Presets", true);
 		if (showPresets)
@@ -58,7 +59,18 @@ public class CustomShaderGUI : ShaderGUI
 			SetShadowCasterPass();
         }
 	}
-
+	void BakedEmission()
+    {
+		EditorGUI.BeginChangeCheck();
+		editor.LightmapEmissionProperty();
+        if (EditorGUI.EndChangeCheck())
+        {
+			foreach(Material m in editor.targets)
+            {
+				m.globalIlluminationFlags &= ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            }
+        }
+	}
 	bool SetProperty(string name, float value)
     {
 		//Find the properties in the shader and assign the correct values
