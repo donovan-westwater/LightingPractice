@@ -78,7 +78,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	float4 base = GetBase(input.baseUV);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
-		clip(base.a - GetCutoff(input.baseUV); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
 	#endif 
 	Surface surface;
 	surface.position = input.positionWS; //pixel position for shadows
