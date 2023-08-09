@@ -144,6 +144,7 @@ public class CustomShaderGUI : ShaderGUI
         if (PresetButton("Opaque"))
         {
 			Clipping = false;
+			Shadows = ShadowMode.On;
 			PremultiplyAlpha = false;
 			SrcBlend = BlendMode.One;
 			DstBlend = BlendMode.Zero;
@@ -156,6 +157,7 @@ public class CustomShaderGUI : ShaderGUI
 		if (PresetButton("Clip"))
 		{
 			Clipping = true;
+			Shadows = ShadowMode.Clip;
 			PremultiplyAlpha = false;
 			SrcBlend = BlendMode.One;
 			DstBlend = BlendMode.Zero;
@@ -168,6 +170,7 @@ public class CustomShaderGUI : ShaderGUI
 		if (PresetButton("Fade"))
 		{
 			Clipping = false;
+			Shadows = ShadowMode.Dither;
 			PremultiplyAlpha = false;
 			SrcBlend = BlendMode.SrcAlpha;
 			DstBlend = BlendMode.OneMinusSrcAlpha;
@@ -180,6 +183,7 @@ public class CustomShaderGUI : ShaderGUI
 		if (HasPremultiplyAlpha && PresetButton("Transparent"))
 		{
 			Clipping = false;
+			Shadows = ShadowMode.Dither;
 			PremultiplyAlpha = true;
 			SrcBlend = BlendMode.One;
 			DstBlend = BlendMode.OneMinusSrcAlpha;
