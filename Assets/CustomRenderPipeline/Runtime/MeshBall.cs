@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class MeshBall : MonoBehaviour
 {
@@ -44,7 +45,22 @@ public class MeshBall : MonoBehaviour
 			block.SetVectorArray(baseColorId, baseColors);
 			block.SetFloatArray(metallicId, metallic);
 			block.SetFloatArray(smoothnessId, smoothness);
+			//Generate light probes based on instance positions
+			var positions = new Vector3[1023];
+			for(int i = 0; i < matrices.Length; i++)
+            {
+				//Access position via transform matrix
+				positions[i] = matrices[i].GetColumn(3);
+            }
+			//light probe generation
+			var lightProbes = new SphericalHarmonicsL2[1023];
+			LightProbes.CalculateInterpolatedLightAndOcclusionProbes(positions, lightProbes, null);
+			block.CopySHCoefficientArraysFrom(lightProbes);
 		}
-		Graphics.DrawMeshInstanced(mesh, 0, material, matrices, 1023, block);
+		//When drawing the mesh ball, we want to make sure that the genreated balls
+		//Using customProvided as there isn't a single position that can be used to blend the probes
+		//In short, we are going to generate light probes and tell the meshes about them
+		Graphics.DrawMeshInstanced(mesh, 0, material, matrices, 1023, block,
+			ShadowCastingMode.On,true,0,null,LightProbeUsage.CustomProvided);
 	}
 }
