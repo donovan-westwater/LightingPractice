@@ -19,6 +19,8 @@ public class MeshBall : MonoBehaviour
 	float[]
 		metallic = new float[1023],
 		smoothness = new float[1023];
+	[SerializeField]
+	LightProbeProxyVolume lightProbeVolume = null;
 	MaterialPropertyBlock block;
 	//Fills array with random positions for the objects
 	void Awake()
@@ -45,22 +47,26 @@ public class MeshBall : MonoBehaviour
 			block.SetVectorArray(baseColorId, baseColors);
 			block.SetFloatArray(metallicId, metallic);
 			block.SetFloatArray(smoothnessId, smoothness);
-			//Generate light probes based on instance positions
-			var positions = new Vector3[1023];
-			for(int i = 0; i < matrices.Length; i++)
-            {
-				//Access position via transform matrix
-				positions[i] = matrices[i].GetColumn(3);
-            }
-			//light probe generation
-			var lightProbes = new SphericalHarmonicsL2[1023];
-			LightProbes.CalculateInterpolatedLightAndOcclusionProbes(positions, lightProbes, null);
-			block.CopySHCoefficientArraysFrom(lightProbes);
+            if (!lightProbeVolume) { 
+				//Generate light probes based on instance positions
+				var positions = new Vector3[1023];
+				for(int i = 0; i < matrices.Length; i++)
+				{
+					//Access position via transform matrix
+					positions[i] = matrices[i].GetColumn(3);
+				}
+				//light probe generation
+				var lightProbes = new SphericalHarmonicsL2[1023];
+				LightProbes.CalculateInterpolatedLightAndOcclusionProbes(positions, lightProbes, null);
+				block.CopySHCoefficientArraysFrom(lightProbes);
+				}
 		}
 		//When drawing the mesh ball, we want to make sure that the genreated balls
 		//Using customProvided as there isn't a single position that can be used to blend the probes
 		//In short, we are going to generate light probes and tell the meshes about them
 		Graphics.DrawMeshInstanced(mesh, 0, material, matrices, 1023, block,
-			ShadowCastingMode.On,true,0,null,LightProbeUsage.CustomProvided);
+			ShadowCastingMode.On,true,0,null, lightProbeVolume ?
+				LightProbeUsage.UseProxyVolume : LightProbeUsage.CustomProvided,
+			lightProbeVolume);
 	}
 }

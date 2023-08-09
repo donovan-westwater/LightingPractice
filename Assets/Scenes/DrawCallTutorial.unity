@@ -681,6 +681,7 @@ GameObject:
   m_Component:
   - component: {fileID: 222767713}
   - component: {fileID: 222767712}
+  - component: {fileID: 222767714}
   m_Layer: 0
   m_Name: MeshBall
   m_TagString: Untagged
@@ -702,6 +703,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   material: {fileID: 2100000, guid: 868120e6420368041b2ddb79fbebff0c, type: 2}
+  lightProbeVolume: {fileID: 0}
 --- !u!4 &222767713
 Transform:
   m_ObjectHideFlags: 0
@@ -716,6 +718,26 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 33
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!259 &222767714
+LightProbeProxyVolume:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 222767711}
+  m_Enabled: 1
+  m_BoundingBoxMode: 2
+  m_ResolutionX: 2
+  m_ResolutionY: 2
+  m_ResolutionZ: 2
+  m_ResolutionProbesPerUnit: 0.5
+  m_BoundingBoxSize: {x: 20, y: 20, z: 20}
+  m_BoundingBoxOrigin: {x: 0, y: 0, z: 0}
+  m_ResolutionMode: 0
+  m_ProbePositionMode: 0
+  m_RefreshMode: 0
+  m_QualityMode: 1
+  m_DataFormat: 1
 --- !u!1 &223323237
 GameObject:
   m_ObjectHideFlags: 0
@@ -3797,7 +3819,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 7e-45, y: 9.1835e-41, z: 0, w: 1e-45}
+  m_BoundingSphereOverride: {x: 9.18377e-40, y: 4e-45, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
