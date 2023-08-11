@@ -41,6 +41,7 @@ Shader "Custom RP/Custom-Lit"
             #pragma shader_feature _RECEIVE_SHADOWS
             #pragma shader_feature _PREMULTIPLY_ALPHA
             #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
+            #pragma multi_compile _ _SHADOW_MASK_DISTANCE
             #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex LitPassVertex //This is the name of the vertex step

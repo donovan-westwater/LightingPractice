@@ -27,7 +27,11 @@ public class Shadows
 	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
 	static int cascadeDataId = Shader.PropertyToID("_CascadeData");
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
-
+	static string[] shadowMaskkeywords =
+	{
+		"_SHADOW_MASK_DISTANCE"
+	};
+	bool useShadowMask;
 	//Culling sphers use xyz position for center and w for radius
 	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
 	static Vector4[] cascadeData = new Vector4[maxCascades]; //Data used to handle shadow acne
@@ -66,6 +70,7 @@ public class Shadows
 		this.cullingResults = cullingResults;
 		this.settings = settings;
 		ShadowedDirectionalLightCount = 0;
+		useShadowMask = false;
 	}
 	public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
 		//If we have enough space, assign a light if the light has shadows enabled
@@ -74,6 +79,12 @@ public class Shadows
 			light.shadows != LightShadows.None && light.shadowStrength > 0f &&
 			cullingResults.GetShadowCasterBounds(visibleLightIndex,out Bounds b))
         {
+			LightBakingOutput lightBaking = light.bakingOutput;
+			if(lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+				lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask)
+            {
+				useShadowMask = true;
+            }
 			shadowedDirectionalLights[ShadowedDirectionalLightCount] =
 				new ShadowedDirectionalLight
 				{
@@ -129,6 +140,11 @@ public class Shadows
 				dirShadowAtlasId, 1, 1,
 				32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
         }
+		//Enable/disable shadowmask at the end of the render
+		buffer.BeginSample(bufferName);
+		SetKeywords(shadowMaskkeywords, useShadowMask ? 0 : -1);
+		buffer.EndSample(bufferName);
+		ExecuteBuffer();
     }
 	//Build and render the shadow map for directionalLights
 	void RenderDirectionalShadows() {

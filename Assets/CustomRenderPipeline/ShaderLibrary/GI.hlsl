@@ -5,11 +5,15 @@
 TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
 
+TEXTURE2D(unity_ShadowMask);
+SAMPLER(samplerunity_ShadowMask);
+
 TEXTURE3D_FLOAT(unity_ProbeVolumeSH); //used for LPPV
 SAMPLER(samplerunity_ProbeVolumeSH);
 //Sturct used when sampling baked light
 struct GI {
 	float3 diffuse;
+	ShadowMask shadowMask;
 };
 //Sample the lightmap
 float3 SampleLightMap (float2 lightMapUV) {
@@ -27,7 +31,15 @@ return SampleSingleLightmap(TEXTURE2D_ARGS(unity_Lightmap, samplerunity_Lightmap
 return 0.0;
 #endif
 }
-
+float4 SampleBakedShadows(float2 lightMapUV) {
+#if defined(LIGHTMAP_ON)
+	return SAMPLE_TEXTURE2D(
+		unity_ShadowMask, samplerunity_ShadowMask, lightMapUV
+	);
+#else
+	return 1.0;
+#endif
+}
 float3 SampleLightProbe(Surface surfaceWS) {
 	#if defined(LIGHTMAP_ON)
 	return 0.0;
@@ -60,6 +72,12 @@ float3 SampleLightProbe(Surface surfaceWS) {
 GI GetGI(float2 lightMapUV, Surface surfaceWS) {
 	GI gi;
 	gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+	gi.shadowMask.distance = false;
+	gi.shadowMask.shadows = 1.0;
+#if defined(_SHADOW_MASK_DISTANCE)
+	gi.shadowMask.distance = true;
+	gi.shadowMask.shadows = SampleBakedShadows(lightMapUV);
+#endif
 	return gi;
 }
 
