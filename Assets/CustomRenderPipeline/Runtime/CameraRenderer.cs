@@ -111,6 +111,7 @@ public partial class CameraRenderer
 			| PerObjectData.ShadowMask
 			| PerObjectData.LightProbe 
 			| PerObjectData.LightProbeProxyVolume//Send the lightmaps and light probes assoiated with each object
+			| PerObjectData.OcclusionProbeProxyVolume
 		};
 		drawingSettings.SetShaderPassName(1, litShaderTagId);
 
