@@ -147,9 +147,12 @@ float MixBakedAndRealtimeShadows(
 ) {
 	float baked = GetBakedShadow(global.shadowMask);
 	if (global.shadowMask.distance) {
-		shadow = baked;
+		//Combines backed and realtime lighting together
+		//Baked light comes in the further we go
+		shadow = lerp(baked, shadow, global.strength);
+		return lerp(1.0, shadow, strength);
 	}
-	return lerp(1.0, shadow, strength);
+	return lerp(1.0, shadow, strength * global.strength);
 }
 //Returns the atteuation of the shadows given the data and a surface
 // NOTE: Seems to be having issues with multiple lights
