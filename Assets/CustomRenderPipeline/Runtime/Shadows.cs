@@ -73,22 +73,24 @@ public class Shadows
 		ShadowedDirectionalLightCount = 0;
 		useShadowMask = false;
 	}
-	public Vector3 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
+	public Vector4 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
 		//If we have enough space, assign a light if the light has shadows enabled
 		//We also want to make sure there are objects to cast shadows on as well
 		if(ShadowedDirectionalLightCount < maxShadowedDirectionalLightCount &&
 			light.shadows != LightShadows.None && light.shadowStrength > 0f)
         {
+			float maskChannel = -1;
 			LightBakingOutput lightBaking = light.bakingOutput;
 			if(lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
 				lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask)
             {
 				useShadowMask = true;
+				maskChannel = lightBaking.occlusionMaskChannel;
             }
 			//If we don't have any real time shadows (i.e being really far away)
 			//Run this
 			if(!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)){
-				return new Vector3(-light.shadowStrength, 0f, 0f);
+				return new Vector4(-light.shadowStrength, 0f, 0f,maskChannel);
             }
 			shadowedDirectionalLights[ShadowedDirectionalLightCount] =
 				new ShadowedDirectionalLight
@@ -97,10 +99,10 @@ public class Shadows
 					slopeScaleBias = light.shadowBias,
 					nearPlaneOffset = light.shadowNearPlane
                 };
-			return new Vector3(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++
-				,light.shadowNormalBias);
+			return new Vector4(light.shadowStrength, settings.directional.cascadeCount*ShadowedDirectionalLightCount++
+				,light.shadowNormalBias,maskChannel);
         }
-		return Vector3.zero;
+		return new Vector4(0f,0f,0f,-1f);
 	}
 	//Takes a light matrix and converts into shadow atlas tile space
 	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
