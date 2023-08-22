@@ -29,6 +29,7 @@ public class Shadows
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
 	static string[] shadowMaskkeywords =
 	{
+		"_SHADOW_MASK_ALWAYS",
 		"_SHADOW_MASK_DISTANCE"
 	};
 	bool useShadowMask;
@@ -146,7 +147,9 @@ public class Shadows
         }
 		//Enable/disable shadowmask at the end of the render
 		buffer.BeginSample(bufferName);
-		SetKeywords(shadowMaskkeywords, useShadowMask ? 0 : -1);
+		SetKeywords(shadowMaskkeywords, useShadowMask ? 
+			QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1 :
+			-1);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
     }

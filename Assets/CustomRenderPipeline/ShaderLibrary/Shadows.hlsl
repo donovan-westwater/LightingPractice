@@ -37,6 +37,7 @@ struct DirectionalShadowData {
 	float normalBias;
 };
 struct ShadowMask {
+	bool always;
 	bool distance;
 	float4 shadows;
 };
@@ -53,6 +54,7 @@ float FadedShadowStrength(float distance, float scale, float fade){
 
 ShadowData GetShadowData(Surface surfaceWS) {
 	ShadowData data;
+	data.shadowMask.always = false;
 	data.shadowMask.distance = false;
 	data.shadowMask.shadows = 1.0;
 	data.cascadeBlend = 1.0;
@@ -112,14 +114,14 @@ float FilterDirectionalShadow(float3 positionSTS) {
 }
 float GetBakedShadow(ShadowMask mask) {
 	float shadow = 1.0;
-	if (mask.distance) {
+	if (mask.always || mask.distance) {
 		shadow = mask.shadows.r;
 	}
 	return shadow;
 }
 //Handles the case where there is only the shadow mask with no realtime shadows
 float GetBakedShadow(ShadowMask mask, float strength) {
-	if (mask.distance) {
+	if (mask.always || mask.distance) {
 		return lerp(1.0, GetBakedShadow(mask), strength);
 	}
 	return 1.0;
@@ -153,6 +155,11 @@ float MixBakedAndRealtimeShadows(
 	ShadowData global, float shadow, float strength
 ) {
 	float baked = GetBakedShadow(global.shadowMask);
+	if (global.shadowMask.always) {
+		shadow = lerp(1.0, shadow, global.strength);
+		shadow = min(baked, shadow);
+		return lerp(1.0, shadow, strength);
+	}
 	if (global.shadowMask.distance) {
 		//Combines backed and realtime lighting together
 		//Baked light comes in the further we go
