@@ -23,6 +23,15 @@ float Square(float v) {
 float DistanceSquared(float3 pA, float3 pB) {
 	return dot(pA - pB, pA - pB);
 }
+//Clips out objects between LOD levels with fade
+void ClipLOD(float2 positionCS, float fade) {
+	#if defined(LOD_FADE_CROSSFADE)
+	//Uses noise to create a dithered fade between LOD layers
+	float dither = InterleavedGradientNoise(positionCS.xy, 0);
+	//Add to the  fade when the lod level is negative (LOD 0)
+	clip(fade + (fade < 0.0 ? dither : -dither));
+	#endif
+}
 /*
 //Functions that handles the actual transform process from local to world
 float3 TransformObjectToWorld(float3 positionOS) {

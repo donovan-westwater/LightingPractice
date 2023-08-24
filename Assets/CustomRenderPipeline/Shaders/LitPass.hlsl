@@ -73,9 +73,10 @@ Varyings LitPassVertex(Attributes input){
 //In this case, output is for render target
 float4 LitPassFragment(Varyings input) : SV_TARGET{
 	UNITY_SETUP_INSTANCE_ID(input);
-	#if defined(LOD_FADE_CROSSFADE)
-	return -unity_LODFade.x;
-	#endif
+	//#if defined(LOD_FADE_CROSSFADE)
+	//return -unity_LODFade.x;
+	//#endif
+	ClipLOD(input.positionCS.xy, unity_LODFade.x);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
 	float4 base = GetBase(input.baseUV);
