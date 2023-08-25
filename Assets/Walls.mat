@@ -75,7 +75,7 @@ Material:
     - _PremulAlpha: 0
     - _ReceiveShadows: 0
     - _Shadows: 2
-    - _Smoothness: 0.5
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1

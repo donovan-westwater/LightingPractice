@@ -10,11 +10,25 @@ SAMPLER(samplerunity_ShadowMask);
 
 TEXTURE3D_FLOAT(unity_ProbeVolumeSH); //used for LPPV
 SAMPLER(samplerunity_ProbeVolumeSH);
+//Samplers for reflecting light from skybox
+TEXTURECUBE(unity_SpecCube0);
+SAMPLER(samplerunity_SpecCube0);
 //Sturct used when sampling baked light
 struct GI {
 	float3 diffuse;
+	float3 specular;
 	ShadowMask shadowMask;
 };
+//Sample the cubemap for reflections
+float3 SampleEnvironment(Surface surfaceWS) {
+	//Calculate reflection coordinates for cubemap (skybox)
+	float3 uvw = reflect(-surfaceWS.viewDirection,surfaceWS.normal);
+	//Sample cube map and return its color values
+	//We are going to be using a 3d texture coord
+	float4 environment = SAMPLE_TEXTURECUBE_LOD(
+		unity_SpecCube0, samplerunity_SpecCube0, uvw, 0.0);
+	return environment.rgb;
+}
 //Sample the lightmap
 float3 SampleLightMap (float2 lightMapUV) {
 #if defined(LIGHTMAP_ON)
@@ -83,6 +97,7 @@ float3 SampleLightProbe(Surface surfaceWS) {
 GI GetGI(float2 lightMapUV, Surface surfaceWS) {
 	GI gi;
 	gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+	gi.specular = SampleEnvironment(surfaceWS);
 	gi.shadowMask.always = false;
 	gi.shadowMask.distance = false;
 	gi.shadowMask.shadows = SampleBakedShadows(lightMapUV,surfaceWS);
@@ -95,6 +110,5 @@ GI GetGI(float2 lightMapUV, Surface surfaceWS) {
 #endif
 	return gi;
 }
-
 #endif
 

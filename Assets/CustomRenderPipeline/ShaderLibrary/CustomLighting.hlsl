@@ -8,6 +8,13 @@ float3 IncomingLight(Surface surface, Light light) {
 	//lIn = lerp(0.5,1,ceil(lIn)); Cell Shading mode!
 	return lIn * light.color;
 }
+//Specular global illumination
+float3 IndirectBRDF(Surface surface, BRDF brdf, float3 diffuse, float3 specular) {
+	float3 reflection = specular * brdf.specular;
+	//Roughness scatters the reflection
+	reflection /= brdf.roughness * brdf.roughness + 1.0;
+	return diffuse * brdf.diffuse + reflection;
+}
 //Calculates lighting based on light source
 float3 GetLighting(Surface surface, BRDF brdf, Light light) {
 	return IncomingLight(surface, light) * DirectBRDF(surface, brdf, light);
@@ -16,7 +23,7 @@ float3 GetLighting(Surface surface, BRDF brdf, Light light) {
 float3 GetLighting(Surface surfaceWS, BRDF brdf,GI gi) {
 	ShadowData shadowData = GetShadowData(surfaceWS); //shadow data canceling out multiple lights
 	shadowData.shadowMask = gi.shadowMask;
-	float3 color = gi.diffuse * brdf.diffuse;
+	float3 color = IndirectBRDF(surfaceWS, brdf, gi.diffuse, gi.specular);
 	for (int i = 0; i < GetDirectionalLightCount(); i++) {
 		Light light = GetDirectionalLight(i, surfaceWS, shadowData);
 		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
