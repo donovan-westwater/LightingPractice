@@ -6,6 +6,7 @@ struct BRDF {
 	float3 specular;
 	float roughness;
 	float perceptualRoughness;
+	float fresnel; //Value used for fresnal reflections. Turns surface into perfect mirror
 };
 //This the lowest level of reflectivity on avaerage for metals
 #define MIN_REFLECTIVITY 0.04
@@ -41,6 +42,7 @@ BRDF GetBRDF(Surface surface, bool applyAlphaToDiffuse = false) {
 	brdf.perceptualRoughness =
 		PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
 	brdf.roughness = PerceptualRoughnessToRoughness(brdf.perceptualRoughness);
+	brdf.fresnel = saturate(surface.smoothness + 1.0 - oneMinusReflectivity);
 	return brdf;
 }
 #endif

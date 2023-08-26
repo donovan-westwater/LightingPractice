@@ -3967,8 +3967,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cutoff: 0.5
-  metallic: 0.878
-  smoothness: 0.578
+  metallic: 0.141
+  smoothness: 0.826
   emissionColor: {r: 0, g: 0, b: 0, a: 1}
   baseColor: {r: 0.9150943, g: 0.7134981, b: 0.07338022, a: 1}
 --- !u!1 &1629651213
@@ -4045,7 +4045,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: NaN, z: 2.2e-44, w: 5.1073647e-19}
+  m_BoundingSphereOverride: {x: 2.2e-44, y: 2.4405384e-30, z: 9.1858e-41, w: 4.591775e-39}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
