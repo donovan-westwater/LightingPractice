@@ -5,6 +5,7 @@ struct BRDF {
 	float3 diffuse;
 	float3 specular;
 	float roughness;
+	float perceptualRoughness;
 };
 //This the lowest level of reflectivity on avaerage for metals
 #define MIN_REFLECTIVITY 0.04
@@ -36,9 +37,10 @@ BRDF GetBRDF(Surface surface, bool applyAlphaToDiffuse = false) {
 		brdf.diffuse *= surface.alpha; //premultiply alpha blending for better diffuse reflections 
 	} 
 	brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic); //Amount of outgoing light cannot exceed incoming light
-	float perceptualRoughness =
+	//Used to simulate muddy reflections via using lower mip levels
+	brdf.perceptualRoughness =
 		PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
-	brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
+	brdf.roughness = PerceptualRoughnessToRoughness(brdf.perceptualRoughness);
 	return brdf;
 }
 #endif
