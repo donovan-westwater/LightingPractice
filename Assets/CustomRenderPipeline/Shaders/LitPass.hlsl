@@ -92,6 +92,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.color = base.rgb;
 	surface.metallic = GetMetallic(input.baseUV); //Get property frome lit shader
 	surface.smoothness = GetSmoothness(input.baseUV); //Get proeprty from lit shader
+	surface.fresnelStrength = GetFresnel(input.baseUV);
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function

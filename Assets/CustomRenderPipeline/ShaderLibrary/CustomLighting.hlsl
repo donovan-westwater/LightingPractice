@@ -8,15 +8,7 @@ float3 IncomingLight(Surface surface, Light light) {
 	//lIn = lerp(0.5,1,ceil(lIn)); Cell Shading mode!
 	return lIn * light.color;
 }
-//Specular global illumination
-float3 IndirectBRDF(Surface surface, BRDF brdf, float3 diffuse, float3 specular) {
-	float fresnelStrength = 
-		Pow4(1.0 - saturate(dot(surface.normal, surface.viewDirection)));
-	float3 reflection = specular * lerp(brdf.specular, brdf.fresnel, fresnelStrength);
-	//Roughness scatters the reflection
-	reflection /= brdf.roughness * brdf.roughness + 1.0;
-	return diffuse * brdf.diffuse + reflection;
-}
+
 //Calculates lighting based on light source
 float3 GetLighting(Surface surface, BRDF brdf, Light light) {
 	return IncomingLight(surface, light) * DirectBRDF(surface, brdf, light);

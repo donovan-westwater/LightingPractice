@@ -14,6 +14,7 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor) //Map for emissive materials
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
 UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
+UNITY_DEFINE_INSTANCED_PROP(float,_Fresnel) //Controls the amount of fresnel reflection there is 
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 float2 TransformBaseUV(float2 baseUV) {
@@ -34,7 +35,9 @@ float3 GetEmission(float2 baseUV) {
 float GetCutoff(float2 baseUV) {
 	return UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff);
 }
-
+float GetFresnel(float2 baseUV) {
+	return UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Fresnel);
+}
 float GetMetallic(float2 baseUV) {
 	return UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic);
 }

@@ -32,7 +32,9 @@ float GetCutoff(float2 baseUV) {
 float GetMetallic(float2 baseUV) {
 	return 0.0;
 }
-
+float GetFresnel(float2 baseUV) {
+	return 0.0;
+}
 float GetSmoothness(float2 baseUV) {
 	return 0.0;
 }
