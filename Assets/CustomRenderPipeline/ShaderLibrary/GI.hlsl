@@ -30,7 +30,7 @@ float3 SampleEnvironment(Surface surfaceWS, BRDF brdf) {
 	//We are going to be using a 3d texture coord
 	float4 environment = SAMPLE_TEXTURECUBE_LOD(
 		unity_SpecCube0, samplerunity_SpecCube0, uvw, mip);
-	return environment.rgb;
+	return DecodeHDREnvironment(environment,unity_SpecCube0_HDR);
 }
 //Sample the lightmap
 float3 SampleLightMap (float2 lightMapUV) {

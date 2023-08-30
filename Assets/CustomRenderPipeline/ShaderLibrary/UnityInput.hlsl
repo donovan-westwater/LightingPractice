@@ -9,6 +9,7 @@ CBUFFER_START(UnityPerDraw)
 	float4 unity_LODFade; //Needs to be included even if not used
 	real4 unity_WorldTransformParams; //World Transform Params
 	float4 unity_ProbesOcclusion;//Light probes also have shadow mask data. This can be accessed via occulsion probes
+	float4 unity_SpecCube0_HDR; //Sample reflection probes
 	float4 unity_LightmapST; //Var for sampled lightmap
 	float4 unity_DynamicLightmapST; //depricated lightmap var
 	//Used for light probe sampling. Coefficents of a polynomial used for GI
