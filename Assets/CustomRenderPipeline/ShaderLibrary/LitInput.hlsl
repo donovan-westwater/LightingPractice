@@ -15,6 +15,7 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)//color used for unlit shader. Is
 UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor) //Map for emissive materials
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
+UNITY_DEFINE_INSTANCED_PROP(float, _Occlusion) //For handling detailed shadows
 UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
 UNITY_DEFINE_INSTANCED_PROP(float,_Fresnel) //Controls the amount of fresnel reflection there is 
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
@@ -50,7 +51,10 @@ float GetMetallic(float2 baseUV) {
 }
 //Handles gaps and holes in surfaces that create shadows that cant be handled by traditional lighting
 float GetOcclusion(float2 baseUV) {
-	return 0.0;
+	float strength = INPUT_PROP(_Occlusion);
+	float occlusion = GetMask(baseUV).g;
+	occlusion = lerp(occlusion, 1.0, strength);
+	return occlusion;
 }
 float GetSmoothness(float2 baseUV) {
 	float smoothness = INPUT_PROP(_Smoothness);

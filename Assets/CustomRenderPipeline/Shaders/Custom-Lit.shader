@@ -7,6 +7,7 @@ Shader "Custom RP/Custom-Lit"
         _BaseColor("Color",Color) = (0.5,0.5,0.5,1.0)
         [NoScaleOffset] _MaskMap("Mask (MODS)", 2D) = "white" {} //Mask map to seperate details between sections
         _Metallic("Metallic", Range(0, 1)) = 0
+        _Occlusion("Occlusion", Range(0, 1)) = 1
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         _Fresnel("Fresnel", Range(0,1)) = 1
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
