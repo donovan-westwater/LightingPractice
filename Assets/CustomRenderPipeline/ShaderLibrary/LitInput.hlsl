@@ -48,7 +48,10 @@ float GetMetallic(float2 baseUV) {
 	metallic *= GetMask(baseUV).r;
 	return metallic;
 }
-
+//Handles gaps and holes in surfaces that create shadows that cant be handled by traditional lighting
+float GetOcclusion(float2 baseUV) {
+	return 0.0;
+}
 float GetSmoothness(float2 baseUV) {
 	float smoothness = INPUT_PROP(_Smoothness);
 	smoothness *= GetMask(baseUV).a;
