@@ -5,9 +5,10 @@ Shader "Custom RP/Custom-Lit"
     {
         _BaseMap("Texture", 2D) = "white" {}
         _BaseColor("Color",Color) = (0.5,0.5,0.5,1.0)
+        [NoScaleOffset] _MaskMap("Mask (MODS)", 2D) = "white" {} //Mask map to seperate details between sections
         _Metallic("Metallic", Range(0, 1)) = 0
-        _Fresnel("Fresnel", Range(0,1)) = 1
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
+        _Fresnel("Fresnel", Range(0,1)) = 1
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
         [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {} //Emission map for emissive materials
