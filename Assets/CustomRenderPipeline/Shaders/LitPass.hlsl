@@ -52,6 +52,7 @@ struct Varyings {
 	float3 positionWS : VAR_POSITION; //Used to calculate view dir
 	float3 normalWS : VAR_NORMAL;
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
+	float2 detailUV : VAR_DETAIL_UV;
 	GI_VARYINGS_DATA //Macro to used to add lightmap UV data only when needed
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -67,6 +68,7 @@ Varyings LitPassVertex(Attributes input){
 	output.positionCS = TransformWorldToHClip(output.positionWS);
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
+	output.detailUV = TransformDetailUV(input.baseUV);
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
@@ -79,7 +81,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	ClipLOD(input.positionCS.xy, unity_LODFade.x);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base = GetBase(input.baseUV);
+	float4 base = GetBase(input.baseUV,input.detailUV);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
