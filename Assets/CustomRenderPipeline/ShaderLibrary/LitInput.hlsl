@@ -16,6 +16,7 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
 UNITY_DEFINE_INSTANCED_PROP(float4, _DetailMap_ST) //Texture for detail map (small details mask map)
 UNITY_DEFINE_INSTANCED_PROP(float, _DetailAlbedo)
+UNITY_DEFINE_INSTANCED_PROP(float, _DetailSmoothness)
 UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor) //Map for emissive materials
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
@@ -74,9 +75,13 @@ float GetOcclusion(float2 baseUV) {
 	occlusion = lerp(occlusion, 1.0, strength);
 	return occlusion;
 }
-float GetSmoothness(float2 baseUV) {
+float GetSmoothness(float2 baseUV,float2 detailUV = 0.0) {
 	float smoothness = INPUT_PROP(_Smoothness);
 	smoothness *= GetMask(baseUV).a;
+	//Detail mask intergration
+	float detail = GetDetail(detailUV).b * INPUT_PROP(_DetailSmoothness);
+	float mask = GetMask(baseUV).b;
+	smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
 	return smoothness;
 }
 

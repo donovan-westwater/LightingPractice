@@ -16,6 +16,7 @@ Shader "Custom RP/Custom-Lit"
         [HDR] _EmissionColor("Emission", Color) = (0.0, 0.0, 0.0, 0.0) //Emission color
         _DetailMap("Details", 2D) = "linearGrey" {}
         _DetailAlbedo("Detail Albedo", Range(0, 1)) = 1
+        _DetailSmoothness("Detail Smoothness", Range(0, 1)) = 1
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
         [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0 //USed for transparent objects
         [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha", Float) = 0 //fade out diffuse while keeping specular
