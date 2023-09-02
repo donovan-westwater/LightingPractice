@@ -43,6 +43,7 @@ struct Attributes {
 	float3 positionOS : POSITION;
 	float3 normalOS : NORMAL;
 	float2 baseUV : TEXCOORD0;
+	float4 tangentOS : TANGENT;
 	GI_ATTRIBUTE_DATA //Macro to used to add lightmap UV data only when needed
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -53,6 +54,7 @@ struct Varyings {
 	float3 normalWS : VAR_NORMAL;
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
 	float2 detailUV : VAR_DETAIL_UV;
+	float4 tangentWS : VAR_TANGENT;
 	GI_VARYINGS_DATA //Macro to used to add lightmap UV data only when needed
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -69,6 +71,8 @@ Varyings LitPassVertex(Attributes input){
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	output.detailUV = TransformDetailUV(input.baseUV);
+	output.tangentWS =
+		float4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w);
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
@@ -98,6 +102,9 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.fresnelStrength = GetFresnel(input.baseUV);
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
+	surface.normal = NormalTangentToWorld(
+		GetNormalTS(input.baseUV), input.normalWS, input.tangentWS
+	);
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function
 #if defined(_PREMULTIPLY_ALPHA)
 	BRDF brdf = GetBRDF(surface, true);
