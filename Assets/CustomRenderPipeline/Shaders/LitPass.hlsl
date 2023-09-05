@@ -103,7 +103,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
 	surface.normal = NormalTangentToWorld(
-		GetNormalTS(input.baseUV), input.normalWS, input.tangentWS
+		GetNormalTS(input.baseUV, input.detailUV), input.normalWS, input.tangentWS
 	);
 	surface.interpolatedNormal = input.normalWS;
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function

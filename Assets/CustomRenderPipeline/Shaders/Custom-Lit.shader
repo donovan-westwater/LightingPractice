@@ -18,7 +18,9 @@ Shader "Custom RP/Custom-Lit"
         _DetailAlbedo("Detail Albedo", Range(0, 1)) = 1
         _DetailSmoothness("Detail Smoothness", Range(0, 1)) = 1
         [NoScaleOffset] _NormalMap("Normals", 2D) = "bump" {}
+        [NoScaleOffset] _DetailNormalMap("Detail Normals", 2D) = "bump" {}
         _NormalScale("Normal Scale", Range(0, 1)) = 1
+        _DetailNormalScale("Detail Normal Scale", Range(0, 1)) = 1
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
         [KeywordEnum(On, Clip, Dither, Off)] _Shadows("Shadows", Float) = 0 //USed for transparent objects
         [Toggle(_PREMULTIPLY_ALPHA)] _PremulAlpha("Premultiply Alpha", Float) = 0 //fade out diffuse while keeping specular

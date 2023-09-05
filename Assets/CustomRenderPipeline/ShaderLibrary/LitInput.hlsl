@@ -10,6 +10,7 @@ SAMPLER(sampler_BaseMap);
 TEXTURE2D(_DetailMap); //Texture for detail mask map
 SAMPLER(sampler_DetailMap);
 TEXTURE2D(_NormalMap);
+TEXTURE2D(_DetailNormalMap);
 //We want to be able to bundle draw calls to CPU and GPU as batches (if we were using cbuffer)
 //Since cbuffer wont work with per object material properties, then we need to setup GPU instacing instead
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
@@ -24,6 +25,7 @@ UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
 UNITY_DEFINE_INSTANCED_PROP(float, _Occlusion) //For handling detailed shadows
 UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
 UNITY_DEFINE_INSTANCED_PROP(float,_Fresnel) //Controls the amount of fresnel reflection there is
+UNITY_DEFINE_INSTANCED_PROP(float, _DetailNormalScale)
 UNITY_DEFINE_INSTANCED_PROP(float, _NormalScale)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
@@ -86,10 +88,16 @@ float GetSmoothness(float2 baseUV,float2 detailUV = 0.0) {
 	smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
 	return smoothness;
 }
-float3 GetNormalTS(float2 baseUV) {
+float3 GetNormalTS(float2 baseUV, float2 detailUV = 0.0) {
 	float4 map = SAMPLE_TEXTURE2D(_NormalMap, sampler_BaseMap, baseUV);
 	float scale = INPUT_PROP(_NormalScale);
 	float3 normal = DecodeNormal(map, scale);
+
+	//Detail normal map
+	map = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, detailUV);
+	scale = INPUT_PROP(_DetailNormalScale) * GetMask(baseUV).b;
+	float3 detail = DecodeNormal(map, scale);
+	normal = BlendNormalRNM(normal, detail);
 	return normal;
 }
 #endif
