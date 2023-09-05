@@ -54,7 +54,9 @@ struct Varyings {
 	float3 normalWS : VAR_NORMAL;
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
 	float2 detailUV : VAR_DETAIL_UV;
+#if defined(_NORMAL_MAP)
 	float4 tangentWS : VAR_TANGENT;
+#endif
 	GI_VARYINGS_DATA //Macro to used to add lightmap UV data only when needed
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -71,8 +73,11 @@ Varyings LitPassVertex(Attributes input){
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	output.detailUV = TransformDetailUV(input.baseUV);
-	output.tangentWS =
-		float4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w);
+	#if defined(_NORMAL_MAP)
+	output.tangentWS = float4(
+			TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w
+		);
+	#endif
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
@@ -85,10 +90,11 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	ClipLOD(input.positionCS.xy, unity_LODFade.x);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base = GetBase(input.baseUV,input.detailUV);
+	InputConfig config = GetInputConfig(input.baseUV, input.detailUV);
+	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
-		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(config)); //Discard frag if 0 or less
 	#endif 
 	Surface surface;
 	surface.position = input.positionWS; //pixel position for shadows
@@ -96,16 +102,21 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
 	surface.depth = -TransformWorldToView(input.positionWS).z;
 	surface.color = base.rgb;
-	surface.metallic = GetMetallic(input.baseUV); //Get property frome lit shader
-	surface.smoothness = GetSmoothness(input.baseUV,input.detailUV); //Get proeprty from lit shader
-	surface.occlusion = GetOcclusion(input.baseUV);
-	surface.fresnelStrength = GetFresnel(input.baseUV);
+	surface.metallic = GetMetallic(config); //Get property frome lit shader
+	surface.smoothness = GetSmoothness(config); //Get proeprty from lit shader
+	surface.occlusion = GetOcclusion(config);
+	surface.fresnelStrength = GetFresnel(config);
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 	surface.alpha = base.a;
+#if defined(_NORMAL_MAP)
 	surface.normal = NormalTangentToWorld(
-		GetNormalTS(input.baseUV, input.detailUV), input.normalWS, input.tangentWS
+		GetNormalTS(config), input.normalWS, input.tangentWS
 	);
 	surface.interpolatedNormal = input.normalWS;
+#else
+	surface.normal = normalize(input.normalWS);
+	surface.interpolatedNormal = surface.normal;
+#endif
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function
 #if defined(_PREMULTIPLY_ALPHA)
 	BRDF brdf = GetBRDF(surface, true);
@@ -114,7 +125,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 #endif //Get the the lighting properties that result from a given surface
 	GI gi = GetGI(GI_FRAGMENT_DATA(input), surface, brdf);
 	float3 color = GetLighting(surface,brdf,gi);
-	color += GetEmission(input.baseUV);
+	color += GetEmission(config);
 	return float4(color, surface.alpha);
 }
 

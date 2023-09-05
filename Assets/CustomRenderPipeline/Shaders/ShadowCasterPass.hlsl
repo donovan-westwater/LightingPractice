@@ -53,10 +53,11 @@ void ShadowCasterPassFragment(Varyings input){
 	UNITY_SETUP_INSTANCE_ID(input);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	float4 base = GetBase(input.baseUV);
+	InputConfig config = GetInputConfig(input.baseUV);
+	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_SHADOWS_CLIP)
-		clip(base.a - GetCutoff(input.baseUV)); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(config); //Discard frag if 0 or less
 	#elif defined(_SHADOWS_DITHER)
 		float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 		clip(base.a - dither);
