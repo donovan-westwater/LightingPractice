@@ -4,6 +4,7 @@
 struct Surface {
 	float3 position; //Surface position for shadows
 	float3 normal;
+	float3 interpolatedNormal; //Normal for handling shadow bias
 	float3 viewDirection;
 	float depth;
 	float3 color;

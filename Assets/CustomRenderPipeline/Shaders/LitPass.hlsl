@@ -105,6 +105,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.normal = NormalTangentToWorld(
 		GetNormalTS(input.baseUV), input.normalWS, input.tangentWS
 	);
+	surface.interpolatedNormal = input.normalWS;
 	//struct used to calculate reflectiveness via the Biderectional Reflectance distribution function
 #if defined(_PREMULTIPLY_ALPHA)
 	BRDF brdf = GetBRDF(surface, true);
