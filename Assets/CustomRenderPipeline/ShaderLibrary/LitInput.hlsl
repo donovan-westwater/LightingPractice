@@ -32,12 +32,14 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 struct InputConfig {
 	float2 baseUV;
 	float2 detailUV;
+	bool useMask; //Do we enable the mask?
 };
 
 InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0) {
 	InputConfig c;
 	c.baseUV = baseUV;
 	c.detailUV = detailUV;
+	c.useMask = false;
 	return c;
 }
 float2 TransformBaseUV(float2 baseUV) {
@@ -53,7 +55,10 @@ float4 GetDetail(InputConfig c) {
 	return map * 2.0 - 1.0; //maps to -1 to 1
 }
 float4 GetMask(InputConfig c) {
-	return SAMPLE_TEXTURE2D(_MaskMap, sampler_BaseMap, c.baseUV);
+	if (c.useMask) {
+		return SAMPLE_TEXTURE2D(_MaskMap, sampler_BaseMap, c.baseUV);
+	}
+	return 1.0;
 }
 float4 GetBase(InputConfig c) {
 	float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.baseUV);

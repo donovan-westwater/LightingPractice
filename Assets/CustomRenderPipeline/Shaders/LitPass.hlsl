@@ -91,6 +91,9 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
 	InputConfig config = GetInputConfig(input.baseUV, input.detailUV);
+#if defined(_MASK_MAP)
+	config.useMask = true;
+#endif
 	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_CLIPPING)
