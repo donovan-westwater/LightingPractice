@@ -33,6 +33,7 @@ struct InputConfig {
 	float2 baseUV;
 	float2 detailUV;
 	bool useMask; //Do we enable the mask?
+	bool useDetail; //Do we enable the detail map
 };
 
 InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0) {
@@ -40,6 +41,7 @@ InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0) {
 	c.baseUV = baseUV;
 	c.detailUV = detailUV;
 	c.useMask = false;
+	c.useDetail = false;
 	return c;
 }
 float2 TransformBaseUV(float2 baseUV) {
@@ -51,8 +53,11 @@ float2 TransformDetailUV(float2 detailUV) {
 	return detailUV * detailST.xy + detailST.zw;
 }
 float4 GetDetail(InputConfig c) {
-	float4 map = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, c.detailUV);
-	return map * 2.0 - 1.0; //maps to -1 to 1
+	if (c.useDetail) {
+		float4 map = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, c.detailUV);
+		return map * 2.0 - 1.0; //maps to -1 to 1
+	}
+	return 0.0;
 }
 float4 GetMask(InputConfig c) {
 	if (c.useMask) {
@@ -64,11 +69,12 @@ float4 GetBase(InputConfig c) {
 	float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.baseUV);
 	float4 color = INPUT_PROP(_BaseColor);
 	//interploates albedo for the detail map
-	float4 detail = GetDetail(c).r * INPUT_PROP(_DetailAlbedo);
-	float mask = GetMask(c).b; //Factor in mask map into detail map
-	map.rgb = lerp(sqrt(map.rgb), detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
-	map.rgb *= map.rgb;
-
+	if (c.useDetail) {
+		float4 detail = GetDetail(c).r * INPUT_PROP(_DetailAlbedo);
+		float mask = GetMask(c).b; //Factor in mask map into detail map
+		map.rgb = lerp(sqrt(map.rgb), detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
+		map.rgb *= map.rgb;
+	}
 	return map * color;
 }
 
@@ -99,9 +105,11 @@ float GetSmoothness(InputConfig c) {
 	float smoothness = INPUT_PROP(_Smoothness);
 	smoothness *= GetMask(c).a;
 	//Detail mask intergration
-	float detail = GetDetail(c).b * INPUT_PROP(_DetailSmoothness);
-	float mask = GetMask(c).b;
-	smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
+	if (c.useDetail) {
+		float detail = GetDetail(c).b * INPUT_PROP(_DetailSmoothness);
+		float mask = GetMask(c).b;
+		smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail)* mask);
+	}
 	return smoothness;
 }
 float3 GetNormalTS(InputConfig c) {
@@ -110,10 +118,12 @@ float3 GetNormalTS(InputConfig c) {
 	float3 normal = DecodeNormal(map, scale);
 
 	//Detail normal map
-	map = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, c.detailUV);
-	scale = INPUT_PROP(_DetailNormalScale) * GetMask(c).b;
-	float3 detail = DecodeNormal(map, scale);
-	normal = BlendNormalRNM(normal, detail);
+	if (c.useDetail) {
+		map = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, c.detailUV);
+		scale = INPUT_PROP(_DetailNormalScale) * GetMask(c).b;
+		float3 detail = DecodeNormal(map, scale);
+		normal = BlendNormalRNM(normal, detail);
+	}
 	return normal;
 }
 #endif

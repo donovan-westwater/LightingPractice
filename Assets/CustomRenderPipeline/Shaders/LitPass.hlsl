@@ -72,7 +72,9 @@ Varyings LitPassVertex(Attributes input){
 	output.positionCS = TransformWorldToHClip(output.positionWS);
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
+#if defined(_DETAIL_MAP)
 	output.detailUV = TransformDetailUV(input.baseUV);
+#endif
 	#if defined(_NORMAL_MAP)
 	output.tangentWS = float4(
 			TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w
@@ -90,9 +92,13 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	ClipLOD(input.positionCS.xy, unity_LODFade.x);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	InputConfig config = GetInputConfig(input.baseUV, input.detailUV);
+	InputConfig config = GetInputConfig(input.baseUV);
 #if defined(_MASK_MAP)
 	config.useMask = true;
+#endif
+#if defined(_DETAIL_MAP)
+	config.detailUV = input.detailUV;
+	config.useDetail = true;
 #endif
 	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
