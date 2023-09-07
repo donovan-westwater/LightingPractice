@@ -110,6 +110,10 @@ public class Lighting
 	void SetupPointLight(int index, ref VisibleLight visibleLight)
     {
 		otherLightColors[index] = visibleLight.finalColor;
-		otherLightPositions[index] = visibleLight.localToWorldMatrix.GetColumn(3);
+		//Setup light range to cutoff the intensity if the light is too far
+		Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
+		position.w =
+			1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
+		otherLightPositions[index] = position;
 	}
 }
