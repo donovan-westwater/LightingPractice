@@ -23,6 +23,11 @@ float3 GetLighting(Surface surfaceWS, BRDF brdf,GI gi) {
 		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
 		color += GetLighting(surfaceWS, brdf,light);
 	}
+	//Get the color that is affecting the surface from the point lights
+	for (int j = 0; j < GetOtherLightCount(); j++) {
+		Light light = GetOtherLight(j, surfaceWS, shadowData);
+		color += GetLighting(surfaceWS, brdf, light);
+	}
 	return color;
 }
 

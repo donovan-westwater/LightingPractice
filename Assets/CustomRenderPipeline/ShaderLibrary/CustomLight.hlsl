@@ -7,6 +7,7 @@ struct Light {
 	float attenuation;
 };
 #define MAX_DIRECTIONAL_LIGHT_COUNT 4
+#define MAX_OTHER_LIGHT_COUNT 64
 //Want to send light data to GPU
 //Getting Scene Data
 CBUFFER_START(_CustomLight)
@@ -14,7 +15,16 @@ CBUFFER_START(_CustomLight)
 	float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
 	float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
 	float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
+
+	int _OtherLightCount;
+	float4 _OtherLightColors[MAX_OTHER_LIGHT_COUNT];
+	float4 _OtherLightPositions[MAX_OTHER_LIGHT_COUNT];
 CBUFFER_END
+
+//Get the other light count 
+int GetOtherLightCount() {
+	return _OtherLightCount;
+}
 //Get the directional light count
 int GetDirectionalLightCount() {
 	return _DirectionalLightCount;
@@ -41,4 +51,14 @@ Light GetDirectionalLight(int index, Surface surfaceWS, ShadowData shadowData) {
 	return light;
 }
 
+//Get a point or spotlight from the light pool
+Light GetOtherLight(int index, Surface surfaceWS, ShadowData shadowData) {
+	Light light;
+	light.color = _OtherLightColors[index].rgb;
+	//Get a ray from the point to the object
+	float3 ray = _OtherLightPositions[index].xyz - surfaceWS.position;
+	light.direction = normalize(ray);
+	light.attenuation = 1.0; //atteuate light based off square distance law
+	return light;
+}
 #endif

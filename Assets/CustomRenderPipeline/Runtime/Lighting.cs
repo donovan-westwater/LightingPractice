@@ -11,7 +11,17 @@ public class Lighting
 	{
 		name = bufferName
 	};
-	const int maxDirLightCount = 4;
+	const int maxDirLightCount = 4, maxOtherLightCount = 64;
+	//Point and SpotLight vars
+	static int
+		otherLightCountId = Shader.PropertyToID("_OtherLightCount"),
+		otherLightColorsId = Shader.PropertyToID("_OtherLightColors"),
+		otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions");
+
+	static Vector4[]
+		otherLightColors = new Vector4[maxOtherLightCount],
+		otherLightPositions = new Vector4[maxOtherLightCount];
+	//Directional Light vars
 	static int
 		//dirLightColorId = Shader.PropertyToID("_DirectionalLightColor"),
 		//dirLightDirectionId = Shader.PropertyToID("_DirectionalLightDirection");
@@ -49,21 +59,43 @@ public class Lighting
     {
 		//Retrive data relvant to the lights - Array allows for multiple lights
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
-		int dlCount = 0;
+		int dlCount = 0, olCount = 0;
 		for(int i = 0; i < visibleLights.Length; i++)
         {
 			VisibleLight vL = visibleLights[i]; //Want to optimize memory via pass by ref
-			if (vL.lightType == LightType.Directional)
+            switch (vL.lightType)
             {
-				SetupDirectionalLight(dlCount++, ref vL);
-				if (dlCount >= maxDirLightCount) break; //Make sure we don't go over max light count
+				case LightType.Directional:
+					if (dlCount < maxDirLightCount)
+					{
+						SetupDirectionalLight(dlCount++, ref vL);
+					}
+					break;
+				case LightType.Point:
+					if(olCount < maxOtherLightCount)
+                    {
+						SetupPointLight(olCount++, ref vL);
+                    }
+					break;
 			}
+			
         }
 		//Send populated dir lights to shader
 		buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
-		buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
-		buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
-		buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
+		if(dlCount > 0) { 
+			buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
+			buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
+			buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
+		}
+		//Send populated spot and point lights to shader
+		buffer.SetGlobalInt(otherLightCountId, olCount);
+		if (olCount > 0)
+		{
+			buffer.SetGlobalVectorArray(otherLightColorsId, otherLightColors);
+			buffer.SetGlobalVectorArray(
+				otherLightPositionsId, otherLightPositions
+			);
+		}
 	}
     void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
 	{
@@ -74,5 +106,10 @@ public class Lighting
 		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, index);
 
 	}
-
+	//Setup a point light
+	void SetupPointLight(int index, ref VisibleLight visibleLight)
+    {
+		otherLightColors[index] = visibleLight.finalColor;
+		otherLightPositions[index] = visibleLight.localToWorldMatrix.GetColumn(3);
+	}
 }
