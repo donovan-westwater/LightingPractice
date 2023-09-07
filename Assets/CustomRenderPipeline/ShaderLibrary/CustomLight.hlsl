@@ -58,7 +58,8 @@ Light GetOtherLight(int index, Surface surfaceWS, ShadowData shadowData) {
 	//Get a ray from the point to the object
 	float3 ray = _OtherLightPositions[index].xyz - surfaceWS.position;
 	light.direction = normalize(ray);
-	light.attenuation = 1.0; //atteuate light based off square distance law
+	float distanceSqr = max(dot(ray, ray), 0.00001); //Want to prevent division by zero
+	light.attenuation = 1.0 / distanceSqr; //atteuate light based off square distance law
 	return light;
 }
 #endif
