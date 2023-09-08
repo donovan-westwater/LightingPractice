@@ -17,12 +17,14 @@ public class Lighting
 		otherLightCountId = Shader.PropertyToID("_OtherLightCount"),
 		otherLightColorsId = Shader.PropertyToID("_OtherLightColors"),
 		otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions"),
-		otherLightDirectionsId = Shader.PropertyToID("_OtherLightDirections");
+		otherLightDirectionsId = Shader.PropertyToID("_OtherLightDirections"),
+		otherLightSpotAnglesId = Shader.PropertyToID("_OtherLightSpotAngles");
 
 	static Vector4[]
 		otherLightColors = new Vector4[maxOtherLightCount],
 		otherLightPositions = new Vector4[maxOtherLightCount],
-		otherLightDirections = new Vector4[maxOtherLightCount];
+		otherLightDirections = new Vector4[maxOtherLightCount],
+		otherLightSpotAngles = new Vector4[maxOtherLightCount];
 	//Directional Light vars
 	static int
 		//dirLightColorId = Shader.PropertyToID("_DirectionalLightColor"),
@@ -107,6 +109,9 @@ public class Lighting
 			buffer.SetGlobalVectorArray(
 				otherLightDirectionsId, otherLightDirections
 			);
+			buffer.SetGlobalVectorArray(
+				otherLightSpotAnglesId, otherLightSpotAngles
+			);
 		}
 	}
     void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
@@ -116,7 +121,6 @@ public class Lighting
 		dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
 		//Reserve a shadow for the light if there is enough room
 		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, index);
-
 	}
 	//Setup a point light
 	void SetupPointLight(int index, ref VisibleLight visibleLight)
@@ -127,6 +131,8 @@ public class Lighting
 		position.w =
 			1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
 		otherLightPositions[index] = position;
+		//Ensures spotlight calcualtion doesnt effect point lights
+		otherLightSpotAngles[index] = new Vector4(0f, 1f);
 	}
 	//Spotlight setup. Sends info to shader for lighting calculations like with point light and directional light
 	void SetupSpotLight(int index, ref VisibleLight visibleLight)
@@ -136,6 +142,14 @@ public class Lighting
 		position.w = 1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
 		otherLightPositions[index] = position;
 		otherLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
-
-    }
+		//Calculate the spot angle for the spotlight
+		//Calculates both inner and outer angles
+		Light light = visibleLight.light;
+		float innerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * light.innerSpotAngle);
+		float outerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * visibleLight.spotAngle);
+		float angleRangeInv = 1f / Mathf.Max(innerCos - outerCos, 0.001f);
+		otherLightSpotAngles[index] = new Vector4(
+			angleRangeInv, -outerCos * angleRangeInv
+		);
+	}
 }
