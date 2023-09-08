@@ -16,11 +16,13 @@ public class Lighting
 	static int
 		otherLightCountId = Shader.PropertyToID("_OtherLightCount"),
 		otherLightColorsId = Shader.PropertyToID("_OtherLightColors"),
-		otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions");
+		otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions"),
+		otherLightDirectionsId = Shader.PropertyToID("_OtherLightDirections");
 
 	static Vector4[]
 		otherLightColors = new Vector4[maxOtherLightCount],
-		otherLightPositions = new Vector4[maxOtherLightCount];
+		otherLightPositions = new Vector4[maxOtherLightCount],
+		otherLightDirections = new Vector4[maxOtherLightCount];
 	//Directional Light vars
 	static int
 		//dirLightColorId = Shader.PropertyToID("_DirectionalLightColor"),
@@ -63,6 +65,7 @@ public class Lighting
 		for(int i = 0; i < visibleLights.Length; i++)
         {
 			VisibleLight vL = visibleLights[i]; //Want to optimize memory via pass by ref
+			//Adds a new light if there is enough room in the light buffer
             switch (vL.lightType)
             {
 				case LightType.Directional:
@@ -76,6 +79,12 @@ public class Lighting
                     {
 						SetupPointLight(olCount++, ref vL);
                     }
+					break;
+				case LightType.Spot:
+					if (olCount < maxOtherLightCount)
+					{
+						SetupSpotLight(olCount++, ref vL);
+					}
 					break;
 			}
 			
@@ -94,6 +103,9 @@ public class Lighting
 			buffer.SetGlobalVectorArray(otherLightColorsId, otherLightColors);
 			buffer.SetGlobalVectorArray(
 				otherLightPositionsId, otherLightPositions
+			);
+			buffer.SetGlobalVectorArray(
+				otherLightDirectionsId, otherLightDirections
 			);
 		}
 	}
@@ -116,4 +128,14 @@ public class Lighting
 			1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
 		otherLightPositions[index] = position;
 	}
+	//Spotlight setup. Sends info to shader for lighting calculations like with point light and directional light
+	void SetupSpotLight(int index, ref VisibleLight visibleLight)
+    {
+		otherLightColors[index] = visibleLight.finalColor;
+		Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
+		position.w = 1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
+		otherLightPositions[index] = position;
+		otherLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+
+    }
 }
