@@ -57,7 +57,7 @@ void ShadowCasterPassFragment(Varyings input){
 	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_SHADOWS_CLIP)
-		clip(base.a - GetCutoff(config); //Discard frag if 0 or less
+		clip(base.a - GetCutoff(config)); //Discard frag if 0 or less
 	#elif defined(_SHADOWS_DITHER)
 		float dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 		clip(base.a - dither);
