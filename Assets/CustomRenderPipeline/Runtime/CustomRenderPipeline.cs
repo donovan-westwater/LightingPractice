@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class CustomRenderPipeline : RenderPipeline
+public partial class CustomRenderPipeline : RenderPipeline
 {
     bool useDynamicBatching, useGPUInstancing;
     ShadowSettings shadowSettings;
@@ -14,6 +14,7 @@ public class CustomRenderPipeline : RenderPipeline
         this.useGPUInstancing = useGPUInstancing;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;//Enable batching to improve preformance
         GraphicsSettings.lightsUseLinearIntensity = true; //Want lights to use linear
+        InitializeForEditor();
 
     }
     CameraRenderer camRenderer = new CameraRenderer();
