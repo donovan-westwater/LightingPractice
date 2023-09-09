@@ -55,7 +55,7 @@ public partial class CustomRenderPipeline
 				output[i] = lightData;
             }
 		};
-	//Make sure the editor is using the correct light falloff
+	//Make sure the editor is using the correct light fallofff
 	partial void InitializeForEditor()
 	{
 		Lightmapping.SetDelegate(lightsDelegate);

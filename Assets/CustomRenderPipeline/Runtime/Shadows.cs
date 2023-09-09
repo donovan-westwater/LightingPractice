@@ -104,6 +104,31 @@ public class Shadows
         }
 		return new Vector4(0f,0f,0f,-1f);
 	}
+	//Need to manage space on the shadow map for other lights
+	//We only care about shadow mask mode since the lightmap handles shadows just fine
+	public Vector4 ReserveOtherShadows(Light light, int visibleLightIndex)
+	{
+		if (light.shadows != LightShadows.None && light.shadowStrength > 0f)
+		{
+			//If there are shadows, check to see if we are using a shadowmask
+			//and are in mixed lighting mode
+			LightBakingOutput lightBaking = light.bakingOutput;
+			if (
+				lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+				lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
+			)
+			{
+				//If so, then make sure we are using the shadowmaks and provide the infomation
+				//relating to it
+				useShadowMask = true;
+				return new Vector4(
+					light.shadowStrength, 0f, 0f,
+					lightBaking.occlusionMaskChannel
+				);
+			}
+		}
+		return new Vector4(0f, 0f, 0f, -1f);
+	}
 	//Takes a light matrix and converts into shadow atlas tile space
 	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
     {
