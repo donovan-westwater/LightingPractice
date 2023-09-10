@@ -3,15 +3,16 @@ using UnityEngine.Rendering;
 
 public partial class CustomRenderPipeline : RenderPipeline
 {
-    bool useDynamicBatching, useGPUInstancing;
+    bool useDynamicBatching, useGPUInstancing, useLightsPerObject;
     ShadowSettings shadowSettings;
     //Edit pipeline settings on construction
     public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
-        ShadowSettings shadowSettings)
+        bool useLightsPerObject, ShadowSettings shadowSettings)
     {
         this.shadowSettings = shadowSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
+        this.useLightsPerObject = useLightsPerObject;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;//Enable batching to improve preformance
         GraphicsSettings.lightsUseLinearIntensity = true; //Want lights to use linear
         InitializeForEditor();
@@ -22,7 +23,8 @@ public partial class CustomRenderPipeline : RenderPipeline
     {
         foreach(Camera c in cameras)
         {
-            camRenderer.Render(context, c, useDynamicBatching, useGPUInstancing,shadowSettings);
+            camRenderer.Render(context, c, useDynamicBatching, useGPUInstancing, useLightsPerObject
+                ,shadowSettings);
         }
     }
 }

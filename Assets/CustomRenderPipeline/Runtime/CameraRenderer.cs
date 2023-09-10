@@ -25,7 +25,7 @@ public partial class CameraRenderer
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
-		bool useDynamicBatching, bool useGPUInstancing,
+		bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
 		ShadowSettings shadowSettings
 	)
 	{
@@ -44,7 +44,7 @@ public partial class CameraRenderer
 		lighting.Setup(context, cullingResults, shadowSettings);
 		buffer.EndSample(SampleName);
 		Setup();
-		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing); //Skybox has its own dedicated command buffer
+		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer
 		//We want to handle material types not supported by our setup
 		DrawUnsupportedShaders();
 		//We want to be able to draw handles and gizmos
@@ -94,8 +94,14 @@ public partial class CameraRenderer
 		buffer.Clear();
 	}
 
-	void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
+	void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject)
 	{
+		//PerObjectData for objects
+		PerObjectData lightsPerObjectFlags = useLightsPerObject ?
+			PerObjectData.LightData | PerObjectData.LightIndices :
+			PerObjectData.None; //Do we use per object data?
+		//Don't use per object data for Large objects sicne there are limits
+		//To how many light sources can illuminate them and gets buggy 
 		//Invoke our draw renderers from our meshes and such
 		var sortingSettings = new SortingSettings(camera)
 		{
@@ -114,6 +120,7 @@ public partial class CameraRenderer
 			| PerObjectData.LightProbe 
 			| PerObjectData.LightProbeProxyVolume//Send the lightmaps and light probes assoiated with each object
 			| PerObjectData.OcclusionProbeProxyVolume
+			| lightsPerObjectFlags
 		};
 		drawingSettings.SetShaderPassName(1, litShaderTagId);
 
