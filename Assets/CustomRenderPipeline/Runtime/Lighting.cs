@@ -6,6 +6,8 @@ public class Lighting
 {
 	//Name of the command buffer used to send lighting data
 	const string bufferName = "Lighting";
+	//Add shader varent for when we are usinig per object mode
+	static string lightsPerObjectKeyword = "_LIGHTS_PER_OBJECT";
 	//Command buffer to submit lighting data to GPU
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -41,7 +43,8 @@ public class Lighting
 		dirLightShadowData = new Vector4[maxDirLightCount];
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
 	Shadows shadows = new Shadows(); //Class used to handle the shadow draw calls
-	public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
+	public void Setup(ScriptableRenderContext context,
+		CullingResults cullingResults,ShadowSettings shadowSettings, bool useLightPerObject)
 	{
 		this.cullingResults = cullingResults;
 		//Start command buffer setup
@@ -49,7 +52,7 @@ public class Lighting
 		//Setup the directional light to submit
 		//SetupDirectionalLight();
 		shadows.Setup(context, cullingResults, shadowSettings);
-		SetupLights();
+		SetupLights(useLightPerObject);
 		shadows.Render();
 		//Finish setting up command buffer
 		buffer.EndSample(bufferName);
@@ -61,13 +64,19 @@ public class Lighting
     {
 		shadows.Cleanup();
     }
-	void SetupLights()
+	void SetupLights(bool useLightsPerObject)
     {
+		//Array that will be sanitized to leave just the non directional visible lights
+		NativeArray<int> indexMap = useLightsPerObject ?
+			cullingResults.GetLightIndexMap(Allocator.Temp) 
+			: default;
 		//Retrive data relvant to the lights - Array allows for multiple lights
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
 		int dlCount = 0, olCount = 0;
-		for(int i = 0; i < visibleLights.Length; i++)
+		int i;
+		for(i = 0; i < visibleLights.Length; i++)
         {
+			int newIndex = -1;
 			VisibleLight vL = visibleLights[i]; //Want to optimize memory via pass by ref
 			//Adds a new light if there is enough room in the light buffer
             switch (vL.lightType)
@@ -81,18 +90,36 @@ public class Lighting
 				case LightType.Point:
 					if(olCount < maxOtherLightCount)
                     {
+						newIndex = olCount;
 						SetupPointLight(olCount++, ref vL);
                     }
 					break;
 				case LightType.Spot:
 					if (olCount < maxOtherLightCount)
 					{
+						newIndex = olCount;
 						SetupSpotLight(olCount++, ref vL);
 					}
 					break;
 			}
-			
-        }
+			//Eliminte all the lights that arent visible
+			if (useLightsPerObject)
+			{
+				for (; i < indexMap.Length; i++)
+				{
+					indexMap[i] = -1;
+				}
+				//Send adjusted index back to to light map
+				cullingResults.SetLightIndexMap(indexMap);
+				indexMap.Dispose();
+				Shader.EnableKeyword(lightsPerObjectKeyword);
+            }
+            else
+            {
+				Shader.DisableKeyword(lightsPerObjectKeyword);
+			}
+		}
+
 		//Send populated dir lights to shader
 		buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
 		if(dlCount > 0) { 

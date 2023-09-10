@@ -8,6 +8,8 @@ CBUFFER_START(UnityPerDraw)
 	float4x4 unity_WorldToObject; //Matrix for world to object transform
 	float4 unity_LODFade; //Needs to be included even if not used
 	real4 unity_WorldTransformParams; //World Transform Params
+	real4 unity_LightData; //Light infomation about all the lights in the scene
+	real4 unity_LightIndices[2]; //Light index for the objects
 	float4 unity_ProbesOcclusion;//Light probes also have shadow mask data. This can be accessed via occulsion probes
 	float4 unity_SpecCube0_HDR; //Sample reflection probes
 	float4 unity_LightmapST; //Var for sampled lightmap

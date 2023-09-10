@@ -41,7 +41,7 @@ public partial class CameraRenderer
 		//Want to setup shadows first before drawing the actual objects
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();
-		lighting.Setup(context, cullingResults, shadowSettings);
+		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer
