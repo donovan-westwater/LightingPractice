@@ -84,21 +84,21 @@ public class Lighting
 				case LightType.Directional:
 					if (dlCount < maxDirLightCount)
 					{
-						SetupDirectionalLight(dlCount++, ref vL);
+						SetupDirectionalLight(dlCount++,i, ref vL);
 					}
 					break;
 				case LightType.Point:
 					if(olCount < maxOtherLightCount)
                     {
 						newIndex = olCount;
-						SetupPointLight(olCount++, ref vL);
+						SetupPointLight(olCount++,i, ref vL);
                     }
 					break;
 				case LightType.Spot:
 					if (olCount < maxOtherLightCount)
 					{
 						newIndex = olCount;
-						SetupSpotLight(olCount++, ref vL);
+						SetupSpotLight(olCount++, i, ref vL);
 					}
 					break;
 			}
@@ -147,16 +147,16 @@ public class Lighting
 			);
 		}
 	}
-    void SetupDirectionalLight(int index,ref VisibleLight visibleLight)
+    void SetupDirectionalLight(int index, int visibleIndex, ref VisibleLight visibleLight)
 	{
 		dirLightColors[index] = visibleLight.finalColor;
 		//Negate forward vector for the light
 		dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
 		//Reserve a shadow for the light if there is enough room
-		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, index);
+		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, visibleIndex);
 	}
 	//Setup a point light
-	void SetupPointLight(int index, ref VisibleLight visibleLight)
+	void SetupPointLight(int index, int visibleIndex, ref VisibleLight visibleLight)
     {
 		otherLightColors[index] = visibleLight.finalColor;
 		//Setup light range to cutoff the intensity if the light is too far
@@ -168,10 +168,10 @@ public class Lighting
 		otherLightSpotAngles[index] = new Vector4(0f, 1f);
 		//Reserve shadow infomation for the shadowmask
 		Light light = visibleLight.light;
-		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
 	}
 	//Spotlight setup. Sends info to shader for lighting calculations like with point light and directional light
-	void SetupSpotLight(int index, ref VisibleLight visibleLight)
+	void SetupSpotLight(int index, int visibleIndex, ref VisibleLight visibleLight)
     {
 		otherLightColors[index] = visibleLight.finalColor;
 		Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
@@ -187,6 +187,6 @@ public class Lighting
 		otherLightSpotAngles[index] = new Vector4(
 			angleRangeInv, -outerCos * angleRangeInv
 		);
-		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, index);
+		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
 	}
 }

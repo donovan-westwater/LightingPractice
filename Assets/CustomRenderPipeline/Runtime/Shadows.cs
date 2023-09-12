@@ -6,7 +6,8 @@ using UnityEngine.Rendering;
 
 public class Shadows
 {
-	const int maxShadowedDirectionalLightCount = 4; //Shadows are expensive so we want to limit the amount of shadows per light
+	const int maxShadowedDirectionalLightCount = 4
+		, MaxShadowedOtherLightCount = 16; //Shadows are expensive so we want to limit the amount of shadows per light
 	const int maxCascades = 4; //How many passes for the shadows we use to create the full picture?
 	const string bufferName = "Shadows";
 	//Shader variant keywords
@@ -14,6 +15,11 @@ public class Shadows
 		"_DIRECTIONAL_PCF3",
 		"_DIRECTIONAL_PCF5",
 		"_DIRECTIONAL_PCF7",
+	};
+	static string[] otherFilterKeywords = {
+		"_OTHER_PCF3",
+		"_OTHER_PCF5",
+		"_OTHER_PCF7",
 	};
 	//Cascade blending options
 	static string[] cascadeBlendKeywords = {
@@ -27,6 +33,8 @@ public class Shadows
 	static int cascadeCullingSphereId = Shader.PropertyToID("_CascadeCullingSpheres");
 	static int cascadeDataId = Shader.PropertyToID("_CascadeData");
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
+	static int otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas");
+	static int otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices");
 	static string[] shadowMaskkeywords =
 	{
 		"_SHADOW_MASK_ALWAYS",
@@ -36,6 +44,7 @@ public class Shadows
 	//Culling sphers use xyz position for center and w for radius
 	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
 	static Vector4[] cascadeData = new Vector4[maxCascades]; //Data used to handle shadow acne
+	Vector4 atlasSizes;
 	//Command buffer used to setup and execute the shadow draw calls
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -54,13 +63,24 @@ public class Shadows
 		public float slopeScaleBias;
 		public float nearPlaneOffset;
     }
+	struct ShadowedOtherLight
+	{
+		public int visibleLightIndex;
+		public float slopeScaleBias;
+		public float normalBias;
+	}
+
+	ShadowedOtherLight[] shadowedOtherLights =
+		new ShadowedOtherLight[MaxShadowedOtherLightCount];
 	ShadowedDirectionalLight[] shadowedDirectionalLights =
 		new ShadowedDirectionalLight[maxShadowedDirectionalLightCount];
 	//Need matrices to sample the UVs of each tile in our atlas
 	static Matrix4x4[]
-		dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades];
+		dirShadowMatrices = new Matrix4x4[maxShadowedDirectionalLightCount*maxCascades],
+		otherShadowMatrices = new Matrix4x4[MaxShadowedOtherLightCount];
 	//Used to determine which light(s) gets to have shadows
-	int ShadowedDirectionalLightCount;
+	int ShadowedDirectionalLightCount, 
+		shadowedOtherLightCount;
 	
 	public void Setup(
 		ScriptableRenderContext context, CullingResults cullingResults,
@@ -70,7 +90,7 @@ public class Shadows
 		this.context = context;
 		this.cullingResults = cullingResults;
 		this.settings = settings;
-		ShadowedDirectionalLightCount = 0;
+		ShadowedDirectionalLightCount = shadowedOtherLightCount = 0;
 		useShadowMask = false;
 	}
 	public Vector4 ReserveDirectionalShadows(Light light, int visibleLightIndex) {
@@ -104,30 +124,49 @@ public class Shadows
         }
 		return new Vector4(0f,0f,0f,-1f);
 	}
-	//Need to manage space on the shadow map for other lights
-	//We only care about shadow mask mode since the lightmap handles shadows just fine
+	//Handles mixed, baked, and realtime shadows for point and spotlights
+	//We are setting up light infomation for the other light shadow atlases
 	public Vector4 ReserveOtherShadows(Light light, int visibleLightIndex)
 	{
-		if (light.shadows != LightShadows.None && light.shadowStrength > 0f)
+		if (light.shadows == LightShadows.None || light.shadowStrength <= 0f)
 		{
-			//If there are shadows, check to see if we are using a shadowmask
-			//and are in mixed lighting mode
-			LightBakingOutput lightBaking = light.bakingOutput;
-			if (
-				lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
-				lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
-			)
-			{
-				//If so, then make sure we are using the shadowmaks and provide the infomation
-				//relating to it
-				useShadowMask = true;
-				return new Vector4(
-					light.shadowStrength, 0f, 0f,
-					lightBaking.occlusionMaskChannel
-				);
-			}
+			return new Vector4(0f, 0f, 0f, -1f);
 		}
-		return new Vector4(0f, 0f, 0f, -1f);
+		//If there are shadows, check to see if we are using a shadowmask
+		//and are in mixed lighting mode
+		float maskChannel = -1f;
+		LightBakingOutput lightBaking = light.bakingOutput;
+		if (
+			lightBaking.lightmapBakeType == LightmapBakeType.Mixed &&
+			lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask
+		)
+		{
+			//If so, then make sure we are using the shadowmaks and provide the infomation
+			//relating to it
+			useShadowMask = true;
+			maskChannel = lightBaking.occlusionMaskChannel;
+		}
+		//Make sure that we don't go over the light count
+		if (
+			shadowedOtherLightCount >= MaxShadowedOtherLightCount ||
+			!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)
+		)
+		{
+			return new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
+		}
+
+
+		shadowedOtherLights[shadowedOtherLightCount] = new ShadowedOtherLight
+		{
+			visibleLightIndex = visibleLightIndex,
+			slopeScaleBias = light.shadowBias,
+			normalBias = light.shadowNormalBias
+		};
+
+		return new Vector4(
+			light.shadowStrength, shadowedOtherLightCount++, 0f,
+			lightBaking.occlusionMaskChannel
+		);
 	}
 	//Takes a light matrix and converts into shadow atlas tile space
 	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
@@ -172,11 +211,32 @@ public class Shadows
 				dirShadowAtlasId, 1, 1,
 				32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
         }
+		if (shadowedOtherLightCount > 0)
+		{
+			RenderOtherShadows();
+		}
+		else
+		{
+			buffer.SetGlobalTexture(otherShadowAtlasId, dirShadowAtlasId);
+		}
 		//Enable/disable shadowmask at the end of the render
 		buffer.BeginSample(bufferName);
 		SetKeywords(shadowMaskkeywords, useShadowMask ? 
 			QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask ? 0 : 1 :
 			-1);
+		//Handles the edge case where there are only non directional shadows
+		buffer.SetGlobalInt(
+			cascadeCountId,
+			ShadowedDirectionalLightCount > 0 ? settings.directional.cascadeCount : 0
+		);
+		float f = 1f - settings.directional.cascadeFade;
+		buffer.SetGlobalVector(
+			shadowDistanceFadeId, new Vector4(
+				1f / settings.maxDistance, 1f / settings.distanceFade,
+				1f / (1f - f * f)
+			)
+		);
+		buffer.SetGlobalVector(shadowAtlasSizeId, atlasSizes);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
     }
@@ -185,6 +245,8 @@ public class Shadows
 		//The shadowmap is created by drawing shadow casting objects to a texture
 		//We will use a render texture to store this calculation
 		int atlasSize = (int)settings.directional.atlasSize;
+		atlasSizes.x = atlasSize;
+		atlasSizes.y = 1f / atlasSize;
 		//We will need to edit the texture's channel settings to work better for a shadow map
 		//We want a high depth buffer to test for shadows with
 		buffer.GetTemporaryRT(dirShadowAtlasId, atlasSize, atlasSize,32,FilterMode.Bilinear,RenderTextureFormat.Shadowmap);
@@ -205,26 +267,83 @@ public class Shadows
         }
 		//Send shadow matrices to to GPU
 		float f = 1f - settings.directional.cascadeFade;
-		buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
+		//buffer.SetGlobalInt(cascadeCountId, settings.directional.cascadeCount);
 		buffer.SetGlobalVectorArray(cascadeCullingSphereId, cascadeCullingSpheres);
 		buffer.SetGlobalVectorArray(cascadeDataId, cascadeData);
 		buffer.SetGlobalMatrixArray(dirShadowMatricesId, dirShadowMatrices);
-		buffer.SetGlobalVector(
-			shadowDistanceFadeId,
-			new Vector4(1f / settings.maxDistance, 1f / settings.distanceFade,1f/(1f-f*f))
-		);
+		//buffer.SetGlobalVector(
+		//	shadowDistanceFadeId,
+		//	new Vector4(1f / settings.maxDistance, 1f / settings.distanceFade,1f/(1f-f*f))
+		//);
 		SetKeywords(
 			directionalFilterKeywords, (int)settings.directional.filter - 1
 		);
 		SetKeywords(
 			cascadeBlendKeywords, (int)settings.directional.cascadeBlend - 1
 		);
-		buffer.SetGlobalVector(
-			shadowAtlasSizeId, new Vector4(atlasSize, 1f / atlasSize)
+		//buffer.SetGlobalVector(
+		//	shadowAtlasSizeId, new Vector4(atlasSize, 1f / atlasSize)
+		//);
+		buffer.EndSample(bufferName);
+		ExecuteBuffer();
+
+	}
+	//We render out the infomation we servered in the other shadow atlas
+	void RenderOtherShadows()
+	{
+		//The shadowmap is created by drawing shadow casting objects to a texture
+		//We will use a render texture to store this calculation
+		int atlasSize = (int)settings.other.atlasSize;
+		atlasSizes.z = atlasSize;
+		atlasSizes.w = 1f / atlasSize;
+		//We will need to edit the texture's channel settings to work better for a shadow map
+		//We want a high depth buffer to test for shadows with
+		buffer.GetTemporaryRT(otherShadowAtlasId, atlasSize, atlasSize, 32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+		//We are rendering the current image to the rendertexture
+		buffer.SetRenderTarget(otherShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+		//Clear depth as that is what we are using for shadows
+		buffer.ClearRenderTarget(true, false, Color.clear);
+		buffer.BeginSample(bufferName);
+		ExecuteBuffer();
+		//Split each light into its own tile in the texture
+		int tiles = shadowedOtherLightCount; //All the tiles used during shadows, including tiles used for cascade
+		int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;//calculate number of splits for each light
+		int tileSize = atlasSize / split;
+		//Render shadows for each of the directional lights in our setup
+		for (int i = 0; i < ShadowedDirectionalLightCount; i++)
+		{
+			RenderSpotShadows(i, split, tileSize);//Assign the size of the tile assoiated with the shadow
+		}
+		//Send shadow matrices to to GPU
+		buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
+		SetKeywords(
+			otherFilterKeywords, (int)settings.other.filter - 1
 		);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
+	}
+	//Spot light shadows
+	void RenderSpotShadows(int index, int split, int tileSize)
+	{
+		ShadowedOtherLight light = shadowedOtherLights[index];
+		var shadowSettings = new ShadowDrawingSettings(
+			cullingResults, light.visibleLightIndex
+		);
+		cullingResults.ComputeSpotShadowMatricesAndCullingPrimitives(
+			light.visibleLightIndex, out Matrix4x4 viewMatrix,
+			out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
+		);
+		shadowSettings.splitData = splitData;
+		otherShadowMatrices[index] = ConvertToAtlasMatrix(
+			projectionMatrix * viewMatrix,
+			SetTileViewport(index, split, tileSize), split
+		);
+		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+		buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
+		ExecuteBuffer();
+		context.DrawShadows(ref shadowSettings);
+		buffer.SetGlobalDepthBias(0f, 0f);
 	}
 	//Shader Keyword setup
 	void SetKeywords(string[] keywords, int enabledIndex)
@@ -311,6 +430,10 @@ public class Shadows
 	public void Cleanup()
     {
 		buffer.ReleaseTemporaryRT(dirShadowAtlasId);
+		if (shadowedOtherLightCount > 0)
+		{
+			buffer.ReleaseTemporaryRT(otherShadowAtlasId);
+		}
 		ExecuteBuffer();
     }
 	void ExecuteBuffer()

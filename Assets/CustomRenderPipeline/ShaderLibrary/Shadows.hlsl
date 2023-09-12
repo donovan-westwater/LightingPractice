@@ -81,7 +81,7 @@ ShadowData GetShadowData(Surface surfaceWS) {
 			break;
 		}
 	}
-	if (i == _CascadeCount) {
+	if (i == _CascadeCount && _CascadeCount > 0) {
 		data.strength = 0.0;
 	}
 	#if defined(_CASCADE_BLEND_DITHER)
@@ -196,6 +196,13 @@ float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowDa
 		}
 		return shadow;
 }
+//Real-time shadow function for point and spotlight
+float GetOtherShadow(
+	OtherShadowData other, ShadowData global, Surface surfaceWS
+) {
+	return 1.0;
+}
+
 //Get attenuation for shadowMask for point and spot lights
 float GetOtherShadowAttenuation(
 	OtherShadowData other, ShadowData global, Surface surfaceWS
@@ -205,13 +212,18 @@ float GetOtherShadowAttenuation(
 #endif
 
 	float shadow;
-	if (other.strength > 0.0) {
+	//Global is used to skip sampling of realtime shadows
+	if (other.strength > 0.0 * global.strength <= 0.0) {
 		shadow = GetBakedShadow(
-			global.shadowMask, other.shadowMaskChannel, other.strength
+			global.shadowMask, other.shadowMaskChannel, abs(other.strength)
 		);
 	}
 	else {
-		shadow = 1.0;
+		//Everything that isn't baked
+		shadow = GetOtherShadow(other, global, surfaceWS);
+		shadow = MixBakedAndRealtimeShadows(
+			global, shadow, other.shadowMaskChannel, other.strength
+		);
 	}
 	return shadow;
 }

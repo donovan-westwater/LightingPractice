@@ -15,6 +15,14 @@ float3 GetLighting(Surface surface, BRDF brdf, Light light) {
 }
 //Calculates lighting using the surface normals
 float3 GetLighting(Surface surfaceWS, BRDF brdf,GI gi) {
+	ShadowData shadowData = GetShadowData(surfaceWS); //shadow data canceling out multiple lights
+	shadowData.shadowMask = gi.shadowMask;
+	float3 color = IndirectBRDF(surfaceWS, brdf, gi.diffuse, gi.specular);
+	for (int i = 0; i < GetDirectionalLightCount(); i++) {
+		Light light = GetDirectionalLight(i, surfaceWS, shadowData);
+		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
+		color += GetLighting(surfaceWS, brdf, light);
+	}
 	//Per object mode
 	#if defined(_LIGHTS_PER_OBJECT)
 	for (int j = 0; j < min(unity_LightData.y,8); j++) {
@@ -23,20 +31,12 @@ float3 GetLighting(Surface surfaceWS, BRDF brdf,GI gi) {
 		color += GetLighting(surfaceWS, brdf, light);
 	}
 	#else
-	ShadowData shadowData = GetShadowData(surfaceWS); //shadow data canceling out multiple lights
-	shadowData.shadowMask = gi.shadowMask;
-	float3 color = IndirectBRDF(surfaceWS, brdf, gi.diffuse, gi.specular);
-	for (int i = 0; i < GetDirectionalLightCount(); i++) {
-		Light light = GetDirectionalLight(i, surfaceWS, shadowData);
-		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
-		color += GetLighting(surfaceWS, brdf,light);
-	}
-	#endif
 	//Get the color that is affecting the surface from the point lights
 	for (int j = 0; j < GetOtherLightCount(); j++) {
 		Light light = GetOtherLight(j, surfaceWS, shadowData);
 		color += GetLighting(surfaceWS, brdf, light);
 	}
+	#endif	
 	return color;
 
 }

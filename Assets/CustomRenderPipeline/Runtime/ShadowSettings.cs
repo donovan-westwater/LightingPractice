@@ -53,7 +53,13 @@ public class ShadowSettings
         }
         public CascadeBlendMode cascadeBlend;
     }
+    [System.Serializable]
+    public struct Other
+    {
+        public TextureSize atlasSize;
 
+        public FilterMode filter;
+    }
     public Directional directional = new Directional
     {
         atlasSize = TextureSize._1024,
@@ -66,5 +72,9 @@ public class ShadowSettings
         cascadeBlend = Directional.CascadeBlendMode.Hard
         
     };
-
+    public Other other = new Other
+    {
+        atlasSize = TextureSize._1024,
+        filter = FilterMode.PCF2x2
+    };
 }
