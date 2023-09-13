@@ -101,25 +101,24 @@ public class Lighting
 						SetupSpotLight(olCount++, i, ref vL);
 					}
 					break;
-			}
-			//Eliminte all the lights that arent visible
-			if (useLightsPerObject)
-			{
-				for (; i < indexMap.Length; i++)
-				{
-					indexMap[i] = -1;
-				}
-				//Send adjusted index back to to light map
-				cullingResults.SetLightIndexMap(indexMap);
-				indexMap.Dispose();
-				Shader.EnableKeyword(lightsPerObjectKeyword);
-            }
-            else
-            {
-				Shader.DisableKeyword(lightsPerObjectKeyword);
-			}
+			}			
 		}
-
+		//Eliminte all the lights that arent visible
+		if (useLightsPerObject)
+		{
+			for (; i < indexMap.Length; i++)
+			{
+				indexMap[i] = -1;
+			}
+			//Send adjusted index back to to light map
+			cullingResults.SetLightIndexMap(indexMap);
+			indexMap.Dispose();
+			Shader.EnableKeyword(lightsPerObjectKeyword);
+		}
+		else
+		{
+			Shader.DisableKeyword(lightsPerObjectKeyword);
+		}
 		//Send populated dir lights to shader
 		buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
 		if(dlCount > 0) { 

@@ -310,7 +310,7 @@ public class Shadows
 		int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;//calculate number of splits for each light
 		int tileSize = atlasSize / split;
 		//Render shadows for each of the directional lights in our setup
-		for (int i = 0; i < ShadowedDirectionalLightCount; i++)
+		for (int i = 0; i < shadowedOtherLightCount; i++)
 		{
 			RenderSpotShadows(i, split, tileSize);//Assign the size of the tile assoiated with the shadow
 		}
