@@ -29,6 +29,7 @@ struct Varyings {
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
+bool _ShadowPancaking;
 //output is for homogenous clip space
 Varyings ShadowCasterPassVertex(Attributes input){
 	Varyings output;
@@ -36,14 +37,16 @@ Varyings ShadowCasterPassVertex(Attributes input){
 	UNITY_TRANSFER_INSTANCE_ID(input, output); //copy index from input to output for GPU instancing
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(positionWS);
-	//Prevents shadows from being clipped by the near plane of cam
-#if UNITY_REVERSED_Z
-	output.positionCS.z =
-		min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
-#else
-	output.positionCS.z =
-		max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
-#endif
+	if(_ShadowPancaking){
+		//Prevents shadows from being clipped by the near plane of cam
+	#if UNITY_REVERSED_Z
+		output.positionCS.z =
+			min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+	#else
+		output.positionCS.z =
+			max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+	#endif
+	}
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	return output;

@@ -35,6 +35,7 @@ public class Shadows
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
 	static int otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas");
 	static int otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices");
+	static int shadowPancakingId = Shader.PropertyToID("_ShadowPancaking");
 	static string[] shadowMaskkeywords =
 	{
 		"_SHADOW_MASK_ALWAYS",
@@ -254,6 +255,7 @@ public class Shadows
 		buffer.SetRenderTarget(dirShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 		//Clear depth as that is what we are using for shadows
 		buffer.ClearRenderTarget(true, false, Color.clear);
+		buffer.SetGlobalFloat(shadowPancakingId, 1f);
 		buffer.BeginSample(bufferName);
 		ExecuteBuffer();
 		//Split each light into its own tile in the texture
@@ -303,6 +305,7 @@ public class Shadows
 		buffer.SetRenderTarget(otherShadowAtlasId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 		//Clear depth as that is what we are using for shadows
 		buffer.ClearRenderTarget(true, false, Color.clear);
+		buffer.SetGlobalFloat(shadowPancakingId, 0f); //We want to turn of pancaking since other lights have perspective
 		buffer.BeginSample(bufferName);
 		ExecuteBuffer();
 		//Split each light into its own tile in the texture
