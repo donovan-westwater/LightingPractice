@@ -69,6 +69,8 @@ struct OtherShadowData{
 	float strength;
 	int tileIndex;
 	int shadowMaskChannel;
+	float3 lightPositionWS;
+	float3 spotDirectionWS;
 };
 
 float FadedShadowStrength(float distance, float scale, float fade){
@@ -244,8 +246,11 @@ float GetOtherShadow(
 	OtherShadowData other, ShadowData global, Surface surfaceWS
 ) {
 	float4 tileData = _OtherShadowTiles[other.tileIndex];
+	//Find distance to the plane via the dot product between surface to light and spot dir
+	float3 surfaceToLight = other.lightPositionWS - surfaceWS.position;
+	float distanceToLightPlane = dot(surfaceToLight, other.spotDirectionWS);
 	//We don't use a shadow casecade to blend and we use perspective projection
-	float3 normalBias = surfaceWS.interpolatedNormal * tileData.w;;
+	float3 normalBias = surfaceWS.interpolatedNormal * (distanceToLightPlane * tileData.w);
 	float4 positionSTS = mul(
 		_OtherShadowMatrices[other.tileIndex],
 		float4(surfaceWS.position + normalBias, 1.0)
