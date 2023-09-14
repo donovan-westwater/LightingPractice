@@ -338,6 +338,7 @@ public class Shadows
 			out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
 		);
 		shadowSettings.splitData = splitData;
+		//projectionMatrix.m11 *= 2.0f; Example of how to edit the shadow length
 		otherShadowMatrices[index] = ConvertToAtlasMatrix(
 			projectionMatrix * viewMatrix,
 			SetTileViewport(index, split, tileSize), split
