@@ -42,6 +42,7 @@ CBUFFER_START(_CustomShadows)
 	float4 _CascadeData[MAX_CASCADE_COUNT];
 	float4x4 _DirectionalShadowMatrices[MAX_SHADOW_DIRECTIONAL_LIGHT_COUNT*MAX_CASCADE_COUNT];
 	float4x4 _OtherShadowMatrices[MAX_SHADOW_OTHER_LIGHT_COUNT]; //Meant to access to other Shadow atlas
+	float4 _OtherShadowTiles[MAX_SHADOW_OTHER_LIGHT_COUNT]; //tile bias data for other lights
 	float4 _ShadowAtlasSize;
 	float4 _ShadowDistanceFade;
 CBUFFER_END
@@ -242,8 +243,9 @@ float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowDa
 float GetOtherShadow(
 	OtherShadowData other, ShadowData global, Surface surfaceWS
 ) {
+	float4 tileData = _OtherShadowTiles[other.tileIndex];
 	//We don't use a shadow casecade to blend and we use perspective projection
-	float3 normalBias = surfaceWS.interpolatedNormal * 0.0;
+	float3 normalBias = surfaceWS.interpolatedNormal * tileData.w;;
 	float4 positionSTS = mul(
 		_OtherShadowMatrices[other.tileIndex],
 		float4(surfaceWS.position + normalBias, 1.0)

@@ -35,6 +35,7 @@ public class Shadows
 	static int shadowDistanceFadeId = Shader.PropertyToID("_ShadowDistanceFade");
 	static int otherShadowAtlasId = Shader.PropertyToID("_OtherShadowAtlas");
 	static int otherShadowMatricesId = Shader.PropertyToID("_OtherShadowMatrices");
+	static int otherShadowTilesId = Shader.PropertyToID("_OtherShadowTiles");
 	static int shadowPancakingId = Shader.PropertyToID("_ShadowPancaking");
 	static string[] shadowMaskkeywords =
 	{
@@ -45,6 +46,7 @@ public class Shadows
 	//Culling sphers use xyz position for center and w for radius
 	static Vector4[] cascadeCullingSpheres = new Vector4[maxCascades]; //Culling sphere setup
 	static Vector4[] cascadeData = new Vector4[maxCascades]; //Data used to handle shadow acne
+	static Vector4[] otherShadowTiles = new Vector4[MaxShadowedOtherLightCount];
 	Vector4 atlasSizes;
 	//Command buffer used to setup and execute the shadow draw calls
 	CommandBuffer buffer = new CommandBuffer
@@ -319,12 +321,20 @@ public class Shadows
 		}
 		//Send shadow matrices to to GPU
 		buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
+		buffer.SetGlobalVectorArray(otherShadowTilesId, otherShadowTiles);
 		SetKeywords(
 			otherFilterKeywords, (int)settings.other.filter - 1
 		);
 		buffer.EndSample(bufferName);
 		ExecuteBuffer();
 
+	}
+	//Set normal bias for tile data
+	void SetOtherTileData(int index, float bias)
+	{
+		Vector4 data = Vector4.zero;
+		data.w = bias;
+		otherShadowTiles[index] = data;
 	}
 	//Spot light shadows
 	void RenderSpotShadows(int index, int split, int tileSize)
@@ -339,6 +349,12 @@ public class Shadows
 		);
 		shadowSettings.splitData = splitData;
 		//projectionMatrix.m11 *= 2.0f; Example of how to edit the shadow length
+		//Change texel size to to scale with persepctive so we can reduce shadow acne
+		//We can do this by scaling the normal bias with disance
+		float texelSize = 2f / (tileSize * projectionMatrix.m00);
+		float filterSize = texelSize * ((float)settings.other.filter + 1f);
+		float bias = light.normalBias * filterSize * 1.4142136f;
+		SetOtherTileData(index, bias);
 		otherShadowMatrices[index] = ConvertToAtlasMatrix(
 			projectionMatrix * viewMatrix,
 			SetTileViewport(index, split, tileSize), split
