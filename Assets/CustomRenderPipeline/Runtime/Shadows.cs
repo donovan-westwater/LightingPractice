@@ -172,7 +172,7 @@ public class Shadows
 		);
 	}
 	//Takes a light matrix and converts into shadow atlas tile space
-	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split)
+	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split, float scale)
     {
 		//Negate the z direction if revesred z buffer
 		if (SystemInfo.usesReversedZBuffer)
@@ -183,7 +183,7 @@ public class Shadows
 			m.m23 = -m.m23;
 		}
 		//Convert clip space to texure coords
-		float scale = 1f / split;
+		//float scale = 1f / split;
 		m.m00 = (0.5f * (m.m00 + m.m30) + offset.x * m.m30) * scale;
 		m.m01 = (0.5f * (m.m01 + m.m31) + offset.x * m.m31) * scale;
 		m.m02 = (0.5f * (m.m02 + m.m32) + offset.x * m.m32) * scale;
@@ -330,10 +330,16 @@ public class Shadows
 
 	}
 	//Set normal bias for tile data
-	void SetOtherTileData(int index, float bias)
+	void SetOtherTileData(int index, Vector2 offset, float scale, float bias)
 	{
-		Vector4 data = Vector4.zero;
+		//We can't use cascades for other shadows. To avoid incorrect sampling, we want to clamp to the correct tile
+		//Lets calculate the tile bounds. The min bounds are the scaled offset
+		float border = atlasSizes.w * 0.5f;
+		Vector4 data;
 		data.w = bias;
+		data.x = offset.x * scale + border;
+		data.y = offset.y * scale + border;
+		data.z = scale - border - border; //Store tile scale in z.
 		otherShadowTiles[index] = data;
 	}
 	//Spot light shadows
@@ -354,10 +360,12 @@ public class Shadows
 		float texelSize = 2f / (tileSize * projectionMatrix.m00);
 		float filterSize = texelSize * ((float)settings.other.filter + 1f);
 		float bias = light.normalBias * filterSize * 1.4142136f;
-		SetOtherTileData(index, bias);
+		Vector2 offset = SetTileViewport(index, split, tileSize);
+		float tileScale = 1f / split;
+		SetOtherTileData(index, offset, 1f/ split, bias);
 		otherShadowMatrices[index] = ConvertToAtlasMatrix(
 			projectionMatrix * viewMatrix,
-			SetTileViewport(index, split, tileSize), split
+			offset, split,tileScale
 		);
 		buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
 		buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
@@ -400,6 +408,7 @@ public class Shadows
 		Vector3 ratios = settings.directional.CascadeRatios;
 		//Culling factor that modulates teh radius of the previous cascade used to cull
 		float cullingFactor = Mathf.Max(0f, 0.8f - settings.directional.cascadeFade);
+		float tileScale = 1f / split;
 		for(int i = 0;i < cascadeCount; i++)
         {        
 			//We want to render the scene as if the light is the camera and use the depth info to draw the shadows
@@ -426,7 +435,7 @@ public class Shadows
 			dirShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
 				projectionMatrix * viewMatrix,
 				SetTileViewport(tileIndex, split, tileSize),
-				split); //save the matrix we calculated so we can sample it later
+				split, tileScale); //save the matrix we calculated so we can sample it later
 			buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
 			buffer.SetGlobalDepthBias(0f, light.slopeScaleBias); //Settup bias to help with shadow acne (global and slope scale)
 			ExecuteBuffer();
