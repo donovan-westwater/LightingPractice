@@ -399,9 +399,13 @@ public class Shadows
 		var shadowSettings = new ShadowDrawingSettings(
 			cullingResults, light.visibleLightIndex
 		);
+		float texelSize = 2f / tileSize;
+		float filterSize = texelSize * ((float)settings.other.filter + 1f);
+		float bias = light.normalBias * filterSize * 1.4142136f;
+		float tileScale = 1f / split;
 		//We need to render the point lights as a cube map, so we want to render 6 times!
 		//We are treating the point light as if it is 6 seperate lights for shadow purposes
-		for(int i = 0; i < 6; i++) { 
+		for (int i = 0; i < 6; i++) { 
 			cullingResults.ComputePointShadowMatricesAndCullingPrimitives(
 				light.visibleLightIndex, (CubemapFace)i,0f,
 				out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
@@ -411,11 +415,7 @@ public class Shadows
 			//Change texel size to to scale with persepctive so we can reduce shadow acne
 			//We can do this by scaling the normal bias with disance
 			int tileIndex = index + i;
-			float texelSize = 2f / (tileSize * projectionMatrix.m00);
-			float filterSize = texelSize * ((float)settings.other.filter + 1f);
-			float bias = light.normalBias * filterSize * 1.4142136f;
 			Vector2 offset = SetTileViewport(tileIndex, split, tileSize);
-			float tileScale = 1f / split;
 			SetOtherTileData(tileIndex, offset, 1f / split, bias);
 			otherShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
 				projectionMatrix * viewMatrix,

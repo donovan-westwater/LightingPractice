@@ -68,8 +68,10 @@ struct ShadowData {
 struct OtherShadowData{
 	float strength;
 	int tileIndex;
+	bool isPoint;
 	int shadowMaskChannel;
 	float3 lightPositionWS;
+	float3 lightDirectionWS;
 	float3 spotDirectionWS;
 };
 
@@ -242,19 +244,37 @@ float GetDirectionalShadowAttenuation(DirectionalShadowData directional,ShadowDa
 		}
 		return shadow;
 }
+//AABB planes. Used for Sampling point light cube maps
+//The normals point in the opposite direction of the faces, like spotlights pointing toward the light
+static const float3 pointShadowPlanes[6] = {
+	float3(-1.0, 0.0, 0.0),
+	float3(1.0, 0.0, 0.0),
+	float3(0.0, -1.0, 0.0),
+	float3(0.0, 1.0, 0.0),
+	float3(0.0, 0.0, -1.0),
+	float3(0.0, 0.0, 1.0)
+};
 //Real-time shadow function for point and spotlight
 //Use the shadow atlas to determine shadows
 float GetOtherShadow(
 	OtherShadowData other, ShadowData global, Surface surfaceWS
 ) {
-	float4 tileData = _OtherShadowTiles[other.tileIndex];
+	float tileIndex = other.tileIndex;
+	float3 lightPlane = other.spotDirectionWS;
+	if (other.isPoint) {
+		//figure out which tile of the cube map to sample
+		float faceOffset = CubeMapFaceID(-other.lightDirectionWS);
+		tileIndex += faceOffset;
+		lightPlane = pointShadowPlanes[faceOffset];
+	}
+	float4 tileData = _OtherShadowTiles[tileIndex];
 	//Find distance to the plane via the dot product between surface to light and spot dir
 	float3 surfaceToLight = other.lightPositionWS - surfaceWS.position;
-	float distanceToLightPlane = dot(surfaceToLight, other.spotDirectionWS);
+	float distanceToLightPlane = dot(surfaceToLight, lightPlane);
 	//We don't use a shadow casecade to blend and we use perspective projection
 	float3 normalBias = surfaceWS.interpolatedNormal * (distanceToLightPlane * tileData.w);
 	float4 positionSTS = mul(
-		_OtherShadowMatrices[other.tileIndex],
+		_OtherShadowMatrices[tileIndex],
 		float4(surfaceWS.position + normalBias, 1.0)
 	);
 	return FilterOtherShadow(positionSTS.xyz / positionSTS.w,tileData.xyz);
