@@ -71,6 +71,7 @@ public class Shadows
 		public int visibleLightIndex;
 		public float slopeScaleBias;
 		public float normalBias;
+		public bool isPoint;
 	}
 
 	ShadowedOtherLight[] shadowedOtherLights =
@@ -149,9 +150,13 @@ public class Shadows
 			useShadowMask = true;
 			maskChannel = lightBaking.occlusionMaskChannel;
 		}
+		//Check to see if we are dealing with a point light
+		//Set aside 6 tiles on the shadow map for each map
+		bool isPoint = light.type == LightType.Point;
+		int newLightCount = shadowedOtherLightCount + (isPoint ? 6 : 1);
 		//Make sure that we don't go over the light count
 		if (
-			shadowedOtherLightCount >= MaxShadowedOtherLightCount ||
+			newLightCount >= MaxShadowedOtherLightCount ||
 			!cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b)
 		)
 		{
@@ -163,13 +168,16 @@ public class Shadows
 		{
 			visibleLightIndex = visibleLightIndex,
 			slopeScaleBias = light.shadowBias,
-			normalBias = light.shadowNormalBias
+			normalBias = light.shadowNormalBias,
+			isPoint = isPoint
 		};
 
-		return new Vector4(
-			light.shadowStrength, shadowedOtherLightCount++, 0f,
+		Vector4 data = new Vector4(
+			light.shadowStrength, shadowedOtherLightCount, isPoint ? 1f : 0f,
 			lightBaking.occlusionMaskChannel
 		);
+		shadowedOtherLightCount = newLightCount;
+		return data;
 	}
 	//Takes a light matrix and converts into shadow atlas tile space
 	Matrix4x4 ConvertToAtlasMatrix(Matrix4x4 m, Vector2 offset, int split, float scale)
@@ -314,10 +322,21 @@ public class Shadows
 		int tiles = shadowedOtherLightCount; //All the tiles used during shadows, including tiles used for cascade
 		int split = tiles <= 1 ? 1 : tiles <= 4 ? 2 : 4;//calculate number of splits for each light
 		int tileSize = atlasSize / split;
-		//Render shadows for each of the directional lights in our setup
-		for (int i = 0; i < shadowedOtherLightCount; i++)
+		//Render shadows for each of the spot and point lights in our setup
+		for (int i = 0; i < shadowedOtherLightCount;)
 		{
-			RenderSpotShadows(i, split, tileSize);//Assign the size of the tile assoiated with the shadow
+			//Since spotlights take up 6 tiles instead of 1, we need to increment in steps of 6
+            if (shadowedOtherLights[i].isPoint)
+            {
+				RenderPointShadows(i, split, tileSize);
+				i += 6;
+            }
+            else
+            {
+				RenderSpotShadows(i, split, tileSize);//Assign the size of the tile assoiated with the shadow
+				i += 1;
+			}
+			
 		}
 		//Send shadow matrices to to GPU
 		buffer.SetGlobalMatrixArray(otherShadowMatricesId, otherShadowMatrices);
@@ -372,6 +391,42 @@ public class Shadows
 		ExecuteBuffer();
 		context.DrawShadows(ref shadowSettings);
 		buffer.SetGlobalDepthBias(0f, 0f);
+	}
+	//Point light shadow rendering
+	void RenderPointShadows(int index, int split, int tileSize)
+	{
+		ShadowedOtherLight light = shadowedOtherLights[index];
+		var shadowSettings = new ShadowDrawingSettings(
+			cullingResults, light.visibleLightIndex
+		);
+		//We need to render the point lights as a cube map, so we want to render 6 times!
+		//We are treating the point light as if it is 6 seperate lights for shadow purposes
+		for(int i = 0; i < 6; i++) { 
+			cullingResults.ComputePointShadowMatricesAndCullingPrimitives(
+				light.visibleLightIndex, (CubemapFace)i,0f,
+				out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
+			);
+			shadowSettings.splitData = splitData;
+			//projectionMatrix.m11 *= 2.0f; Example of how to edit the shadow length
+			//Change texel size to to scale with persepctive so we can reduce shadow acne
+			//We can do this by scaling the normal bias with disance
+			int tileIndex = index + i;
+			float texelSize = 2f / (tileSize * projectionMatrix.m00);
+			float filterSize = texelSize * ((float)settings.other.filter + 1f);
+			float bias = light.normalBias * filterSize * 1.4142136f;
+			Vector2 offset = SetTileViewport(tileIndex, split, tileSize);
+			float tileScale = 1f / split;
+			SetOtherTileData(tileIndex, offset, 1f / split, bias);
+			otherShadowMatrices[tileIndex] = ConvertToAtlasMatrix(
+				projectionMatrix * viewMatrix,
+				offset, split, tileScale
+			);
+			buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
+			buffer.SetGlobalDepthBias(0f, light.slopeScaleBias);
+			ExecuteBuffer();
+			context.DrawShadows(ref shadowSettings);
+			buffer.SetGlobalDepthBias(0f, 0f);
+		}
 	}
 	//Shader Keyword setup
 	void SetKeywords(string[] keywords, int enabledIndex)
