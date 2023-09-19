@@ -403,13 +403,22 @@ public class Shadows
 		float filterSize = texelSize * ((float)settings.other.filter + 1f);
 		float bias = light.normalBias * filterSize * 1.4142136f;
 		float tileScale = 1f / split;
+		//bias that slightly increases fov to deal with cube map shadow artifacts
+		float fovBias =
+			Mathf.Atan(1f + bias + filterSize) * Mathf.Rad2Deg * 2f - 90f;
 		//We need to render the point lights as a cube map, so we want to render 6 times!
 		//We are treating the point light as if it is 6 seperate lights for shadow purposes
 		for (int i = 0; i < 6; i++) { 
 			cullingResults.ComputePointShadowMatricesAndCullingPrimitives(
-				light.visibleLightIndex, (CubemapFace)i,0f,
+				light.visibleLightIndex, (CubemapFace)i,fovBias,
 				out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData
 			);
+			//We need to deal with the light leaking on the opposite side
+			//Normally the front faces of the light are drawn, but we are rendering hte bak faces instead, casuing the leaks
+			//We need to negate the a row of the view matrix to fix the issue
+			viewMatrix.m11 = -viewMatrix.m11;
+			viewMatrix.m12 = -viewMatrix.m12;
+			viewMatrix.m13 = -viewMatrix.m13;
 			shadowSettings.splitData = splitData;
 			//projectionMatrix.m11 *= 2.0f; Example of how to edit the shadow length
 			//Change texel size to to scale with persepctive so we can reduce shadow acne
