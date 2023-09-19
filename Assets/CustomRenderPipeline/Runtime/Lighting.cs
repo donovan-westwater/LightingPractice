@@ -120,7 +120,7 @@ public class Lighting
 			Shader.DisableKeyword(lightsPerObjectKeyword);
 		}
 		//Send populated dir lights to shader
-		buffer.SetGlobalInt(dirLightCountId, visibleLights.Length);
+		buffer.SetGlobalInt(dirLightCountId, dlCount);
 		if(dlCount > 0) { 
 			buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
 			buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
