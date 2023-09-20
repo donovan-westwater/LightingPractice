@@ -15,6 +15,8 @@ public partial class CameraRenderer
 		name = bufferName
 	};
 
+	static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer"); //We want to read from a frame that isn't being written on
+
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -22,6 +24,9 @@ public partial class CameraRenderer
 	CullingResults cullingResults;
 
 	Lighting lighting = new Lighting(); //Provided by RP
+
+	PostFXStack postFXStack = new PostFXStack(); //Controls what effects will be applied
+
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
@@ -42,6 +47,7 @@ public partial class CameraRenderer
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
+		postFXStack.Setup(context, camera, postFXSettings);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer
@@ -49,11 +55,23 @@ public partial class CameraRenderer
 		DrawUnsupportedShaders();
 		//We want to be able to draw handles and gizmos
 		DrawGizmos();
-		lighting.Cleanup();
+		//Render the Post FX at the very end
+		if (postFXStack.IsActive)
+		{
+			postFXStack.Render(frameBufferId);
+		}
+		Cleanup();
 		//You need to submit the draw command to the command buffer
 		Submit();
 	}
-
+	void Cleanup()
+	{
+		lighting.Cleanup();
+		if (postFXStack.IsActive)
+		{
+			buffer.ReleaseTemporaryRT(frameBufferId);
+		}
+	}
 	bool Cull(float maxShadowDistance)
 	{
 		if (camera.TryGetCullingParameters(out ScriptableCullingParameters p))
@@ -70,6 +88,18 @@ public partial class CameraRenderer
 		context.SetupCameraProperties(camera);
 		//Clear flags for cam layers and combining results for multiple cameras
 		CameraClearFlags flags = camera.clearFlags;
+        if (postFXStack.IsActive)
+        {
+			//Store the current frame in the frame buffer for reading
+			buffer.GetTemporaryRT(
+				frameBufferId, camera.pixelWidth, camera.pixelHeight,
+				32, FilterMode.Bilinear, RenderTextureFormat.Default
+			);
+			buffer.SetRenderTarget(
+				frameBufferId,
+				RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+			);
+		}
 		//Make sure we are working with a clean frame
 		buffer.ClearRenderTarget(
 			flags <= CameraClearFlags.Depth,
