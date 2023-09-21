@@ -90,6 +90,11 @@ public partial class CameraRenderer
 		CameraClearFlags flags = camera.clearFlags;
         if (postFXStack.IsActive)
         {
+			//Clear the  frame buffer
+			if(flags > CameraClearFlags.Color)
+            {
+				flags = CameraClearFlags.Color;
+            }
 			//Store the current frame in the frame buffer for reading
 			buffer.GetTemporaryRT(
 				frameBufferId, camera.pixelWidth, camera.pixelHeight,
