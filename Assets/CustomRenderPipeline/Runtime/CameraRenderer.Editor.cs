@@ -9,7 +9,9 @@ partial class CameraRenderer
 {
 	//Partial class splits class definaion across files for organization
 	//Any partial functions not defined in code are ignored during compilation
-	partial void DrawGizmos();
+	partial void DrawGizmosBeforeFX();
+
+	partial void DrawGizmosAfterFX();
 
 	partial void DrawUnsupportedShaders();
 
@@ -32,17 +34,23 @@ partial class CameraRenderer
 
 	string SampleName { get; set; }
 	//Draw Gizmos for our custom pipeline
-	partial void DrawGizmos()
+	partial void DrawGizmosBeforeFX()
 	{
 		if (Handles.ShouldRenderGizmos())
 		{
 			//Dont use image effects so we invoke both
 			context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
+			//context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
+		}
+	}
+    partial void DrawGizmosAfterFX()
+    {
+		if (Handles.ShouldRenderGizmos())
+		{
 			context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
 		}
 	}
-
-	partial void DrawUnsupportedShaders()
+    partial void DrawUnsupportedShaders()
 	{
 		if (errorMaterial == null)
 		{

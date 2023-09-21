@@ -54,12 +54,13 @@ public partial class CameraRenderer
 		//We want to handle material types not supported by our setup
 		DrawUnsupportedShaders();
 		//We want to be able to draw handles and gizmos
-		DrawGizmos();
+		DrawGizmosBeforeFX();
 		//Render the Post FX at the very end
 		if (postFXStack.IsActive)
 		{
 			postFXStack.Render(frameBufferId);
 		}
+		DrawGizmosAfterFX();
 		Cleanup();
 		//You need to submit the draw command to the command buffer
 		Submit();
