@@ -3,6 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Rendering/Custom Post FX Settings")]
-public class PostFXSettings : ScriptableObject { 
+public class PostFXSettings : ScriptableObject {
+    [SerializeField]
+    //Custom triangle shader
+    Shader shader = default;
+	
+	//Material for full screen triangle shader
+	[System.NonSerialized]
+	Material material;
+
+	public Material Material
+	{
+		get
+		{
+			if (material == null && shader != null)
+			{
+				material = new Material(shader);
+				material.hideFlags = HideFlags.HideAndDontSave;
+			}
+			return material;
+		}
+	}
 
 }

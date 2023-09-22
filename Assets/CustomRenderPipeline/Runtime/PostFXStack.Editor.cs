@@ -1,0 +1,25 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
+
+partial class PostFXStack
+{
+
+	partial void ApplySceneViewState();
+
+#if UNITY_EDITOR
+	//Enables the toggling of Post Processing effects in the editor
+	partial void ApplySceneViewState()
+	{
+		if (
+			camera.cameraType == CameraType.SceneView &&
+			!SceneView.currentDrawingSceneView.sceneViewState.showImageEffects
+		)
+		{
+			settings = null;
+		}
+	}
+
+#endif
+}
