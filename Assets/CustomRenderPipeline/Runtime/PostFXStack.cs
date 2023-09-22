@@ -13,7 +13,7 @@ public partial class PostFXStack
 		name = bufferName
 	};
 
-	int fxSourceId = Shader.PropertyToID("_PostFxXSource"); //Used to access source image for post fx
+	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
 
 	ScriptableRenderContext context;
 
