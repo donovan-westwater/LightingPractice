@@ -35,9 +35,9 @@ float4 GetSource(float2 screenUV) {
 float4 CopyPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Shitty tone mapper test
-	float Y = 0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z;
-	float y = Y*3.9;
-	color = pow(color / Y, 0.6) * y;
+	//float Y = 0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z;
+	//float y = Y*3.9;
+	//color = pow(color / Y, 0.6) * y;
 	return color;
 }
 #endif

@@ -11,7 +11,22 @@ public class PostFXSettings : ScriptableObject {
 	//Material for full screen triangle shader
 	[System.NonSerialized]
 	Material material;
+	//Bloom settings
+	[System.Serializable]
+	public struct BloomSettings
+	{
 
+		[Range(0f, 16f)]
+		public int maxIterations; //Controls how many layers we use
+
+		[Min(1f)]
+		public int downscaleLimit; //At what size do we stop sampling?
+	}
+
+	[SerializeField]
+	BloomSettings bloom = default;
+
+	public BloomSettings Bloom => bloom;
 	public Material Material
 	{
 		get
