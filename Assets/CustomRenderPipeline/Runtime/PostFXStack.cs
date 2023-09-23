@@ -25,6 +25,8 @@ public partial class PostFXStack
 	int bloomPyramidId;
 	enum Pass
     {
+		BloomHorizontal,
+		BloomVertical,
 		Copy
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
@@ -33,7 +35,7 @@ public partial class PostFXStack
     {
 		//Bloom setup
 		bloomPyramidId = Shader.PropertyToID("_BloomPyramid0"); //Only track the first, like we do with arrays
-		for(int i = 1; i < maxBloomPyramidLevels; i++)
+		for(int i = 1; i < maxBloomPyramidLevels * 2; i++)
         {
 			Shader.PropertyToID("_BloomPyramid" + i); //We want to store each of the layers
         }
@@ -80,7 +82,7 @@ public partial class PostFXStack
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 		RenderTextureFormat format = RenderTextureFormat.Default;
-		int fromId = sourceId, toId = bloomPyramidId;
+		int fromId = sourceId, toId = bloomPyramidId + 1;
 		//We go through each layer and blend neighboring pixels together
 		//Then we use downsampling of each layer to add more detail
 		//Copy our images into layers, lowering the detail by downsampling each time
@@ -91,13 +93,19 @@ public partial class PostFXStack
             {
 				break;
             }
+			//We need to use a intermediate texture to store combination of vertical and horizonal
+			int midId = toId - 1;
+			buffer.GetTemporaryRT(
+				midId, width, height, 0, FilterMode.Bilinear, format
+			);
 			//This is the the part that blurs each layer with bilinear filtering
 			//We are average the layer, then down scale, and copy the results
 			//This causes the averaging the add up to a larger blur, resulting in bloom
 			buffer.GetTemporaryRT(toId, width, height, 0, FilterMode.Bilinear, format);
-			Draw(fromId, toId, Pass.Copy);
+			Draw(fromId, midId, Pass.BloomHorizontal);
+			Draw(midId, toId, Pass.BloomVertical);
 			fromId = toId;
-			toId += 1;
+			toId += 2;
 			width /= 2;
 			height /= 2;
 		}
@@ -106,7 +114,9 @@ public partial class PostFXStack
 		//We release all of the reserved data now that we sent it to the postFX shader
 		for (i -= 1; i >= 0; i--)
 		{
-			buffer.ReleaseTemporaryRT(bloomPyramidId + i);
+			buffer.ReleaseTemporaryRT(fromId);
+			buffer.ReleaseTemporaryRT(fromId - 1);
+			fromId -= 2;
 		}
 		buffer.EndSample("Bloom");
     }
