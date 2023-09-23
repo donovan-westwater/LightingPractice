@@ -10,15 +10,7 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 		#include "PostFXStackPasses.hlsl"
 		ENDHLSL
 
-		Pass {
-			Name "Copy"
 
-			HLSLPROGRAM
-				#pragma target 3.5
-				#pragma vertex DefaultPassVertex
-				#pragma fragment CopyPassFragment
-			ENDHLSL
-		}
 		Pass {
 			Name "Bloom Horizontal"
 
@@ -35,6 +27,15 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
 				#pragma fragment BloomVerticalPassFragment
+			ENDHLSL
+		}
+		Pass {
+			Name "Copy"
+
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment CopyPassFragment
 			ENDHLSL
 		}
 	}
