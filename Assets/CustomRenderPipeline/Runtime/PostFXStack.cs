@@ -82,6 +82,14 @@ public partial class PostFXStack
         buffer.BeginSample("Bloom");
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
+		//Just draw the image unaltered.
+		if (bloom.maxIterations == 0 || height < bloom.downscaleLimit
+			|| width < bloom.downscaleLimit)
+		{
+			Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+			buffer.EndSample("Bloom");
+			return;
+		}
 		RenderTextureFormat format = RenderTextureFormat.Default;
 		int fromId = sourceId, toId = bloomPyramidId + 1;
 		//We go through each layer and blend neighboring pixels together
@@ -114,17 +122,22 @@ public partial class PostFXStack
 		//Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 		buffer.ReleaseTemporaryRT(fromId - 1);
 		toId -= 5; //Release the last horizontal draw and move us up the pyramid
-		//We release all of the reserved data now that we sent it to the postFX shader
-		for (i -= 1; i > 0; i--)
-		{
-			//Go back through the layers and upsample to finish the bloom effect
-			buffer.SetGlobalTexture(fxSource2Id, toId + 1);
-			Draw(fromId, toId, Pass.BloomCombine);
-			buffer.ReleaseTemporaryRT(fromId);
-			buffer.ReleaseTemporaryRT(toId+1);
-			fromId = toId;
-			toId -= 2;
+		if(i > 1) { 
+			//We release all of the reserved data now that we sent it to the postFX shader
+			for (i -= 1; i > 0; i--)
+			{
+				//Go back through the layers and upsample to finish the bloom effect
+				buffer.SetGlobalTexture(fxSource2Id, toId + 1);
+				Draw(fromId, toId, Pass.BloomCombine);
+				buffer.ReleaseTemporaryRT(fromId);
+				buffer.ReleaseTemporaryRT(toId+1);
+				fromId = toId;
+				toId -= 2;
 
+			}
+        }
+        else {
+			buffer.ReleaseTemporaryRT(bloomPyramidId);
 		}
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
 		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
