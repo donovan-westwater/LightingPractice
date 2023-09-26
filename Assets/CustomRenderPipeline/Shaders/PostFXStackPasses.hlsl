@@ -79,7 +79,7 @@ float4 BloomVerticalPassFragment(Varyings input) : SV_TARGET{
 		//First get the x or horizontal compoental, and get the texels to the left and right
 		//Based on the down sample, we determine which pixel to grab, and how much each pixel should 
 		//contribute to the average
-		float offset = offsets[i] * GetSourceTexelSize().y;
+		float offset = offsets[i] * GetSourceTexelSize().y; //Don't double because we want to fill the gaps and complete the gaussian
 		color += GetSource(input.screenUV + float2(0.0, offset)).rgb * weights[i];
 	}
 	return float4(color, 1.0);
