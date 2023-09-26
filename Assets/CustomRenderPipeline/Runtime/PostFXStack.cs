@@ -14,7 +14,7 @@ public partial class PostFXStack
 	};
 
 	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
-
+	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -27,6 +27,7 @@ public partial class PostFXStack
     {
 		BloomHorizontal,
 		BloomVertical,
+		BloomCombine,
 		Copy
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
@@ -110,14 +111,24 @@ public partial class PostFXStack
 			height /= 2;
 		}
 		//Copy the resulting blurred image
-		Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+		//Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+		buffer.ReleaseTemporaryRT(fromId - 1);
+		toId -= 5; //Release the last horizontal draw and move us up the pyramid
 		//We release all of the reserved data now that we sent it to the postFX shader
-		for (i -= 1; i >= 0; i--)
+		for (i -= 1; i > 0; i--)
 		{
+			//Go back through the layers and upsample to finish the bloom effect
+			buffer.SetGlobalTexture(fxSource2Id, toId + 1);
+			Draw(fromId, toId, Pass.BloomCombine);
 			buffer.ReleaseTemporaryRT(fromId);
-			buffer.ReleaseTemporaryRT(fromId - 1);
-			fromId -= 2;
+			buffer.ReleaseTemporaryRT(toId+1);
+			fromId = toId;
+			toId -= 2;
+
 		}
+		buffer.SetGlobalTexture(fxSource2Id, sourceId);
+		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+		buffer.ReleaseTemporaryRT(fromId);
 		buffer.EndSample("Bloom");
     }
 }
