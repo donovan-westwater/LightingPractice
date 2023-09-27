@@ -15,6 +15,7 @@ public partial class PostFXStack
 	int bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling");
 	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
 	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
+	int bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"); //Saves downscales by reducing resolution of pytramid
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -83,15 +84,23 @@ public partial class PostFXStack
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 		//Just draw the image unaltered.
-		if (bloom.maxIterations == 0 || height < bloom.downscaleLimit
-			|| width < bloom.downscaleLimit)
+		if (bloom.maxIterations == 0 || height < bloom.downscaleLimit * 2
+			|| width < bloom.downscaleLimit * 2)
 		{
 			Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 			buffer.EndSample("Bloom");
 			return;
 		}
+		//Reducing the resolution of the layers so we don't sample as much
 		RenderTextureFormat format = RenderTextureFormat.Default;
-		int fromId = sourceId, toId = bloomPyramidId + 1;
+		buffer.GetTemporaryRT(
+			bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format
+		);
+		Draw(sourceId, bloomPrefilterId, Pass.Copy);
+		width /= 2;
+		height /= 2;
+
+		int fromId = bloomPrefilterId, toId = bloomPyramidId + 1;
 		//We go through each layer and blend neighboring pixels together
 		//Then we use downsampling of each layer to add more detail
 		//Copy our images into layers, lowering the detail by downsampling each time
@@ -118,6 +127,8 @@ public partial class PostFXStack
 			width /= 2;
 			height /= 2;
 		}
+		//Releases the tmp texture used for halving the resolution
+		buffer.ReleaseTemporaryRT(bloomPrefilterId);
 		//Copy the resulting blurred image
 		//Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 		buffer.ReleaseTemporaryRT(fromId - 1);
