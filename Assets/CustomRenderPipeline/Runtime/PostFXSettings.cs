@@ -21,6 +21,8 @@ public class PostFXSettings : ScriptableObject {
 
 		[Min(1f)]
 		public int downscaleLimit; //At what size do we stop sampling?
+
+		public bool bicubicUpsampling; //Switches to a different filtering method for bloom
 	}
 
 	[SerializeField]

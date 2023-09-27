@@ -12,7 +12,7 @@ public partial class PostFXStack
 	{
 		name = bufferName
 	};
-
+	int bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling");
 	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
 	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
 	ScriptableRenderContext context;
@@ -122,6 +122,8 @@ public partial class PostFXStack
 		//Draw(fromId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 		buffer.ReleaseTemporaryRT(fromId - 1);
 		toId -= 5; //Release the last horizontal draw and move us up the pyramid
+		float testf = bloom.bicubicUpsampling ? 1f : 0f;
+		buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
 		if(i > 1) { 
 			//We release all of the reserved data now that we sent it to the postFX shader
 			for (i -= 1; i > 0; i--)
