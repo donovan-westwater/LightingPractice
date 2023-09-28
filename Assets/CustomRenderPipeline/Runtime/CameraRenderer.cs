@@ -100,7 +100,8 @@ public partial class CameraRenderer
 			//Store the current frame in the frame buffer for reading
 			buffer.GetTemporaryRT(
 				frameBufferId, camera.pixelWidth, camera.pixelHeight,
-				32, FilterMode.Bilinear, RenderTextureFormat.Default
+				32, FilterMode.Bilinear, useHDR ?
+					RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default
 			);
 			buffer.SetRenderTarget(
 				frameBufferId,
