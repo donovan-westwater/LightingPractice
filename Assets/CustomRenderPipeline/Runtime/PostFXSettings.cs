@@ -29,6 +29,9 @@ public class PostFXSettings : ScriptableObject {
 
 		[Range(0f, 1f)]
 		public float thresholdKnee; //Controls the steepness of the bloom cutoff curve or knee curve
+
+		[Min(0f)]
+		public float intensity; //Controls intensity of the effect
 	}
 
 	[SerializeField]

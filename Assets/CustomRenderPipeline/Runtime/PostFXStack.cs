@@ -17,6 +17,7 @@ public partial class PostFXStack
 	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
 	int bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"); //Saves downscales by reducing resolution of pytramid
 	int bloomThresholdId = Shader.PropertyToID("_BloomThreshold"); //Controls the point where the bloom effect is cutoff
+	int bloomIntensityId = Shader.PropertyToID("_BloomIntensity");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -86,8 +87,8 @@ public partial class PostFXStack
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 		//Just draw the image unaltered.
-		if (bloom.maxIterations == 0 || height < bloom.downscaleLimit * 2
-			|| width < bloom.downscaleLimit * 2)
+		if (bloom.maxIterations == 0 || bloom.intensity <= 0f ||
+			height < bloom.downscaleLimit * 2 || width < bloom.downscaleLimit * 2)
 		{
 			Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 			buffer.EndSample("Bloom");
@@ -146,7 +147,8 @@ public partial class PostFXStack
 		toId -= 5; //Release the last horizontal draw and move us up the pyramid
 		float testf = bloom.bicubicUpsampling ? 1f : 0f;
 		buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
-		if(i > 1) { 
+		//buffer.SetGlobalFloat(bloomIntensityId, 1f);
+		if (i > 1) { 
 			//We release all of the reserved data now that we sent it to the postFX shader
 			for (i -= 1; i > 0; i--)
 			{
@@ -163,6 +165,7 @@ public partial class PostFXStack
         else {
 			buffer.ReleaseTemporaryRT(bloomPyramidId);
 		}
+		buffer.SetGlobalFloat(bloomIntensityId, bloom.intensity);
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
 		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
 		buffer.ReleaseTemporaryRT(fromId);

@@ -12,6 +12,8 @@ float4 _PostFXSource_TexelSize;
 
 float4 _BloomThreshold;
 
+float _BloomIntensity;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -123,7 +125,7 @@ float4 BloomCombinePassFragment(Varyings input) : SV_TARGET{
 		lowRes = GetSource(input.screenUV).rgb;
 	}
 	float3 highRes = GetSource2(input.screenUV).rgb;
-	return float4(lowRes + highRes, 1.0);
+	return float4(lowRes * _BloomIntensity + highRes, 1.0);
 }
 
 float4 CopyPassFragment(Varyings input) : SV_TARGET{
