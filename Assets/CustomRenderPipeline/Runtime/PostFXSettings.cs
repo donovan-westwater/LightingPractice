@@ -22,7 +22,13 @@ public class PostFXSettings : ScriptableObject {
 		[Min(1f)]
 		public int downscaleLimit; //At what size do we stop sampling?
 
-		public bool bicubicUpsampling; //Switches to a different filtering method for bloom
+        public bool bicubicUpsampling; //Switches to a different filtering method for bloom
+
+        [Min(0f)]
+		public float threshold; //Controls cutoff point for bloom effect
+
+		[Range(0f, 1f)]
+		public float thresholdKnee; //Controls the steepness of the bloom cutoff curve or knee curve
 	}
 
 	[SerializeField]

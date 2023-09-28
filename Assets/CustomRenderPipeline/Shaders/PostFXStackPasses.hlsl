@@ -10,6 +10,8 @@ bool _BloomBicubicUpsampling;
 
 float4 _PostFXSource_TexelSize;
 
+float4 _BloomThreshold;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -49,6 +51,24 @@ float4 GetSourceBicubic(float2 screenUV) {
 		TEXTURE2D_ARGS(_PostFXSource, sampler_linear_clamp), screenUV,
 		_PostFXSource_TexelSize.zwxy, 1.0, 0.0
 	);
+}
+//We use the bloom vector to store differnt values in the formula
+// s = Min(Max(0,b - t + tk),2tk)^2/4tk+0.00001
+//This is s = Min(Max(0,b -Vect.y),vector.z)^2*vect.w
+//w = Max(s,b - vect.x)/Max(b,.00001)
+float3 ApplyBloomThreshold(float3 color) {
+	float brightness = Max3(color.r, color.g, color.b);
+	float soft = brightness + _BloomThreshold.y; //b - t + tk
+	soft = clamp(soft, 0.0, _BloomThreshold.z); //2tk
+	soft = soft * soft * _BloomThreshold.w; //1/4tk+0.00001
+	float contribution = max(soft, brightness - _BloomThreshold.x);
+	contribution /= max(brightness, 0.00001);
+	return color * contribution;
+}
+//Applies the artistic controls to the post process effect
+float4 BloomPrefilterPassFragment(Varyings input) : SV_TARGET{
+	float3 color = ApplyBloomThreshold(GetSource(input.screenUV).rgb);
+	return float4(color, 1.0);
 }
 //Creates a horizontal vector that when mulipled with a transpose, would create a kernal
 //that would be used for bloom or other image effects

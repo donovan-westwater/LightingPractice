@@ -16,6 +16,7 @@ public partial class PostFXStack
 	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
 	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
 	int bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"); //Saves downscales by reducing resolution of pytramid
+	int bloomThresholdId = Shader.PropertyToID("_BloomThreshold"); //Controls the point where the bloom effect is cutoff
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -29,6 +30,7 @@ public partial class PostFXStack
 		BloomHorizontal,
 		BloomVertical,
 		BloomCombine,
+		BloomPrefilter,
 		Copy
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
@@ -91,12 +93,21 @@ public partial class PostFXStack
 			buffer.EndSample("Bloom");
 			return;
 		}
+		//Calculates cutoff vector for controling where the brightness is applied
+		//[t,-t+tk,2tk,1/4tk+0.00001] is the sturcture (t = threshold, k = knee curve adjust)
+		Vector4 threshold;
+		threshold.x = Mathf.GammaToLinearSpace(bloom.threshold);
+		threshold.y = threshold.x * bloom.thresholdKnee;
+		threshold.z = 2f * threshold.y;
+		threshold.w = 0.25f / (threshold.y + 0.00001f);
+		threshold.y -= threshold.x;
+		buffer.SetGlobalVector(bloomThresholdId, threshold);
 		//Reducing the resolution of the layers so we don't sample as much
 		RenderTextureFormat format = RenderTextureFormat.Default;
 		buffer.GetTemporaryRT(
 			bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format
 		);
-		Draw(sourceId, bloomPrefilterId, Pass.Copy);
+		Draw(sourceId, bloomPrefilterId, Pass.BloomPrefilter);
 		width /= 2;
 		height /= 2;
 
