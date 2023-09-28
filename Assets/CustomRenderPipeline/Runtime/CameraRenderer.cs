@@ -27,22 +27,23 @@ public partial class CameraRenderer
 
 	PostFXStack postFXStack = new PostFXStack(); //Controls what effects will be applied
 
+	bool useHDR;
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
-		bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
+		bool allowHDR,bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
 		ShadowSettings shadowSettings, PostFXSettings postFXSettings
 	)
 	{
 		this.context = context;
 		this.camera = camera;
-
 		PrepareBuffer();
 		PrepareForSceneWindow();
 		if (!Cull(shadowSettings.maxDistance)) //Cull objects if they return false in cull function
 		{
 			return;
 		}
+		useHDR = allowHDR && camera.allowHDR;
 		//Want to setup shadows first before drawing the actual objects
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();
