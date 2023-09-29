@@ -134,10 +134,9 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	float weightSum = 0.0;
 	float2 offsets[] = {
 		float2(0.0, 0.0),
-		float2(-1.0, -1.0), float2(-1.0, 1.0), float2(1.0, -1.0), float2(1.0, 1.0),
-		float2(-1.0, 0.0), float2(1.0, 0.0), float2(0.0, -1.0), float2(0.0, 1.0)
+		float2(-1.0, -1.0), float2(-1.0, 1.0), float2(1.0, -1.0), float2(1.0, 1.0)
 	};
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 5; i++) {
 		float3 c =
 			GetSource(input.screenUV + offsets[i] * GetSourceTexelSize().xy * 2.0).rgb;
 		
