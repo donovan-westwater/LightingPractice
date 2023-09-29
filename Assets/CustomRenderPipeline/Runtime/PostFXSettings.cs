@@ -32,6 +32,8 @@ public class PostFXSettings : ScriptableObject {
 
 		[Min(0f)]
 		public float intensity; //Controls intensity of the effect
+
+		public bool fadeFireflies; //Reduces the flickering caused by moving the camera around
 	}
 
 	[SerializeField]

@@ -48,6 +48,15 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 			ENDHLSL
 		}
 		Pass {
+			Name "Bloom PreFilterFireflies"
+
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment  BloomPrefilterFirefliesPassFragment
+			ENDHLSL
+		}
+		Pass {
 			Name "Copy"
 
 			HLSLPROGRAM

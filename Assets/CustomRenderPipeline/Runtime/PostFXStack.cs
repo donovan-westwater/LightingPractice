@@ -32,6 +32,7 @@ public partial class PostFXStack
 		BloomVertical,
 		BloomCombine,
 		BloomPrefilter,
+		BloomPrefilterFireflies,
 		Copy
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
@@ -110,7 +111,8 @@ public partial class PostFXStack
 		buffer.GetTemporaryRT(
 			bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format
 		);
-		Draw(sourceId, bloomPrefilterId, Pass.BloomPrefilter);
+		Draw(sourceId, bloomPrefilterId, bloom.fadeFireflies ?
+				Pass.BloomPrefilterFireflies : Pass.BloomPrefilter);
 		width /= 2;
 		height /= 2;
 
