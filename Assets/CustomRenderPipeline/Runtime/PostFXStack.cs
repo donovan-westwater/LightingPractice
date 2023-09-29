@@ -7,7 +7,7 @@ public partial class PostFXStack
 {
 	//This class handles the Post FX settings, the fx stack buffer, and the caemra
 	const string bufferName = "Post FX";
-
+	bool useHDR;
 	CommandBuffer buffer = new CommandBuffer
 	{
 		name = bufferName
@@ -46,9 +46,10 @@ public partial class PostFXStack
         }
     }
 	public void Setup(
-		ScriptableRenderContext context, Camera camera, PostFXSettings settings
+		ScriptableRenderContext context, Camera camera, PostFXSettings settings, bool useHDR
 	)
 	{
+		this.useHDR = useHDR;
 		this.context = context;
 		this.camera = camera;
 		//Only applies the Post Process effect for the assigned camera
@@ -104,7 +105,8 @@ public partial class PostFXStack
 		threshold.y -= threshold.x;
 		buffer.SetGlobalVector(bloomThresholdId, threshold);
 		//Reducing the resolution of the layers so we don't sample as much
-		RenderTextureFormat format = RenderTextureFormat.Default;
+		RenderTextureFormat format = useHDR ?
+			RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
 		buffer.GetTemporaryRT(
 			bloomPrefilterId, width, height, 0, FilterMode.Bilinear, format
 		);

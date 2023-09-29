@@ -48,7 +48,7 @@ public partial class CameraRenderer
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
-		postFXStack.Setup(context, camera, postFXSettings);
+		postFXStack.Setup(context, camera, postFXSettings,useHDR);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer
