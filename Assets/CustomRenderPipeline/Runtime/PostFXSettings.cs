@@ -34,6 +34,12 @@ public class PostFXSettings : ScriptableObject {
 		public float intensity; //Controls intensity of the effect
 
 		public bool fadeFireflies; //Reduces the flickering caused by moving the camera around
+		public enum Mode { Additive, Scattering } //What kind of bloom are we using?
+
+		public Mode mode;
+
+		[Range(0f, 1f)]
+		public float scatter; //intensity of light scattering
 	}
 
 	[SerializeField]

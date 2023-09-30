@@ -30,7 +30,8 @@ public partial class PostFXStack
     {
 		BloomHorizontal,
 		BloomVertical,
-		BloomCombine,
+		BloomAdd,
+		BloomScatter,
 		BloomPrefilter,
 		BloomPrefilterFireflies,
 		Copy
@@ -151,14 +152,24 @@ public partial class PostFXStack
 		toId -= 5; //Release the last horizontal draw and move us up the pyramid
 		float testf = bloom.bicubicUpsampling ? 1f : 0f;
 		buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
-		//buffer.SetGlobalFloat(bloomIntensityId, 1f);
+		Pass combinePass;
+		if (bloom.mode == PostFXSettings.BloomSettings.Mode.Additive)
+		{
+			combinePass = Pass.BloomAdd;
+			buffer.SetGlobalFloat(bloomIntensityId, 1f);
+		}
+		else
+		{
+			combinePass = Pass.BloomScatter;
+			buffer.SetGlobalFloat(bloomIntensityId, bloom.scatter);
+		}
 		if (i > 1) { 
 			//We release all of the reserved data now that we sent it to the postFX shader
 			for (i -= 1; i > 0; i--)
 			{
 				//Go back through the layers and upsample to finish the bloom effect
 				buffer.SetGlobalTexture(fxSource2Id, toId + 1);
-				Draw(fromId, toId, Pass.BloomCombine);
+				Draw(fromId, toId, combinePass);
 				buffer.ReleaseTemporaryRT(fromId);
 				buffer.ReleaseTemporaryRT(toId+1);
 				fromId = toId;
@@ -171,7 +182,7 @@ public partial class PostFXStack
 		}
 		buffer.SetGlobalFloat(bloomIntensityId, bloom.intensity);
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
-		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, combinePass);
 		buffer.ReleaseTemporaryRT(fromId);
 		buffer.EndSample("Bloom");
     }
