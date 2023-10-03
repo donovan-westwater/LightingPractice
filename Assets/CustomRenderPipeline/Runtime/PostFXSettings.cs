@@ -38,12 +38,15 @@ public class PostFXSettings : ScriptableObject {
 
 		public Mode mode;
 
-		[Range(0f, 1f)]
+		[Range(0.05f, 0.95f)]
 		public float scatter; //intensity of light scattering
 	}
 
 	[SerializeField]
-	BloomSettings bloom = default;
+	BloomSettings bloom = new BloomSettings
+	{
+		scatter = 0.7f
+	};
 
 	public BloomSettings Bloom => bloom;
 	public Material Material

@@ -153,15 +153,18 @@ public partial class PostFXStack
 		float testf = bloom.bicubicUpsampling ? 1f : 0f;
 		buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
 		Pass combinePass;
+		float finalIntensity;
 		if (bloom.mode == PostFXSettings.BloomSettings.Mode.Additive)
 		{
 			combinePass = Pass.BloomAdd;
 			buffer.SetGlobalFloat(bloomIntensityId, 1f);
+			finalIntensity = bloom.intensity;
 		}
 		else
 		{
 			combinePass = Pass.BloomScatter;
 			buffer.SetGlobalFloat(bloomIntensityId, bloom.scatter);
+			finalIntensity = Mathf.Min(bloom.intensity, 0.95f);
 		}
 		if (i > 1) { 
 			//We release all of the reserved data now that we sent it to the postFX shader
@@ -180,7 +183,7 @@ public partial class PostFXStack
         else {
 			buffer.ReleaseTemporaryRT(bloomPyramidId);
 		}
-		buffer.SetGlobalFloat(bloomIntensityId, bloom.intensity);
+		buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
 		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, combinePass);
 		buffer.ReleaseTemporaryRT(fromId);
