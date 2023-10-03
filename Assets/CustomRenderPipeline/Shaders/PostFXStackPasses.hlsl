@@ -140,6 +140,19 @@ float4 BloomScatterPassFragment(Varyings input) : SV_TARGET{
 	float3 highRes = GetSource2(input.screenUV).rgb;
 	return float4(lerp(highRes, lowRes, _BloomIntensity), 1.0);
 }
+//Same as Scatter add high res light and then subtract it with a bloom treshold applied
+float4 BloomScatterFinalPassFragment(Varyings input) : SV_TARGET{
+	float3 lowRes;
+	if (_BloomBicubicUpsampling) {
+		lowRes = GetSourceBicubic(input.screenUV).rgb;
+	}
+	else {
+		lowRes = GetSource(input.screenUV).rgb;
+	}
+	float3 highRes = GetSource2(input.screenUV).rgb;
+	lowRes += highRes - ApplyBloomThreshold(highRes);
+	return float4(lerp(highRes, lowRes, _BloomIntensity), 1.0);
+}
 //Widens the filter to 6x6 to more agressively blur brightspots to avoid flickering
 float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	float3 color = 0.0;

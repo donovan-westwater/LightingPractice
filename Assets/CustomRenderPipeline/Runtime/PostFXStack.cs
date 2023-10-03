@@ -32,6 +32,7 @@ public partial class PostFXStack
 		BloomVertical,
 		BloomAdd,
 		BloomScatter,
+		BloomScatterFinal,
 		BloomPrefilter,
 		BloomPrefilterFireflies,
 		Copy
@@ -152,17 +153,18 @@ public partial class PostFXStack
 		toId -= 5; //Release the last horizontal draw and move us up the pyramid
 		float testf = bloom.bicubicUpsampling ? 1f : 0f;
 		buffer.SetGlobalFloat(bloomBucibicUpsamplingId, bloom.bicubicUpsampling ? 1f : 0f);
-		Pass combinePass;
+		Pass combinePass, finalPass;
 		float finalIntensity;
 		if (bloom.mode == PostFXSettings.BloomSettings.Mode.Additive)
 		{
-			combinePass = Pass.BloomAdd;
+			combinePass = finalPass = Pass.BloomAdd;
 			buffer.SetGlobalFloat(bloomIntensityId, 1f);
 			finalIntensity = bloom.intensity;
 		}
 		else
 		{
 			combinePass = Pass.BloomScatter;
+			finalPass = Pass.BloomScatterFinal;
 			buffer.SetGlobalFloat(bloomIntensityId, bloom.scatter);
 			finalIntensity = Mathf.Min(bloom.intensity, 0.95f);
 		}
