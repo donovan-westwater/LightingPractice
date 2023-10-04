@@ -44,7 +44,9 @@ public class PostFXSettings : ScriptableObject {
 	[System.Serializable]
 	public struct ToneMappingSettings
     {
-		public enum Mode {None = -1, ACES,Neutral,Reinhard}
+		public float exposureBias;
+		public float whitePoint;
+		public enum Mode {None = -1, ACES,Neutral,Reinhard,NeutralCustom}
 		public Mode mode;
     }
 

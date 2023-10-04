@@ -15,6 +15,10 @@ float4 _BloomThreshold;
 
 float _BloomIntensity;
 
+float _ExposureBias;
+
+float _WhitePoint;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -201,6 +205,29 @@ float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET{
 	//Grad againest high value colors
 	color.rgb = min(color.rgb, 60.0);
 	color.rgb = AcesTonemap(unity_to_ACES(color.rgb)); //This is Unity's version of the function
+	return color;
+}
+float4 ToneMappingNeutralCustomPassFragment(Varyings input) : SV_TARGET{
+	float4 color = GetSource(input.screenUV);
+	//Grad againest high value colors
+	color.rgb = min(color.rgb, 60.0);
+	// Tonemap
+	float a = 0.2;
+	float b = 0.29;
+	float c = 0.24;
+	float d = 0.272;
+	float e = _ExposureBias;
+	float f = 0.3;
+	float whiteLevel = _WhitePoint;
+	float whiteClip = 1.0;
+
+	float3 whiteScale = (1.0).xxx / NeutralCurve(whiteLevel, a, b, c, d, e, f);
+	color.rgb = NeutralCurve(color.rgb * whiteScale, a, b, c, d, e, f);
+	color.rgb *= whiteScale;
+
+	// Post-curve white point adjustment
+	color.rgb /= whiteClip.xxx;
+
 	return color;
 }
 float4 CopyPassFragment(Varyings input) : SV_TARGET{

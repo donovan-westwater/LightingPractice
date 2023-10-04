@@ -19,6 +19,8 @@ public partial class PostFXStack
 	int bloomThresholdId = Shader.PropertyToID("_BloomThreshold"); //Controls the point where the bloom effect is cutoff
 	int bloomIntensityId = Shader.PropertyToID("_BloomIntensity");
 	int bloomResultId = Shader.PropertyToID("_BloomResult");
+	int exposureId = Shader.PropertyToID("_ExposureBias");
+	int whitePointId = Shader.PropertyToID("_WhitePoint");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -39,6 +41,7 @@ public partial class PostFXStack
 		ToneMappingACES,
 		ToneMappingNeutral,
 		ToneMappingReinhard,
+		ToneMappingNeutralCustom,
 		Copy
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
@@ -215,6 +218,11 @@ public partial class PostFXStack
 		//Tone Mapping pass used if enabled
 		PostFXSettings.ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
 		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingACES + (int)mode;
+		if(pass == Pass.ToneMappingNeutralCustom)
+        {
+			buffer.SetGlobalFloat(exposureId, settings.ToneMapping.exposureBias);
+			buffer.SetGlobalFloat(whitePointId, settings.ToneMapping.whitePoint);
+		}
 		Draw(sourceId, BuiltinRenderTextureType.CameraTarget, pass);
 	}
 }
