@@ -18,6 +18,7 @@ public partial class PostFXStack
 	int bloomPrefilterId = Shader.PropertyToID("_BloomPrefilter"); //Saves downscales by reducing resolution of pytramid
 	int bloomThresholdId = Shader.PropertyToID("_BloomThreshold"); //Controls the point where the bloom effect is cutoff
 	int bloomIntensityId = Shader.PropertyToID("_BloomIntensity");
+	int bloomResultId = Shader.PropertyToID("_BloomResult");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -63,7 +64,16 @@ public partial class PostFXStack
     {
 		//This combines the FX effect shader with the caemra and executes it
 		//Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
-		DoBloom(sourceId);
+		//Pass results of the bloom to the tone mapper
+		if (DoBloom(sourceId))
+		{
+			DoToneMapping(bloomResultId);
+			buffer.ReleaseTemporaryRT(bloomResultId);
+		}
+		else
+		{
+			DoToneMapping(sourceId);
+		}
 		context.ExecuteCommandBuffer(buffer);
 		buffer.Clear();
 	}
@@ -85,19 +95,20 @@ public partial class PostFXStack
 	}
 	//We send a command named bloom which which uses a series of lower detail images
 	//and blurs them together
-	void DoBloom(int sourceId)
+	bool DoBloom(int sourceId)
     {
-        buffer.BeginSample("Bloom");
+        //buffer.BeginSample("Bloom");
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
         int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
 		//Just draw the image unaltered.
 		if (bloom.maxIterations == 0 || bloom.intensity <= 0f ||
 			height < bloom.downscaleLimit * 2 || width < bloom.downscaleLimit * 2)
 		{
-			Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
-			buffer.EndSample("Bloom");
-			return;
+			//Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+			//buffer.EndSample("Bloom");
+			return false;
 		}
+		buffer.BeginSample("Bloom");
 		//Calculates cutoff vector for controling where the brightness is applied
 		//[t,-t+tk,2tk,1/4tk+0.00001] is the sturcture (t = threshold, k = knee curve adjust)
 		Vector4 threshold;
@@ -187,8 +198,17 @@ public partial class PostFXStack
 		}
 		buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
-		Draw(bloomPyramidId, BuiltinRenderTextureType.CameraTarget, combinePass);
+		buffer.GetTemporaryRT(
+			bloomResultId, camera.pixelWidth, camera.pixelHeight, 0,
+			FilterMode.Bilinear, format
+		);
+		Draw(fromId, bloomResultId, finalPass);
 		buffer.ReleaseTemporaryRT(fromId);
 		buffer.EndSample("Bloom");
+		return true;
     }
+	void DoToneMapping(int sourceId)
+    {
+		Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Copy);
+	}
 }

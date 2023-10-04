@@ -42,6 +42,17 @@ public class PostFXSettings : ScriptableObject {
 		public float scatter; //intensity of light scattering
 	}
 
+	public struct ToneMappingSettings
+    {
+		public enum Mode {None}
+		public Mode mode;
+    }
+
+	[SerializeField]
+	ToneMappingSettings toneMapping = default;
+
+	public ToneMappingSettings ToneMapping => toneMapping;
+
 	[SerializeField]
 	BloomSettings bloom = new BloomSettings
 	{
