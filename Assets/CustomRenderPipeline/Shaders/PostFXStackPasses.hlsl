@@ -195,6 +195,14 @@ float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET{
 	color.rgb = NeutralTonemap(color.rgb); //This is Unity's version of the function
 	return color;
 }
+//ACES Tonemapping, which is the standard used by film. Shifts the HUE and Brightness more
+float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET{
+	float4 color = GetSource(input.screenUV);
+	//Grad againest high value colors
+	color.rgb = min(color.rgb, 60.0);
+	color.rgb = AcesTonemap(unity_to_ACES(color.rgb)); //This is Unity's version of the function
+	return color;
+}
 float4 CopyPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Shitty tone mapper test
