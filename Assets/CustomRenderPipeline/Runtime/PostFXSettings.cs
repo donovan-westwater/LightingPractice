@@ -41,10 +41,10 @@ public class PostFXSettings : ScriptableObject {
 		[Range(0.05f, 0.95f)]
 		public float scatter; //intensity of light scattering
 	}
-
+	[System.Serializable]
 	public struct ToneMappingSettings
     {
-		public enum Mode {None}
+		public enum Mode {None = -1, Reinhard}
 		public Mode mode;
     }
 

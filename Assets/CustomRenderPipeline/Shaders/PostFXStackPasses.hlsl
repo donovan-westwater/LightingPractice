@@ -173,6 +173,16 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	color /= weightSum;
 	return float4(color, 1.0);
 }
+//Tone mapping function that reduces the brightness of the image so more uniform images have more colors
+//Uses a non linear conversion that mainly reduces high values. uses c/(1+c) to reduce the colors
+float4 ToneMappingReinhardPassFragment(Varyings input) : SV_TARGET{
+	float4 color = GetSource(input.screenUV);
+	//Grad againest high value colors
+	color.rgb = min(color.rgb, 60.0);
+	color.rgb /= color.rgb + 1.0;
+	return color;
+}
+
 float4 CopyPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Shitty tone mapper test

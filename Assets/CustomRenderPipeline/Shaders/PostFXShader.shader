@@ -75,6 +75,15 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 			ENDHLSL
 		}
 		Pass {
+			Name "ToneMapping Reinhard"
+
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ToneMappingReinhardPassFragment
+			ENDHLSL
+		}
+		Pass {
 			Name "Copy"
 
 			HLSLPROGRAM
