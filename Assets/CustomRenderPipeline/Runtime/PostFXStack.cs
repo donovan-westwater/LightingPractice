@@ -36,6 +36,7 @@ public partial class PostFXStack
 		BloomScatterFinal,
 		BloomPrefilter,
 		BloomPrefilterFireflies,
+		ToneMappingNeutral,
 		ToneMappingReinhard,
 		Copy
     }
@@ -212,7 +213,7 @@ public partial class PostFXStack
     {
 		//Tone Mapping pass used if enabled
 		PostFXSettings.ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
-		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingReinhard;
+		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNeutral + (int)mode;
 		Draw(sourceId, BuiltinRenderTextureType.CameraTarget, pass);
 	}
 }

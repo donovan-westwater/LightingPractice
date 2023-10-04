@@ -182,7 +182,19 @@ float4 ToneMappingReinhardPassFragment(Varyings input) : SV_TARGET{
 	color.rgb /= color.rgb + 1.0;
 	return color;
 }
-
+//Uses a tone mapping function that is more configuriable
+//The function is: (x(ax + cb) + de)/(x(ax+b)+df) - e/f
+//c is the color channel, the e is the exposure bias, and w is the white point
+//First used in Ucharted 2: https://www.slideshare.net/ozlael/hable-john-uncharted2-hdr-lighting
+//NeutralTonemap comes from this: https://github.com/Unity-Technologies/Graphics/blob/master/com.unity.postprocessing/PostProcessing/Shaders/Colors.hlsl
+//All of the properties are set there in the function
+float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET{
+	float4 color = GetSource(input.screenUV);
+	//Grad againest high value colors
+	color.rgb = min(color.rgb, 60.0);
+	color.rgb = NeutralTonemap(color.rgb); //This is Unity's version of the function
+	return color;
+}
 float4 CopyPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Shitty tone mapper test
