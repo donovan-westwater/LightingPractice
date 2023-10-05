@@ -13,6 +13,10 @@ MonoBehaviour:
   m_Name: CustomFXStack
   m_EditorClassIdentifier: 
   shader: {fileID: 4800000, guid: a16ba8da1d243f24a82a690dc96f41d9, type: 3}
+  toneMapping:
+    exposureBias: 0.02
+    whitePoint: 5.3
+    mode: 2
   bloom:
     maxIterations: 5
     downscaleLimit: 0

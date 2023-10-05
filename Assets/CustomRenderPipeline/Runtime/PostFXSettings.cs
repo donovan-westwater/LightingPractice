@@ -46,12 +46,16 @@ public class PostFXSettings : ScriptableObject {
     {
 		public float exposureBias;
 		public float whitePoint;
-		public enum Mode {None = -1, ACES,Neutral,Reinhard,NeutralCustom}
+		public enum Mode {None, ACES,Neutral,Reinhard,NeutralCustom}
 		public Mode mode;
     }
 
 	[SerializeField]
-	ToneMappingSettings toneMapping = default;
+	ToneMappingSettings toneMapping = new ToneMappingSettings
+	{
+		exposureBias = 0.02f,
+		whitePoint = 5.3f
+	};
 
 	public ToneMappingSettings ToneMapping => toneMapping;
 

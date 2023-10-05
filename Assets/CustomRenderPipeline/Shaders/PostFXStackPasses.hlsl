@@ -177,12 +177,23 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	color /= weightSum;
 	return float4(color, 1.0);
 }
+//Color correction and color grading step
+float3 ColorGrade(float3 color) {
+	color = min(color, 60.0);
+	return color;
+}
+//We still want to color grade even if there is no tone mapping
+float4 ToneMappingNonePassFragment(Varyings input) : SV_TARGET{
+	float4 color = GetSource(input.screenUV);
+	color.rgb = ColorGrade(color.rgb);
+	return color;
+}
 //Tone mapping function that reduces the brightness of the image so more uniform images have more colors
 //Uses a non linear conversion that mainly reduces high values. uses c/(1+c) to reduce the colors
 float4 ToneMappingReinhardPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Grad againest high value colors
-	color.rgb = min(color.rgb, 60.0);
+	color.rgb = ColorGrade(color.rgb);
 	color.rgb /= color.rgb + 1.0;
 	return color;
 }
@@ -195,7 +206,7 @@ float4 ToneMappingReinhardPassFragment(Varyings input) : SV_TARGET{
 float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Grad againest high value colors
-	color.rgb = min(color.rgb, 60.0);
+	color.rgb = ColorGrade(color.rgb);
 	color.rgb = NeutralTonemap(color.rgb); //This is Unity's version of the function
 	return color;
 }
@@ -203,14 +214,14 @@ float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET{
 float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Grad againest high value colors
-	color.rgb = min(color.rgb, 60.0);
+	color.rgb = ColorGrade(color.rgb);
 	color.rgb = AcesTonemap(unity_to_ACES(color.rgb)); //This is Unity's version of the function
 	return color;
 }
 float4 ToneMappingNeutralCustomPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
-	//Grad againest high value colors
-	color.rgb = min(color.rgb, 60.0);
+	//Grade against high value colors
+	color.rgb = ColorGrade(color.rgb);
 	// Tonemap
 	float a = 0.2;
 	float b = 0.29;
