@@ -19,6 +19,10 @@ float _ExposureBias;
 
 float _WhitePoint;
 
+float4 _ColorAdjustments;
+
+float4 _ColorFilter;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -177,9 +181,13 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	color /= weightSum;
 	return float4(color, 1.0);
 }
+float3 ColorGradePostExposure(float3 color) {
+	return color * _ColorAdjustments.x;
+}
 //Color correction and color grading step
 float3 ColorGrade(float3 color) {
 	color = min(color, 60.0);
+	color = ColorGradePostExposure(color);
 	return color;
 }
 //We still want to color grade even if there is no tone mapping

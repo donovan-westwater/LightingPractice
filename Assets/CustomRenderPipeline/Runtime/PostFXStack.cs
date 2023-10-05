@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using static PostFXSettings;
 
 public partial class PostFXStack
 {
@@ -21,6 +22,9 @@ public partial class PostFXStack
 	int bloomResultId = Shader.PropertyToID("_BloomResult");
 	int exposureId = Shader.PropertyToID("_ExposureBias");
 	int whitePointId = Shader.PropertyToID("_WhitePoint");
+	//Color grading ids
+	int colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments");
+	int colorFilterId = Shader.PropertyToID("_ColorFilter");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -74,12 +78,12 @@ public partial class PostFXStack
 		//Pass results of the bloom to the tone mapper
 		if (DoBloom(sourceId))
 		{
-			DoToneMapping(bloomResultId);
+			DoColorGradingAndToneMapping(bloomResultId);
 			buffer.ReleaseTemporaryRT(bloomResultId);
 		}
 		else
 		{
-			DoToneMapping(sourceId);
+			DoColorGradingAndToneMapping(sourceId);
 		}
 		context.ExecuteCommandBuffer(buffer);
 		buffer.Clear();
@@ -214,10 +218,24 @@ public partial class PostFXStack
 		buffer.EndSample("Bloom");
 		return true;
     }
-	void DoToneMapping(int sourceId)
+	void ConfigureColorAdjustments()
+	{
+		ColorAdjustmentsSettings colorAdjustments = settings.ColorAdjustments;
+		//Send a vector with the main color grading properties
+		buffer.SetGlobalVector(colorAdjustmentsId, new Vector4(
+			Mathf.Pow(2f, colorAdjustments.postExposure),
+			colorAdjustments.contrast * 0.01f + 1f,
+			colorAdjustments.hueShift * (1f / 360f),
+			colorAdjustments.saturation * 0.01f + 1f
+		));
+		//Set the color filter
+		buffer.SetGlobalColor(colorFilterId, colorAdjustments.colorFilter.linear);
+	}
+	void DoColorGradingAndToneMapping(int sourceId)
     {
+		ConfigureColorAdjustments();
 		//Tone Mapping pass used if enabled
-		PostFXSettings.ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
+		ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
 		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNone + (int)mode;
 		if(pass == Pass.ToneMappingNeutralCustom)
         {
