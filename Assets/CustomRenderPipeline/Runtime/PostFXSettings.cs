@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Rendering/Custom Post FX Settings")]
@@ -66,6 +67,30 @@ public class PostFXSettings : ScriptableObject {
 	};
 
 	public BloomSettings Bloom => bloom;
+	//Color grading settings below
+	[Serializable]
+	public struct ColorAdjustmentsSettings {
+		public float postExposure; //Increases the exposure of the image (whiteness)
+		[Range(-100f, 100f)]
+		public float contrast; //Sharpens the image
+
+		[ColorUsage(false, true)]
+		public Color colorFilter;
+
+		[Range(-180f, 180f)]
+		public float hueShift; //'rotates' the colors on the color wheel (Same Saturation and Whiteness)
+
+		[Range(-100f, 100f)]
+		public float saturation; //Increases the saturation on the colors in the image
+	}
+
+	[SerializeField]
+	ColorAdjustmentsSettings colorAdjustments = new ColorAdjustmentsSettings {
+		colorFilter = Color.white
+	};
+
+public ColorAdjustmentsSettings ColorAdjustments => colorAdjustments;
+
 	public Material Material
 	{
 		get
