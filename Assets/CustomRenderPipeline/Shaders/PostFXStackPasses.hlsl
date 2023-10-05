@@ -184,10 +184,47 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 float3 ColorGradePostExposure(float3 color) {
 	return color * _ColorAdjustments.x;
 }
+//Transform the color into a vector whose values are relative to the center of the brightness spectrum
+//When then scale these values to increase or decreese our constrast (i.e how far apart the colors are from 
+//the center) From there, we add back the midgray to transform back into our global space
+float3 ColorGradingContrast(float3 color) {
+	//We convert from linear color space to ACEScc's logrithmic color space
+	color = LinearToLogC(color);
+	color = (color - ACEScc_MIDGRAY) * _ColorAdjustments.y + ACEScc_MIDGRAY;
+	//Convert back at the end
+	return LogCToLinear(color);
+}
+//Just adds a color filter. Pretty self explanitory when you see the code
+float3 ColorGradeColorFilter(float3 color) {
+	return color * _ColorFilter.rgb;
+}
+//We Shift the hue of the color by moving around the color wheel
+//We can do this by converting into HSV, and then adding to the H value
+//This gets us our rotation around the wheel
+//We make sure it can wrap around at the ends of the wheel, and convert back
+//Remember that + is clockwise around the color wheel
+float3 ColorGradingHueShift(float3 color) {
+	color = RgbToHsv(color);
+	float hue = color.x + _ColorAdjustments.z;
+	color.x = RotateHue(hue, 0.0, 1.0);
+	return HsvToRgb(color);
+}
+//Use the same strat here as we do with contrast
+//convert to lumincance, get relative lunminace, and then adjust the luminance to change saturation
+float3 ColorGradingSaturation(float3 color) {
+	float luminance = Luminance(color);
+	return (color - luminance) * _ColorAdjustments.w + luminance;
+}
 //Color correction and color grading step
 float3 ColorGrade(float3 color) {
 	color = min(color, 60.0);
 	color = ColorGradePostExposure(color);
+	color = ColorGradingContrast(color);
+	color = ColorGradeColorFilter(color);
+	color = max(color, 0.0);
+	color = ColorGradingHueShift(color);
+	color = ColorGradingSaturation(color);
+	color = max(color, 0.0); //Negative colors don't exist
 	return color;
 }
 //We still want to color grade even if there is no tone mapping
