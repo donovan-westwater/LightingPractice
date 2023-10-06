@@ -89,7 +89,41 @@ public class PostFXSettings : ScriptableObject {
 		colorFilter = Color.white
 	};
 
-public ColorAdjustmentsSettings ColorAdjustments => colorAdjustments;
+	public ColorAdjustmentsSettings ColorAdjustments => colorAdjustments;
+
+	//Adjusts the color temperature of the image
+	[Serializable]
+	public struct WhiteBalanceSettings
+    {
+		[Range(-100f, 100f)]
+		public float temperature, tint; //Cools or warms image, tweaks temp shifted color
+    }
+
+	[SerializeField]
+	WhiteBalanceSettings whiteBalance = default;
+
+	public WhiteBalanceSettings WhiteBalance => whiteBalance;
+
+	//Split toning colors shadows and highlights a sperate color (i.e Changes the color temp)
+	[Serializable]
+	public struct SplitToningSettings
+	{
+
+		[ColorUsage(false)]
+		public Color shadows, highlights; //The colors to be applied to shadows and highlights
+
+		[Range(-100f, 100f)]
+		public float balance; //The white balance of the split tones
+	}
+
+	[SerializeField]
+	SplitToningSettings splitToning = new SplitToningSettings
+	{
+		shadows = Color.gray,
+		highlights = Color.gray
+	};
+
+	public SplitToningSettings SplitToning => splitToning;
 
 	public Material Material
 	{

@@ -18,7 +18,7 @@ MonoBehaviour:
     whitePoint: 5.3
     mode: 2
   bloom:
-    maxIterations: 5
+    maxIterations: 7
     downscaleLimit: 0
     bicubicUpsampling: 1
     threshold: 0.5
@@ -27,3 +27,9 @@ MonoBehaviour:
     fadeFireflies: 1
     mode: 1
     scatter: 0.751
+  colorAdjustments:
+    postExposure: 0
+    contrast: 0
+    colorFilter: {r: 0.990566, g: 0.990566, b: 0.990566, a: 1}
+    hueShift: 0
+    saturation: 0

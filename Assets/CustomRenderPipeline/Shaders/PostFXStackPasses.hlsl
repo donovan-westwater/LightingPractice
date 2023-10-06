@@ -23,6 +23,8 @@ float4 _ColorAdjustments;
 
 float4 _ColorFilter;
 
+float4 _WhiteBalance;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -184,6 +186,12 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 float3 ColorGradePostExposure(float3 color) {
 	return color * _ColorAdjustments.x;
 }
+//Alters the color tempeature. We convert to LMS and apply the white balance coefficents to alter the temp
+float3 ColorGradeWhiteBalance(float3 color) {
+	color = LinearToLMS(color);
+	color *= _WhiteBalance.rgb;
+	return LMSToLinear(color);
+}
 //Transform the color into a vector whose values are relative to the center of the brightness spectrum
 //When then scale these values to increase or decreese our constrast (i.e how far apart the colors are from 
 //the center) From there, we add back the midgray to transform back into our global space
@@ -211,6 +219,9 @@ float3 ColorGradingHueShift(float3 color) {
 }
 //Use the same strat here as we do with contrast
 //convert to lumincance, get relative lunminace, and then adjust the luminance to change saturation
+//(long, medium, short) wavelengths
+//White balance is blue / yellow
+//Tint is red/green
 float3 ColorGradingSaturation(float3 color) {
 	float luminance = Luminance(color);
 	return (color - luminance) * _ColorAdjustments.w + luminance;
@@ -219,6 +230,7 @@ float3 ColorGradingSaturation(float3 color) {
 float3 ColorGrade(float3 color) {
 	color = min(color, 60.0);
 	color = ColorGradePostExposure(color);
+	color = ColorGradeWhiteBalance(color);
 	color = ColorGradingContrast(color);
 	color = ColorGradeColorFilter(color);
 	color = max(color, 0.0);

@@ -25,6 +25,7 @@ public partial class PostFXStack
 	//Color grading ids
 	int colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments");
 	int colorFilterId = Shader.PropertyToID("_ColorFilter");
+	int whiteBalanceId = Shader.PropertyToID("_WhiteBalance");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -231,9 +232,17 @@ public partial class PostFXStack
 		//Set the color filter
 		buffer.SetGlobalColor(colorFilterId, colorAdjustments.colorFilter.linear);
 	}
+	void ConfigureWhiteBalance()
+    {
+		WhiteBalanceSettings whiteBalance = settings.WhiteBalance;
+		//Uses the LMS color space, which models which colors our cones respond to
+		buffer.SetGlobalVector(whiteBalanceId, ColorUtils.ColorBalanceToLMSCoeffs(
+			whiteBalance.temperature, whiteBalance.tint));
+    }
 	void DoColorGradingAndToneMapping(int sourceId)
     {
 		ConfigureColorAdjustments();
+		ConfigureWhiteBalance();
 		//Tone Mapping pass used if enabled
 		ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
 		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNone + (int)mode;
