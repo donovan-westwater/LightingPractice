@@ -25,6 +25,8 @@ float4 _ColorFilter;
 
 float4 _WhiteBalance;
 
+float4 _SplitToningShadows, _SplitToningHighlights;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -192,6 +194,16 @@ float3 ColorGradeWhiteBalance(float3 color) {
 	color *= _WhiteBalance.rgb;
 	return LMSToLinear(color);
 }
+//Applies split toning to the color. Uses the  Adobe split toning function
+float3 ColorGradeSplitToning(float3 color) {
+	color = PositivePow(color, 1.0 / 2.2);
+	float t = saturate(Luminance(saturate(color)) + _SplitToningShadows.w);
+	float3 shadows = lerp(0.5, _SplitToningShadows.rgb, 1.0 - t); //Limit the colors to just the regions they are meant for
+	float3 highlights = lerp(0.5, _SplitToningHighlights.rgb, t); //Same idea as above
+	color = SoftLight(color, shadows); //Soft bled between the color and shadow tint
+	color = SoftLight(color, highlights); //Soft blend btween the color and hightlight tint
+	return PositivePow(color, 2.2);
+}
 //Transform the color into a vector whose values are relative to the center of the brightness spectrum
 //When then scale these values to increase or decreese our constrast (i.e how far apart the colors are from 
 //the center) From there, we add back the midgray to transform back into our global space
@@ -234,6 +246,7 @@ float3 ColorGrade(float3 color) {
 	color = ColorGradingContrast(color);
 	color = ColorGradeColorFilter(color);
 	color = max(color, 0.0);
+	color = ColorGradeSplitToning(color);
 	color = ColorGradingHueShift(color);
 	color = ColorGradingSaturation(color);
 	color = max(color, 0.0); //Negative colors don't exist

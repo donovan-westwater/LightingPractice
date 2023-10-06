@@ -104,7 +104,7 @@ public class PostFXSettings : ScriptableObject {
 
 	public WhiteBalanceSettings WhiteBalance => whiteBalance;
 
-	//Split toning colors shadows and highlights a sperate color (i.e Changes the color temp)
+	//Split toning colors shadows and highlights a sperate color
 	[Serializable]
 	public struct SplitToningSettings
 	{
