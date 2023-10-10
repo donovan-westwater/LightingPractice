@@ -125,6 +125,50 @@ public class PostFXSettings : ScriptableObject {
 
 	public SplitToningSettings SplitToning => splitToning;
 
+	//Mixes channels to make new colors
+	[Serializable]
+	public struct ChannelMixerSettings
+	{
+
+		public Vector3 red, green, blue;
+	}
+
+	[SerializeField]
+	ChannelMixerSettings channelMixer = new ChannelMixerSettings
+	{
+		red = Vector3.right,
+		green = Vector3.up,
+		blue = Vector3.forward
+	};
+
+	public ChannelMixerSettings ChannelMixer => channelMixer;
+
+	//Handles midtones alterations (similar to split toning)
+	[Serializable]
+	public struct ShadowsMidtonesHighlightsSettings
+	{
+
+		[ColorUsage(false, true)]
+		public Color shadows, midtones, highlights;
+		//Handles what ranges of intensity count as shadow, highlight, and mid tone
+		[Range(0f, 2f)]
+		public float shadowsStart, shadowsEnd, highlightsStart, highLightsEnd;
+	}
+
+	[SerializeField]
+	ShadowsMidtonesHighlightsSettings
+		shadowsMidtonesHighlights = new ShadowsMidtonesHighlightsSettings
+		{
+			shadows = Color.white,
+			midtones = Color.white,
+			highlights = Color.white,
+			shadowsEnd = 0.3f,
+			highlightsStart = 0.55f,
+			highLightsEnd = 1f
+		};
+
+	public ShadowsMidtonesHighlightsSettings ShadowsMidtonesHighlights =>
+		shadowsMidtonesHighlights;
 	public Material Material
 	{
 		get

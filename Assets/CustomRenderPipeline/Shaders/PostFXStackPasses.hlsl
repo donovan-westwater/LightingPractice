@@ -27,6 +27,8 @@ float4 _WhiteBalance;
 
 float4 _SplitToningShadows, _SplitToningHighlights;
 
+float4 _ChannelMixerRed, _ChannelMixerGreen, _ChannelMixerBlue;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -238,6 +240,14 @@ float3 ColorGradingSaturation(float3 color) {
 	float luminance = Luminance(color);
 	return (color - luminance) * _ColorAdjustments.w + luminance;
 }
+//Mix channels together to create a new color
+//Creates a 3 x 3 matrix to transform a color by mutipling it by other channels
+float3 ColorGradingChannelMixer(float3 color) {
+	return mul(
+		float3x3(_ChannelMixerRed.rgb, _ChannelMixerGreen.rgb, _ChannelMixerBlue.rgb),
+		color
+	);
+}
 //Color correction and color grading step
 float3 ColorGrade(float3 color) {
 	color = min(color, 60.0);
@@ -247,6 +257,8 @@ float3 ColorGrade(float3 color) {
 	color = ColorGradeColorFilter(color);
 	color = max(color, 0.0);
 	color = ColorGradeSplitToning(color);
+	color = ColorGradingChannelMixer(color);
+	color = max(color, 0.0);
 	color = ColorGradingHueShift(color);
 	color = ColorGradingSaturation(color);
 	color = max(color, 0.0); //Negative colors don't exist
