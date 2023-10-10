@@ -32,6 +32,11 @@ public partial class PostFXStack
 	int channelMixerRedId = Shader.PropertyToID("_ChannelMixerRed");
 	int channelMixerGreenId = Shader.PropertyToID("_ChannelMixerGreen");
 	int channelMixerBlueId = Shader.PropertyToID("_ChannelMixerBlue");
+	//Shadows midtones and highlights
+	int smhShadowsId = Shader.PropertyToID("_SMHShadows");
+	int smhMidtonesId = Shader.PropertyToID("_SMHMidtones");
+	int smhHighlightsId = Shader.PropertyToID("_SMHHighlights");
+	int smhRangeId = Shader.PropertyToID("_SMHRange");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -260,12 +265,24 @@ public partial class PostFXStack
 		buffer.SetGlobalVector(channelMixerGreenId, channelMixer.green);
 		buffer.SetGlobalVector(channelMixerBlueId, channelMixer.blue);
 	}
+	//Convert the colors into linear space and then send ranges as a single vector
+	void ConfigureShadowsMidtonesHighlights()
+	{
+		ShadowsMidtonesHighlightsSettings smh = settings.ShadowsMidtonesHighlights;
+		buffer.SetGlobalColor(smhShadowsId, smh.shadows.linear);
+		buffer.SetGlobalColor(smhMidtonesId, smh.midtones.linear);
+		buffer.SetGlobalColor(smhHighlightsId, smh.highlights.linear);
+		buffer.SetGlobalVector(smhRangeId, new Vector4(
+			smh.shadowsStart, smh.shadowsEnd, smh.highlightsStart, smh.highLightsEnd
+		));
+	}
 	void DoColorGradingAndToneMapping(int sourceId)
     {
 		ConfigureColorAdjustments();
 		ConfigureWhiteBalance();
 		ConfigureSplitToning();
 		ConfigureChannelMixer();
+		ConfigureShadowsMidtonesHighlights();
 		//Tone Mapping pass used if enabled
 		ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
 		Pass pass = mode < 0 ? Pass.Copy : Pass.ToneMappingNone + (int)mode;

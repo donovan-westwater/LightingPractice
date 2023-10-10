@@ -29,6 +29,8 @@ float4 _SplitToningShadows, _SplitToningHighlights;
 
 float4 _ChannelMixerRed, _ChannelMixerGreen, _ChannelMixerBlue;
 
+float4 _SMHShadows, _SMHMidtones, _SMHHighlights, _SMHRange;
+
 float4 GetSourceTexelSize() {
 	return _PostFXSource_TexelSize;
 }
@@ -248,6 +250,19 @@ float3 ColorGradingChannelMixer(float3 color) {
 		color
 	);
 }
+//Multiply the colors for each range based on the luminance of the color
+//We interplotate between the ranges with a smoothstep function
+//We create weights to control how much each smh color affects the results
+float3 ColorGradingShadowsMidtonesHighlights(float3 color) {
+	float luminance = Luminance(color);
+	float shadowsWeight = 1.0 - smoothstep(_SMHRange.x, _SMHRange.y, luminance);
+	float highlightsWeight = smoothstep(_SMHRange.z, _SMHRange.w, luminance);
+	float midtonesWeight = 1.0 - shadowsWeight - highlightsWeight;
+	return
+		color * _SMHShadows.rgb * shadowsWeight +
+		color * _SMHMidtones.rgb * midtonesWeight +
+		color * _SMHHighlights.rgb * highlightsWeight;
+}
 //Color correction and color grading step
 float3 ColorGrade(float3 color) {
 	color = min(color, 60.0);
@@ -259,6 +274,7 @@ float3 ColorGrade(float3 color) {
 	color = ColorGradeSplitToning(color);
 	color = ColorGradingChannelMixer(color);
 	color = max(color, 0.0);
+	color = ColorGradingShadowsMidtonesHighlights(color);
 	color = ColorGradingHueShift(color);
 	color = ColorGradingSaturation(color);
 	color = max(color, 0.0); //Negative colors don't exist
