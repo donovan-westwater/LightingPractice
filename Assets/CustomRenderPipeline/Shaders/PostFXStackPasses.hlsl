@@ -189,6 +189,9 @@ float4 BloomPrefilterFirefliesPassFragment(Varyings input) : SV_TARGET{
 	color /= weightSum;
 	return float4(color, 1.0);
 }
+float Luminance(float3 color, bool useACES) {
+	return useACES ? AcesLuminance(color) : Luminance(color);
+}
 float3 ColorGradePostExposure(float3 color) {
 	return color * _ColorAdjustments.x;
 }
@@ -199,9 +202,9 @@ float3 ColorGradeWhiteBalance(float3 color) {
 	return LMSToLinear(color);
 }
 //Applies split toning to the color. Uses the  Adobe split toning function
-float3 ColorGradeSplitToning(float3 color) {
+float3 ColorGradeSplitToning(float3 color, bool useACES) {
 	color = PositivePow(color, 1.0 / 2.2);
-	float t = saturate(Luminance(saturate(color)) + _SplitToningShadows.w);
+	float t = saturate(Luminance(saturate(color), useACES) + _SplitToningShadows.w);
 	float3 shadows = lerp(0.5, _SplitToningShadows.rgb, 1.0 - t); //Limit the colors to just the regions they are meant for
 	float3 highlights = lerp(0.5, _SplitToningHighlights.rgb, t); //Same idea as above
 	color = SoftLight(color, shadows); //Soft bled between the color and shadow tint
@@ -211,12 +214,14 @@ float3 ColorGradeSplitToning(float3 color) {
 //Transform the color into a vector whose values are relative to the center of the brightness spectrum
 //When then scale these values to increase or decreese our constrast (i.e how far apart the colors are from 
 //the center) From there, we add back the midgray to transform back into our global space
-float3 ColorGradingContrast(float3 color) {
+float3 ColorGradingContrast(float3 color, bool useACES) {
+
 	//We convert from linear color space to ACEScc's logrithmic color space
-	color = LinearToLogC(color);
+	//ACEScg is the linear subset of ACES
+	color = useACES ? ACES_to_ACEScc(unity_to_ACES(color)) : LinearToLogC(color);
 	color = (color - ACEScc_MIDGRAY) * _ColorAdjustments.y + ACEScc_MIDGRAY;
 	//Convert back at the end
-	return LogCToLinear(color);
+	return useACES ? ACES_to_ACEScg(ACEScc_to_ACES(color)) : LogCToLinear(color);
 }
 //Just adds a color filter. Pretty self explanitory when you see the code
 float3 ColorGradeColorFilter(float3 color) {
@@ -238,8 +243,8 @@ float3 ColorGradingHueShift(float3 color) {
 //(long, medium, short) wavelengths
 //White balance is blue / yellow
 //Tint is red/green
-float3 ColorGradingSaturation(float3 color) {
-	float luminance = Luminance(color);
+float3 ColorGradingSaturation(float3 color, bool useACES) {
+	float luminance = Luminance(color,useACES);
 	return (color - luminance) * _ColorAdjustments.w + luminance;
 }
 //Mix channels together to create a new color
@@ -253,8 +258,8 @@ float3 ColorGradingChannelMixer(float3 color) {
 //Multiply the colors for each range based on the luminance of the color
 //We interplotate between the ranges with a smoothstep function
 //We create weights to control how much each smh color affects the results
-float3 ColorGradingShadowsMidtonesHighlights(float3 color) {
-	float luminance = Luminance(color);
+float3 ColorGradingShadowsMidtonesHighlights(float3 color, bool useACES) {
+	float luminance = Luminance(color,useACES);
 	float shadowsWeight = 1.0 - smoothstep(_SMHRange.x, _SMHRange.y, luminance);
 	float highlightsWeight = smoothstep(_SMHRange.z, _SMHRange.w, luminance);
 	float midtonesWeight = 1.0 - shadowsWeight - highlightsWeight;
@@ -264,20 +269,20 @@ float3 ColorGradingShadowsMidtonesHighlights(float3 color) {
 		color * _SMHHighlights.rgb * highlightsWeight;
 }
 //Color correction and color grading step
-float3 ColorGrade(float3 color) {
+float3 ColorGrade(float3 color, bool useACES = false) {
 	color = min(color, 60.0);
 	color = ColorGradePostExposure(color);
 	color = ColorGradeWhiteBalance(color);
-	color = ColorGradingContrast(color);
+	color = ColorGradingContrast(color, useACES);
 	color = ColorGradeColorFilter(color);
 	color = max(color, 0.0);
-	color = ColorGradeSplitToning(color);
+	color = ColorGradeSplitToning(color, useACES);
 	color = ColorGradingChannelMixer(color);
 	color = max(color, 0.0);
-	color = ColorGradingShadowsMidtonesHighlights(color);
+	color = ColorGradingShadowsMidtonesHighlights(color, useACES);
 	color = ColorGradingHueShift(color);
-	color = ColorGradingSaturation(color);
-	color = max(color, 0.0); //Negative colors don't exist
+	color = ColorGradingSaturation(color, useACES);
+	color = max(useACES ? ACEScg_to_ACES(color) : color, 0.0); //Negative colors don't exist
 	return color;
 }
 //We still want to color grade even if there is no tone mapping
@@ -312,8 +317,8 @@ float4 ToneMappingNeutralPassFragment(Varyings input) : SV_TARGET{
 float4 ToneMappingACESPassFragment(Varyings input) : SV_TARGET{
 	float4 color = GetSource(input.screenUV);
 	//Grad againest high value colors
-	color.rgb = ColorGrade(color.rgb);
-	color.rgb = AcesTonemap(unity_to_ACES(color.rgb)); //This is Unity's version of the function
+	color.rgb = ColorGrade(color.rgb, true);
+	color.rgb = AcesTonemap(color.rgb); //This is Unity's version of the function
 	return color;
 }
 float4 ToneMappingNeutralCustomPassFragment(Varyings input) : SV_TARGET{
