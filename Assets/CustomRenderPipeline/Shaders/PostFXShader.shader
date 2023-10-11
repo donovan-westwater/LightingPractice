@@ -75,48 +75,48 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 			ENDHLSL
 		}
 		Pass {
-			Name "ToneMapping None"
+			Name "ColorGrading None"
 
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingNonePassFragment
+				#pragma fragment ColorGradingNonePassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "ToneMapping ACES"
+			Name "ColorGrading ACES"
 
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingACESPassFragment
+				#pragma fragment ColorGradingACESPassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "ToneMapping Neutral"
+			Name "ColorGrading Neutral"
 
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingNeutralPassFragment
+				#pragma fragment ColorGradingNeutralPassFragment
 			ENDHLSL
 		}
 		Pass {
-			Name "ToneMapping Reinhard"
+			Name "ColorGrading Reinhard"
 
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingReinhardPassFragment
+				#pragma fragment ColorGradingReinhardPassFragment
 			ENDHLSL
 		}
 		Pass{
-			Name "ToneMapping Neutral Custom"
+			Name "ColorGrading Neutral Custom"
 
 			HLSLPROGRAM
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
-				#pragma fragment ToneMappingNeutralCustomPassFragment
+				#pragma fragment ColorGradingNeutralCustomPassFragment
 			ENDHLSL
 		}
 		Pass {
@@ -126,6 +126,15 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#pragma target 3.5
 				#pragma vertex DefaultPassVertex
 				#pragma fragment CopyPassFragment
+			ENDHLSL
+		}
+		Pass{
+			Name "Copy"
+
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment FinalPassFragment
 			ENDHLSL
 		}
 	}
