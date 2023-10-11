@@ -14,9 +14,14 @@ public class CustomRenderPipelineAsset : RenderPipelineAsset {
 	PostFXSettings postFXSettings = default;
 	[SerializeField]
 	bool allowHDR = true; //Allows a wider range of color intenisties
+	//Look up table setup to precalculate convertions between unaltered to altered colors
+	//This saves a lot of calculation time for color grading
+	public enum ColorLUTResolution { _16 = 16, _32 = 32, _64 = 64}
+	[SerializeField]
+	ColorLUTResolution colorLUTResolution = ColorLUTResolution._32;
 	protected override RenderPipeline CreatePipeline()
 	{
 		return new CustomRenderPipeline(allowHDR,useDynamicBatching, useGPUInstancing, useSRPBatcher,
-			useLightsPerObject,shadows, postFXSettings);
+			useLightsPerObject,shadows, postFXSettings, (int)colorLUTResolution);
 	}
 }

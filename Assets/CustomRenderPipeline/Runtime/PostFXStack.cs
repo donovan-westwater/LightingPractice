@@ -23,6 +23,7 @@ public partial class PostFXStack
 	int exposureId = Shader.PropertyToID("_ExposureBias");
 	int whitePointId = Shader.PropertyToID("_WhitePoint");
 	//Color grading ids
+	int colorLUTResolution;
 	int colorAdjustmentsId = Shader.PropertyToID("_ColorAdjustments");
 	int colorFilterId = Shader.PropertyToID("_ColorFilter");
 	int whiteBalanceId = Shader.PropertyToID("_WhiteBalance");
@@ -74,11 +75,12 @@ public partial class PostFXStack
     }
 	public void Setup(
 		ScriptableRenderContext context, Camera camera, PostFXSettings settings, bool useHDR
-	)
+	,int colorLUTResolution)
 	{
 		this.useHDR = useHDR;
 		this.context = context;
 		this.camera = camera;
+		this.colorLUTResolution = colorLUTResolution;
 		//Only applies the Post Process effect for the assigned camera
 		this.settings = camera.cameraType <= CameraType.SceneView ? settings : null;
 		ApplySceneViewState();
