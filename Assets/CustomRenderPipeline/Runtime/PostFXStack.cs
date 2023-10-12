@@ -122,6 +122,25 @@ public partial class PostFXStack
 			MeshTopology.Triangles, 3
 		);
 	}
+	//Final Draw call for post processing
+	void DrawFinal(
+		RenderTargetIdentifier from
+	)
+	{
+		buffer.SetGlobalTexture(fxSourceId, from);
+		//Store the results in the render target
+		buffer.SetRenderTarget(
+			BuiltinRenderTextureType.CameraTarget
+			, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+		);
+		buffer.SetViewport(camera.pixelRect); //set viewport to the current camera
+		//Helps us avoid issues with split screen
+		//Tell the gpu to draw the full screen triangle
+		buffer.DrawProcedural(
+			Matrix4x4.identity, settings.Material, (int)Pass.Final,
+			MeshTopology.Triangles, 3
+		);
+	}
 	//We send a command named bloom which which uses a series of lower detail images
 	//and blurs them together
 	bool DoBloom(int sourceId)
@@ -313,7 +332,7 @@ public partial class PostFXStack
 		buffer.SetGlobalVector(colorGradingLUTParametersId,
 			new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f)
 		);
-		Draw(sourceId, BuiltinRenderTextureType.CameraTarget, Pass.Final);
+		DrawFinal(sourceId);
 		buffer.ReleaseTemporaryRT(colorGradingLUTId);
 	}
 }
