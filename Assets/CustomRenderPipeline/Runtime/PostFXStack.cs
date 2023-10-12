@@ -43,6 +43,8 @@ public partial class PostFXStack
 	int smhRangeId = Shader.PropertyToID("_SMHRange");
 	ScriptableRenderContext context;
 
+	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
+
 	Camera camera;
 
 	PostFXSettings settings;
@@ -131,7 +133,10 @@ public partial class PostFXStack
 		//Store the results in the render target
 		buffer.SetRenderTarget(
 			BuiltinRenderTextureType.CameraTarget
-			, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+			,camera.rect == fullViewRect ?
+			  RenderBufferLoadAction.DontCare
+			: RenderBufferLoadAction.Load
+			, RenderBufferStoreAction.Store
 		);
 		buffer.SetViewport(camera.pixelRect); //set viewport to the current camera
 		//Helps us avoid issues with split screen
