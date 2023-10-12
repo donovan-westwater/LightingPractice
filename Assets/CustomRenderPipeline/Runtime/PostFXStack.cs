@@ -133,9 +133,7 @@ public partial class PostFXStack
 		//Store the results in the render target
 		buffer.SetRenderTarget(
 			BuiltinRenderTextureType.CameraTarget
-			,camera.rect == fullViewRect ?
-			  RenderBufferLoadAction.DontCare
-			: RenderBufferLoadAction.Load
+			, RenderBufferLoadAction.Load
 			, RenderBufferStoreAction.Store
 		);
 		buffer.SetViewport(camera.pixelRect); //set viewport to the current camera
