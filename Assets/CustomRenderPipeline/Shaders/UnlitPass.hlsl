@@ -49,7 +49,7 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET{
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(config)); //Discard frag if 0 or less
 	#endif 
-	return base;
+	return float4(base.rgb, GetFinalAlpha(base.a));;
 }
 
 #endif

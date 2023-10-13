@@ -11,6 +11,8 @@ UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
+//Are not discarded to one
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig {
@@ -49,5 +51,8 @@ float GetFresnel(InputConfig c) {
 float GetSmoothness(InputConfig c) {
 	return 0.0;
 }
-
+//Final alpha to ensure the correct alpha is used for layered transparency
+float GetFinalAlpha(float alpha) {
+	return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
+}
 #endif

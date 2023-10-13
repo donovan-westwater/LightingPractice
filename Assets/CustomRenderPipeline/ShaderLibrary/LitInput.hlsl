@@ -21,6 +21,8 @@ UNITY_DEFINE_INSTANCED_PROP(float, _DetailAlbedo)
 UNITY_DEFINE_INSTANCED_PROP(float, _DetailSmoothness)
 UNITY_DEFINE_INSTANCED_PROP(float4, _EmissionColor) //Map for emissive materials
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
+UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
+//Are not discarded to one
 UNITY_DEFINE_INSTANCED_PROP(float, _Metallic) //Simulating metalic surfaces
 UNITY_DEFINE_INSTANCED_PROP(float, _Occlusion) //For handling detailed shadows
 UNITY_DEFINE_INSTANCED_PROP(float, _Smoothness) //Simualating smooth surfaces
@@ -125,5 +127,9 @@ float3 GetNormalTS(InputConfig c) {
 		normal = BlendNormalRNM(normal, detail);
 	}
 	return normal;
+}
+//Final alpha to ensure the correct alpha is used for layered transparency
+float GetFinalAlpha(float alpha) {
+	return INPUT_PROP(_ZWrite) ? 1.0 : alpha;
 }
 #endif

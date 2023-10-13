@@ -44,7 +44,7 @@ Shader "Custom RP/Custom-Lit"
             Tags {
                 "LightMode" = "CustomLit"
             }
-            Blend [_SrcBlend] [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha //We need to make sure layers with Alpha are always 1 if ethier one is 1
             ZWrite[_ZWrite] //want to be able to disable writing to depth buffer for transparent rendering
             //Fun fact: you can put non HLSL code in here, so we need to tell Unity what lang we are using!
             HLSLPROGRAM

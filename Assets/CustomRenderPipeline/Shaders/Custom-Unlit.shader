@@ -21,7 +21,7 @@ Shader "Unlit/Custom-Unlit"
         ENDHLSL
         Pass
         {
-            Blend [_SrcBlend] [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend], One OneMinusSrcAlpha
             ZWrite[_ZWrite] //want to be able to disable writing to depth buffer for transparent rendering
             //Fun fact: you can put non HLSL code in here, so we need to tell Unity what lang we are using!
             HLSLPROGRAM
