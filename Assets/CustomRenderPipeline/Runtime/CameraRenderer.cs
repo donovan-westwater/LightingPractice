@@ -3,6 +3,8 @@ using UnityEngine.Rendering;
 
 public partial class CameraRenderer
 {
+	//Custom Camera settings for the camera
+	static CameraSettings defaultCameraSettings = new CameraSettings();
 	//Name of the command buffer's used for this
 	const string bufferName = "Render Camera";
 	//The unlit and lit tags used for our pipeline
@@ -37,6 +39,11 @@ public partial class CameraRenderer
 	{
 		this.context = context;
 		this.camera = camera;
+		//Assign Custom Camera Settings
+		var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
+		//use our default if nothing is found
+		CameraSettings cameraSettings =
+	crpCamera ? crpCamera.Settings : defaultCameraSettings;
 		PrepareBuffer();
 		PrepareForSceneWindow();
 		if (!Cull(shadowSettings.maxDistance)) //Cull objects if they return false in cull function
@@ -48,7 +55,8 @@ public partial class CameraRenderer
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject);
-		postFXStack.Setup(context, camera, postFXSettings,useHDR, colorLUTResolution);
+		postFXStack.Setup(context, camera, postFXSettings,useHDR, colorLUTResolution,
+			cameraSettings.finalBlendMode);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer

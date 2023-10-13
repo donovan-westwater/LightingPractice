@@ -3247,6 +3247,7 @@ GameObject:
   - component: {fileID: 1176284780}
   - component: {fileID: 1176284779}
   - component: {fileID: 1176284778}
+  - component: {fileID: 1176284781}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -3319,6 +3320,22 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: -91.763, z: -0.05}
+--- !u!114 &1176284781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176284777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a04833deb47ad974f8aa72b3abb9afd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  settings:
+    finalBlendMode:
+      source: 1
+      destination: 0
 --- !u!1 &1206805935
 GameObject:
   m_ObjectHideFlags: 0
@@ -4562,7 +4579,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 2.2e-44, y: 0, z: 4.1001689e-19, w: 2.2e-44}
+  m_BoundingSphereOverride: {x: 0, y: 4e-45, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
@@ -4592,6 +4609,7 @@ GameObject:
   - component: {fileID: 1636312405}
   - component: {fileID: 1636312404}
   - component: {fileID: 1636312403}
+  - component: {fileID: 1636312406}
   m_Layer: 0
   m_Name: 2nd cam
   m_TagString: Untagged
@@ -4617,7 +4635,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 1, g: 1, b: 1, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -4664,6 +4682,22 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 29.27, y: -91.763, z: -0.05}
+--- !u!114 &1636312406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636312402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a04833deb47ad974f8aa72b3abb9afd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  settings:
+    finalBlendMode:
+      source: 1
+      destination: 10
 --- !u!1 &1655349431
 GameObject:
   m_ObjectHideFlags: 0

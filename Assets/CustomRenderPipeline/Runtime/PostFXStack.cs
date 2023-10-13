@@ -9,10 +9,16 @@ public partial class PostFXStack
 	//This class handles the Post FX settings, the fx stack buffer, and the caemra
 	const string bufferName = "Post FX";
 	bool useHDR;
+	CameraSettings.FinalBlendMode finalBlendMode;
 	CommandBuffer buffer = new CommandBuffer
 	{
 		name = bufferName
 	};
+	//Layer ids
+	int
+		finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend"),
+		finalDstBlendId = Shader.PropertyToID("_FinalDstBlend");
+	//Bloom Ids
 	int bloomBucibicUpsamplingId = Shader.PropertyToID("_BloomBicubicUpsampling");
 	int fxSourceId = Shader.PropertyToID("_PostFXSource"); //Used to access source image for post fx
 	int fxSource2Id = Shader.PropertyToID("_PostFXSource2"); //Used to upscale the image for post fx
@@ -81,8 +87,9 @@ public partial class PostFXStack
     }
 	public void Setup(
 		ScriptableRenderContext context, Camera camera, PostFXSettings settings, bool useHDR
-	,int colorLUTResolution)
+	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode)
 	{
+		this.finalBlendMode = finalBlendMode;
 		this.useHDR = useHDR;
 		this.context = context;
 		this.camera = camera;
@@ -129,11 +136,14 @@ public partial class PostFXStack
 		RenderTargetIdentifier from
 	)
 	{
+		buffer.SetGlobalFloat(finalSrcBlendId, (float)finalBlendMode.source);
+		buffer.SetGlobalFloat(finalDstBlendId, (float)finalBlendMode.destination);
 		buffer.SetGlobalTexture(fxSourceId, from);
 		//Store the results in the render target
 		buffer.SetRenderTarget(
 			BuiltinRenderTextureType.CameraTarget
-			, RenderBufferLoadAction.Load
+			, finalBlendMode.destination == BlendMode.Zero && camera.rect == fullViewRect ?
+				RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load
 			, RenderBufferStoreAction.Store
 		);
 		buffer.SetViewport(camera.pixelRect); //set viewport to the current camera
