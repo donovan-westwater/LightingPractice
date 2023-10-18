@@ -42,12 +42,12 @@ MonoBehaviour:
     balance: 0
   channelMixer:
     red: {x: 1, y: 0, z: 0}
-    green: {x: 0, y: 1, z: 0}
-    blue: {x: 0, y: 0, z: 1}
+    green: {x: 1, y: 1, z: 0}
+    blue: {x: 1, y: 0, z: 1}
   shadowsMidtonesHighlights:
-    shadows: {r: 1, g: 1, b: 1, a: 1}
-    midtones: {r: 1, g: 1, b: 1, a: 1}
-    highlights: {r: 1, g: 1, b: 1, a: 1}
+    shadows: {r: 0, g: 1, b: 0.9093275, a: 1}
+    midtones: {r: 0, g: 0.48489356, b: 1, a: 1}
+    highlights: {r: 0.06666666, g: 0.9647059, b: 0.1925327, a: 1}
     shadowsStart: 0
     shadowsEnd: 0.3
     highlightsStart: 0.55
