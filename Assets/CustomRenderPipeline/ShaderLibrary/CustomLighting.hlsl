@@ -1,5 +1,11 @@
 #ifndef CUSTOM_LIGHTING_INCLUDED
 #define CUSTOM_LIGHTING_INCLUDED
+
+//Checks to make sure the render layers match
+bool RenderingLayersOverlap(Surface surface, Light light) {
+	return (surface.renderingLayerMask & light.renderingLayerMask) != 0;
+}
+
 //Does a basic directional light calculation with surface normal
 float3 IncomingLight(Surface surface, Light light) {
 	//saturate clamps value between 0 and 1
@@ -21,20 +27,26 @@ float3 GetLighting(Surface surfaceWS, BRDF brdf,GI gi) {
 	for (int i = 0; i < GetDirectionalLightCount(); i++) {
 		Light light = GetDirectionalLight(i, surfaceWS, shadowData);
 		//light.attenuation = 1; Shadow attenuation calc not working with multiple dir lights
-		color += GetLighting(surfaceWS, brdf, light);
+		if(RenderingLayersOverlap(surfaceWS,light)){
+			color += GetLighting(surfaceWS, brdf, light);
+		}
 	}
 	//Per object mode
 	#if defined(_LIGHTS_PER_OBJECT)
 	for (int j = 0; j < min(unity_LightData.y,8); j++) {
 		int lightIndex = unity_LightIndices[j / 4][j % 4];
 		Light light = GetOtherLight(lightIndex, surfaceWS, shadowData);
-		color += GetLighting(surfaceWS, brdf, light);
+		if (RenderingLayersOverlap(surfaceWS, light)) {
+			color += GetLighting(surfaceWS, brdf, light);
+		}
 	}
 	#else
 	//Get the color that is affecting the surface from the point lights
 	for (int j = 0; j < GetOtherLightCount(); j++) {
 		Light light = GetOtherLight(j, surfaceWS, shadowData);
-		color += GetLighting(surfaceWS, brdf, light);
+		if (RenderingLayersOverlap(surfaceWS, light)) {
+			color += GetLighting(surfaceWS, brdf, light);
+		}
 	}
 	#endif	
 	return color;

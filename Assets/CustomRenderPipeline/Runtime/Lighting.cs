@@ -26,7 +26,7 @@ public class Lighting
 	static Vector4[]
 		otherLightColors = new Vector4[maxOtherLightCount],
 		otherLightPositions = new Vector4[maxOtherLightCount],
-		otherLightDirections = new Vector4[maxOtherLightCount],
+		otherLightDirectionsAndMasks = new Vector4[maxOtherLightCount],
 		otherLightSpotAngles = new Vector4[maxOtherLightCount],
 		otherLightShadowData = new Vector4[maxOtherLightCount];
 	//Directional Light vars
@@ -39,7 +39,7 @@ public class Lighting
 		dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 	static Vector4[]
 		dirLightColors = new Vector4[maxDirLightCount],
-		dirLightDirections = new Vector4[maxDirLightCount],
+		dirLightDirectionsAndMasks = new Vector4[maxDirLightCount],
 		dirLightShadowData = new Vector4[maxDirLightCount];
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
 	Shadows shadows = new Shadows(); //Class used to handle the shadow draw calls
@@ -78,27 +78,28 @@ public class Lighting
         {
 			int newIndex = -1;
 			VisibleLight vL = visibleLights[i]; //Want to optimize memory via pass by ref
+			Light light = vL.light;
 			//Adds a new light if there is enough room in the light buffer
             switch (vL.lightType)
             {
 				case LightType.Directional:
 					if (dlCount < maxDirLightCount)
 					{
-						SetupDirectionalLight(dlCount++,i, ref vL);
+						SetupDirectionalLight(dlCount++,i, ref vL, light);
 					}
 					break;
 				case LightType.Point:
 					if(olCount < maxOtherLightCount)
                     {
 						newIndex = olCount;
-						SetupPointLight(olCount++,i, ref vL);
+						SetupPointLight(olCount++,i, ref vL, light);
                     }
 					break;
 				case LightType.Spot:
 					if (olCount < maxOtherLightCount)
 					{
 						newIndex = olCount;
-						SetupSpotLight(olCount++, i, ref vL);
+						SetupSpotLight(olCount++, i, ref vL, light);
 					}
 					break;
 			}			
@@ -123,7 +124,7 @@ public class Lighting
 		buffer.SetGlobalInt(dirLightCountId, dlCount);
 		if(dlCount > 0) { 
 			buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
-			buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
+			buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirectionsAndMasks);
 			buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
 		}
 		//Send populated spot and point lights to shader
@@ -135,7 +136,7 @@ public class Lighting
 				otherLightPositionsId, otherLightPositions
 			);
 			buffer.SetGlobalVectorArray(
-				otherLightDirectionsId, otherLightDirections
+				otherLightDirectionsId, otherLightDirectionsAndMasks
 			);
 			buffer.SetGlobalVectorArray(
 				otherLightSpotAnglesId, otherLightSpotAngles
@@ -146,16 +147,18 @@ public class Lighting
 			);
 		}
 	}
-    void SetupDirectionalLight(int index, int visibleIndex, ref VisibleLight visibleLight)
+    void SetupDirectionalLight(int index, int visibleIndex, ref VisibleLight visibleLight, Light light)
 	{
 		dirLightColors[index] = visibleLight.finalColor;
 		//Negate forward vector for the light
-		dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+		Vector4 dirAndMask = -visibleLight.localToWorldMatrix.GetColumn(2);
+		dirAndMask.w = light.renderingLayerMask;
+		dirLightDirectionsAndMasks[index] = dirAndMask;
 		//Reserve a shadow for the light if there is enough room
-		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, visibleIndex);
+		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(light, visibleIndex);
 	}
 	//Setup a point light
-	void SetupPointLight(int index, int visibleIndex, ref VisibleLight visibleLight)
+	void SetupPointLight(int index, int visibleIndex, ref VisibleLight visibleLight, Light light)
     {
 		otherLightColors[index] = visibleLight.finalColor;
 		//Setup light range to cutoff the intensity if the light is too far
@@ -166,20 +169,26 @@ public class Lighting
 		//Ensures spotlight calcualtion doesnt effect point lights
 		otherLightSpotAngles[index] = new Vector4(0f, 1f);
 		//Reserve shadow infomation for the shadowmask
-		Light light = visibleLight.light;
+		Vector4 dirAndmask = Vector4.zero;
+		dirAndmask.w = light.renderingLayerMask;
+		otherLightDirectionsAndMasks[index] = dirAndmask;
+		//Light light = visibleLight.light;
 		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
 	}
 	//Spotlight setup. Sends info to shader for lighting calculations like with point light and directional light
-	void SetupSpotLight(int index, int visibleIndex, ref VisibleLight visibleLight)
+	void SetupSpotLight(int index, int visibleIndex, ref VisibleLight visibleLight, Light light)
     {
 		otherLightColors[index] = visibleLight.finalColor;
 		Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
 		position.w = 1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f);
 		otherLightPositions[index] = position;
-		otherLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+		otherLightDirectionsAndMasks[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
 		//Calculate the spot angle for the spotlight
 		//Calculates both inner and outer angles
-		Light light = visibleLight.light;
+		Vector4 dirAndMask = -visibleLight.localToWorldMatrix.GetColumn(2);
+		dirAndMask.w = light.renderingLayerMask;
+		otherLightDirectionsAndMasks[index] = dirAndMask;
+		//Light light = visibleLight.light;
 		float innerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * light.innerSpotAngle);
 		float outerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * visibleLight.spotAngle);
 		float angleRangeInv = 1f / Mathf.Max(innerCos - outerCos, 0.001f);

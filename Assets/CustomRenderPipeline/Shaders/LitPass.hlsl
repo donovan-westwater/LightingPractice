@@ -116,6 +116,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.occlusion = GetOcclusion(config);
 	surface.fresnelStrength = GetFresnel(config);
 	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+	surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
 	surface.alpha = base.a;
 #if defined(_NORMAL_MAP)
 	surface.normal = NormalTangentToWorld(
