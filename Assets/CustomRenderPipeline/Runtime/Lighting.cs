@@ -19,7 +19,7 @@ public class Lighting
 		otherLightCountId = Shader.PropertyToID("_OtherLightCount"),
 		otherLightColorsId = Shader.PropertyToID("_OtherLightColors"),
 		otherLightPositionsId = Shader.PropertyToID("_OtherLightPositions"),
-		otherLightDirectionsId = Shader.PropertyToID("_OtherLightDirections"),
+		otherLightDirectionsAndMasksId = Shader.PropertyToID("_OtherLightDirectionsAndMasks"),
 		otherLightSpotAnglesId = Shader.PropertyToID("_OtherLightSpotAngles"),
 		otherLightShadowDataId = Shader.PropertyToID("_OtherLightShadowData");
 
@@ -35,7 +35,7 @@ public class Lighting
 		//dirLightDirectionId = Shader.PropertyToID("_DirectionalLightDirection");
 		dirLightCountId = Shader.PropertyToID("_DirectionalLightCount"),
 		dirLightColorsId = Shader.PropertyToID("_DirectionalLightColors"),
-		dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections"),
+		dirLightDirectionsAndMasksId = Shader.PropertyToID("_DirectionalLightDirectionsAndMasks"),
 		dirLightShadowDataId = Shader.PropertyToID("_DirectionalLightShadowData");
 	static Vector4[]
 		dirLightColors = new Vector4[maxDirLightCount],
@@ -124,7 +124,7 @@ public class Lighting
 		buffer.SetGlobalInt(dirLightCountId, dlCount);
 		if(dlCount > 0) { 
 			buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
-			buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirectionsAndMasks);
+			buffer.SetGlobalVectorArray(dirLightDirectionsAndMasksId, dirLightDirectionsAndMasks);
 			buffer.SetGlobalVectorArray(dirLightShadowDataId,dirLightShadowData);
 		}
 		//Send populated spot and point lights to shader
@@ -136,7 +136,7 @@ public class Lighting
 				otherLightPositionsId, otherLightPositions
 			);
 			buffer.SetGlobalVectorArray(
-				otherLightDirectionsId, otherLightDirectionsAndMasks
+				otherLightDirectionsAndMasksId, otherLightDirectionsAndMasks
 			);
 			buffer.SetGlobalVectorArray(
 				otherLightSpotAnglesId, otherLightSpotAngles
@@ -152,7 +152,7 @@ public class Lighting
 		dirLightColors[index] = visibleLight.finalColor;
 		//Negate forward vector for the light
 		Vector4 dirAndMask = -visibleLight.localToWorldMatrix.GetColumn(2);
-		dirAndMask.w = light.renderingLayerMask;
+		dirAndMask.w = light.renderingLayerMask.ReinterpretAsFloat();
 		dirLightDirectionsAndMasks[index] = dirAndMask;
 		//Reserve a shadow for the light if there is enough room
 		dirLightShadowData[index] = shadows.ReserveDirectionalShadows(light, visibleIndex);
@@ -170,7 +170,7 @@ public class Lighting
 		otherLightSpotAngles[index] = new Vector4(0f, 1f);
 		//Reserve shadow infomation for the shadowmask
 		Vector4 dirAndmask = Vector4.zero;
-		dirAndmask.w = light.renderingLayerMask;
+		dirAndmask.w = light.renderingLayerMask.ReinterpretAsFloat();
 		otherLightDirectionsAndMasks[index] = dirAndmask;
 		//Light light = visibleLight.light;
 		otherLightShadowData[index] = shadows.ReserveOtherShadows(light, visibleIndex);
@@ -186,7 +186,7 @@ public class Lighting
 		//Calculate the spot angle for the spotlight
 		//Calculates both inner and outer angles
 		Vector4 dirAndMask = -visibleLight.localToWorldMatrix.GetColumn(2);
-		dirAndMask.w = light.renderingLayerMask;
+		dirAndMask.w = light.renderingLayerMask.ReinterpretAsFloat();
 		otherLightDirectionsAndMasks[index] = dirAndMask;
 		//Light light = visibleLight.light;
 		float innerCos = Mathf.Cos(Mathf.Deg2Rad * 0.5f * light.innerSpotAngle);

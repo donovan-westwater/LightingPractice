@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 196d9d0b46fa1384fb0e25e3af16d323, type: 3}
-  m_Name: DefaultFX
+  m_Name: DefaultFXStack
   m_EditorClassIdentifier: 
-  shader: {fileID: 0}
+  shader: {fileID: 4800000, guid: a16ba8da1d243f24a82a690dc96f41d9, type: 3}
   toneMapping:
     exposureBias: 0.02
     whitePoint: 5.3
