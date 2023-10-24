@@ -27,4 +27,5 @@ public class CameraSettings
 	//Caemra rendering layer mask - makes so objects only show up on certian cameras
 	[RenderingLayerMaskField]
 	public int renderingLayerMask = -1;
+	public bool maskLights = false; //Disables the light mask
 }

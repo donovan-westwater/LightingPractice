@@ -44,7 +44,8 @@ public class Lighting
 	CullingResults cullingResults; //Need which visible spaces are going to be affected
 	Shadows shadows = new Shadows(); //Class used to handle the shadow draw calls
 	public void Setup(ScriptableRenderContext context,
-		CullingResults cullingResults,ShadowSettings shadowSettings, bool useLightPerObject)
+		CullingResults cullingResults,ShadowSettings shadowSettings, bool useLightPerObject,
+		int renderingLayerMask)
 	{
 		this.cullingResults = cullingResults;
 		//Start command buffer setup
@@ -52,7 +53,7 @@ public class Lighting
 		//Setup the directional light to submit
 		//SetupDirectionalLight();
 		shadows.Setup(context, cullingResults, shadowSettings);
-		SetupLights(useLightPerObject);
+		SetupLights(useLightPerObject, renderingLayerMask);
 		shadows.Render();
 		//Finish setting up command buffer
 		buffer.EndSample(bufferName);
@@ -64,7 +65,7 @@ public class Lighting
     {
 		shadows.Cleanup();
     }
-	void SetupLights(bool useLightsPerObject)
+	void SetupLights(bool useLightsPerObject, int renderingLayerMask)
     {
 		//Array that will be sanitized to leave just the non directional visible lights
 		NativeArray<int> indexMap = useLightsPerObject ?
@@ -80,29 +81,36 @@ public class Lighting
 			VisibleLight vL = visibleLights[i]; //Want to optimize memory via pass by ref
 			Light light = vL.light;
 			//Adds a new light if there is enough room in the light buffer
-            switch (vL.lightType)
-            {
-				case LightType.Directional:
-					if (dlCount < maxDirLightCount)
-					{
-						SetupDirectionalLight(dlCount++,i, ref vL, light);
-					}
-					break;
-				case LightType.Point:
-					if(olCount < maxOtherLightCount)
-                    {
-						newIndex = olCount;
-						SetupPointLight(olCount++,i, ref vL, light);
-                    }
-					break;
-				case LightType.Spot:
-					if (olCount < maxOtherLightCount)
-					{
-						newIndex = olCount;
-						SetupSpotLight(olCount++, i, ref vL, light);
-					}
-					break;
-			}			
+			//check for the light mask for cameras
+			if((light.renderingLayerMask & renderingLayerMask) != 0) { 
+				switch (vL.lightType)
+				{
+					case LightType.Directional:
+						if (dlCount < maxDirLightCount)
+						{
+							SetupDirectionalLight(dlCount++,i, ref vL, light);
+						}
+						break;
+					case LightType.Point:
+						if(olCount < maxOtherLightCount)
+						{
+							newIndex = olCount;
+							SetupPointLight(olCount++,i, ref vL, light);
+						}
+						break;
+					case LightType.Spot:
+						if (olCount < maxOtherLightCount)
+						{
+							newIndex = olCount;
+							SetupSpotLight(olCount++, i, ref vL, light);
+						}
+						break;
+				}
+				if (useLightsPerObject)
+				{
+					indexMap[i] = newIndex;
+				}
+			}
 		}
 		//Eliminte all the lights that arent visible
 		if (useLightsPerObject)
