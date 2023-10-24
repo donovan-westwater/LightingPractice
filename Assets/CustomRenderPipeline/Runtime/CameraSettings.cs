@@ -24,4 +24,7 @@ public class CameraSettings
 	public bool overridePostFX = false;
 
 	public PostFXSettings postFXSettings = default;
+	//Caemra rendering layer mask - makes so objects only show up on certian cameras
+	[RenderingLayerMaskField]
+	public int renderingLayerMask = -1;
 }

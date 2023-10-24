@@ -64,7 +64,8 @@ public partial class CameraRenderer
 			cameraSettings.finalBlendMode);
 		buffer.EndSample(SampleName);
 		Setup();
-		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject); //Skybox has its own dedicated command buffer
+		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject
+			,cameraSettings.renderingLayerMask); //Skybox has its own dedicated command buffer
 		//We want to handle material types not supported by our setup
 		DrawUnsupportedShaders();
 		//We want to be able to draw handles and gizmos
@@ -145,7 +146,8 @@ public partial class CameraRenderer
 		buffer.Clear();
 	}
 
-	void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject)
+	void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject,
+		int renderingLayerMask)
 	{
 		//PerObjectData for objects
 		PerObjectData lightsPerObjectFlags = useLightsPerObject ?
@@ -175,7 +177,8 @@ public partial class CameraRenderer
 		};
 		drawingSettings.SetShaderPassName(1, litShaderTagId);
 
-		var filteringSettings = new FilteringSettings(RenderQueueRange.opaque); //indicate which queues are allowed
+		var filteringSettings = new FilteringSettings(RenderQueueRange.opaque
+			, renderingLayerMask: (uint) renderingLayerMask); //indicate which queues are allowed
 
 		context.DrawRenderers(
 			cullingResults, ref drawingSettings, ref filteringSettings
