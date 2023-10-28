@@ -18,12 +18,16 @@
 
 struct Attributes {
 	float3 positionOS : POSITION;
+	float4 color : COLOR;
 	float2 baseUV : TEXCOORD0;
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 //Custom output
 struct Varyings {
 	float4 positionCS : SV_POSITION;
+#if defined(_VERTEX_COLORS)
+	float4 color : VAR_COLOR; //Meant for particles
+#endif
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -35,6 +39,9 @@ Varyings UnlitPassVertex(Attributes input){
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(positionWS);
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
+	#if defined(_VERTEX_COLORS)
+		output.color = input.color;
+	#endif
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 	return output;
 }
@@ -45,6 +52,9 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET{
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
     InputConfig config = GetInputConfig(input.baseUV);
+#if defined(_VERTEX_COLORS)
+	config.color = 1.0*input.color; //Meant for particles
+#endif
 	float4 base = GetBase(config);
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(config)); //Discard frag if 0 or less

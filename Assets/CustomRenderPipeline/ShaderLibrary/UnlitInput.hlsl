@@ -16,11 +16,13 @@ UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues wi
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig {
+	float4 color;
 	float2 baseUV;
 };
 
 InputConfig GetInputConfig(float2 baseUV) {
 	InputConfig c;
+	c.color = 1.0;
 	c.baseUV = baseUV;
 	return c;
 }
@@ -33,7 +35,7 @@ float2 TransformBaseUV(float2 baseUV) {
 float4 GetBase(InputConfig c) {
 	float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.baseUV);
 	float4 color = INPUT_PROP(_BaseColor);
-	return map * color;
+	return map * color * c.color;
 }
 float3 GetEmission(InputConfig c) {
 	return GetBase(c).rgb;

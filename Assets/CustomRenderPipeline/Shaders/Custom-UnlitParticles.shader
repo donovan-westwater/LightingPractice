@@ -5,6 +5,7 @@ Shader "Unlit/Particles/Custom-Unlit"
     {
         _BaseMap("Texture", 2D) = "white" {}
         [HDR] _BaseColor("Color",Color) = (1.0,1.0,0.0,1.0)
+        [Toggle(_VERTEX_COLORS)] _VertexColors("Vertex Colors", Float) = 0
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
             [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Src Blend", Float) = 1
@@ -26,6 +27,7 @@ Shader "Unlit/Particles/Custom-Unlit"
             //Fun fact: you can put non HLSL code in here, so we need to tell Unity what lang we are using!
             HLSLPROGRAM
             #pragma target 3.5 //Helps with differences in webGL and OpenGL
+            #pragma shader_feature _VERTEX_COLORS
             #pragma shader_feature _CLIPPING
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex UnlitPassVertex //This is the name of the vertex step
