@@ -19,7 +19,12 @@
 struct Attributes {
 	float3 positionOS : POSITION;
 	float4 color : COLOR;
+#if defined(_FLIPBOOK_BLENDING)
+	float4 baseUV : TEXCOORD0;
+	float flipbookBlend : TEXCOORD1;
+#else
 	float2 baseUV : TEXCOORD0;
+#endif
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 //Custom output
@@ -27,6 +32,9 @@ struct Varyings {
 	float4 positionCS : SV_POSITION;
 #if defined(_VERTEX_COLORS)
 	float4 color : VAR_COLOR; //Meant for particles
+#endif
+#if defined(_FLIPBOOK_BLENDING)
+	float3 flipbookUVB : VAR_FLIPBOOK;
 #endif
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
 	UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -42,7 +50,11 @@ Varyings UnlitPassVertex(Attributes input){
 	#if defined(_VERTEX_COLORS)
 		output.color = input.color;
 	#endif
-	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
+	output.baseUV.xy = TransformBaseUV(input.baseUV.xy); //Transform UVs
+#if defined(_FLIPBOOK_BLENDING)
+	output.flipbookUVB.xy = TransformBaseUV(input.baseUV.zw);
+	output.flipbookUVB.z = input.flipbookBlend;
+#endif
 	return output;
 }
 //: XXXXX statements indicates what we mean with the value we return
@@ -54,6 +66,10 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET{
     InputConfig config = GetInputConfig(input.baseUV);
 #if defined(_VERTEX_COLORS)
 	config.color = 1.0*input.color; //Meant for particles
+#endif
+#if defined(_FLIPBOOK_BLENDING)
+	config.flipbookUVB = input.flipbookUVB;
+	config.flipbookBlending = true;
 #endif
 	float4 base = GetBase(config);
 	#if defined(_CLIPPING)
