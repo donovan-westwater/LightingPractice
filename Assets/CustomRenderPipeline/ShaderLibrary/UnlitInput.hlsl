@@ -16,14 +16,16 @@ UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues wi
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 struct InputConfig {
+	Fragment fragment;
 	float4 color;
 	float2 baseUV;
 	float3 flipbookUVB;
 	bool flipbookBlending;
 };
 
-InputConfig GetInputConfig(float2 baseUV) {
+InputConfig GetInputConfig(float4 positionSS, float2 baseUV) {
 	InputConfig c;
+	c.fragment = GetFragment(positionSS);
 	c.color = 1.0;
 	c.baseUV = baseUV;
 	c.flipbookUVB = 0.0;

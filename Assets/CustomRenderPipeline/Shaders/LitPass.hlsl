@@ -49,7 +49,7 @@ struct Attributes {
 };
 //Custom output
 struct Varyings {
-	float4 positionCS : SV_POSITION;
+	float4 positionCS_SS : SV_POSITION;
 	float3 positionWS : VAR_POSITION; //Used to calculate view dir
 	float3 normalWS : VAR_NORMAL;
 	float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
@@ -69,7 +69,7 @@ Varyings LitPassVertex(Attributes input){
 	float3 positionWS = TransformObjectToWorld(input.positionOS);
 	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 	output.positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(output.positionWS);
+	output.positionCS_SS = TransformWorldToHClip(output.positionWS);
 	//float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
 	output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
 #if defined(_DETAIL_MAP)
@@ -89,10 +89,11 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	//#if defined(LOD_FADE_CROSSFADE)
 	//return -unity_LODFade.x;
 	//#endif
-	ClipLOD(input.positionCS.xy, unity_LODFade.x);
+	//ClipLOD(input.positionCS.xy, unity_LODFade.x);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	InputConfig config = GetInputConfig(input.baseUV);
+	InputConfig config = GetInputConfig(input.positionCS_SS, input.baseUV);
+	ClipLOD(config.fragment, unity_LODFade.x);
 #if defined(_MASK_MAP)
 	config.useMask = true;
 #endif
@@ -115,7 +116,7 @@ float4 LitPassFragment(Varyings input) : SV_TARGET{
 	surface.smoothness = GetSmoothness(config); //Get proeprty from lit shader
 	surface.occlusion = GetOcclusion(config);
 	surface.fresnelStrength = GetFresnel(config);
-	surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+	surface.dither = InterleavedGradientNoise(config.fragment.positionSS, 0);
 	surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
 	surface.alpha = base.a;
 #if defined(_NORMAL_MAP)

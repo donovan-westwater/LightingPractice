@@ -32,14 +32,16 @@ UNITY_DEFINE_INSTANCED_PROP(float, _NormalScale)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 //More organized way to get and pass parameter infomation for the input file
 struct InputConfig {
+	Fragment fragment;
 	float2 baseUV;
 	float2 detailUV;
 	bool useMask; //Do we enable the mask?
 	bool useDetail; //Do we enable the detail map
 };
 
-InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0) {
+InputConfig GetInputConfig(float4 positionSS,float2 baseUV, float2 detailUV = 0.0) {
 	InputConfig c;
+	c.fragment = GetFragment(positionSS);
 	c.baseUV = baseUV;
 	c.detailUV = detailUV;
 	c.useMask = false;

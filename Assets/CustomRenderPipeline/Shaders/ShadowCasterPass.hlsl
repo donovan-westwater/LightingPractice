@@ -56,7 +56,8 @@ void ShadowCasterPassFragment(Varyings input){
 	UNITY_SETUP_INSTANCE_ID(input);
 	//float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
 	//float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
-	InputConfig config = GetInputConfig(input.baseUV);
+	InputConfig config = GetInputConfig(input.positionCS,input.baseUV);
+	ClipLOD(config.fragment, unity_LODFade.x);
 	float4 base = GetBase(config);
 	//base.rgb = normalize(input.normalWS); //Smooth out interpolation distortion
 	#if defined(_SHADOWS_CLIP)
