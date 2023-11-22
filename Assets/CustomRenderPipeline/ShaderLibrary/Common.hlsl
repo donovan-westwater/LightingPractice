@@ -32,7 +32,7 @@ float DistanceSquared(float3 pA, float3 pB) {
 void ClipLOD(Fragment fragment, float fade) {
 	#if defined(LOD_FADE_CROSSFADE)
 	//Uses noise to create a dithered fade between LOD layers
-	float dither = InterleavedGradientNoise(fragment.position, 0);
+	float dither = InterleavedGradientNoise(fragment.positionSS, 0);
 	//Add to the  fade when the lod level is negative (LOD 0)
 	clip(fade + (fade < 0.0 ? dither : -dither));
 	#endif
