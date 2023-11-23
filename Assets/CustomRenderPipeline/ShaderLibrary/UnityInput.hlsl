@@ -35,5 +35,6 @@ float4x4 unity_MatrixV;
 float4x4 glstate_matrix_projection;
 //View direction used for the reflection calculation
 float3 _WorldSpaceCameraPos;
+float4 unity_OrthoParams;
 float4 _ProjectionParams;
 #endif
