@@ -10,6 +10,8 @@ SAMPLER(sampler_BaseMap);
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can be per instances!
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
+UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeDistance) //When should particles disappears 
+UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeRange) //When does the near plane end
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
 //Are not discarded to one
@@ -21,6 +23,7 @@ struct InputConfig {
 	float2 baseUV;
 	float3 flipbookUVB;
 	bool flipbookBlending;
+	bool nearFade;
 };
 
 InputConfig GetInputConfig(float4 positionSS, float2 baseUV) {
@@ -30,6 +33,7 @@ InputConfig GetInputConfig(float4 positionSS, float2 baseUV) {
 	c.baseUV = baseUV;
 	c.flipbookUVB = 0.0;
 	c.flipbookBlending = false;
+	c.nearFade = false;
 	return c;
 }
 
@@ -46,6 +50,11 @@ float4 GetBase(InputConfig c) {
 			map, SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.flipbookUVB.xy),
 			c.flipbookUVB.z
 		);
+	}
+	if (c.nearFade) {
+		float nearAttenuation = (c.fragment.depth - INPUT_PROP(_NearFadeDistance)) /
+			INPUT_PROP(_NearFadeRange);
+		map.a *= saturate(nearAttenuation);
 	}
 	float4 color = INPUT_PROP(_BaseColor);
 	return map * color * c.color;

@@ -14,6 +14,10 @@ Shader "Unlit/Particles/Custom-Unlit"
         [Enum(Off, 0, On, 1)] _ZWrite("Z Write", Float) = 1
         [HideInInspector] _MainTex("Texture for Lightmap", 2D) = "white" {}
         [HideInInspector] _Color("Color for Lightmap", Color) = (0.5, 0.5, 0.5, 1.0)
+        //Distance based fading
+        [Toggle(_NEAR_FADE)] _NearFade("Near Fade", Float) = 0
+        _NearFadeDistance("Near Fade Distance", Range(0.0, 10.0)) = 1
+        _NearFadeRange("Near Fade Range", Range(0.01, 10.0)) = 1
     }
     SubShader
     {
@@ -31,6 +35,7 @@ Shader "Unlit/Particles/Custom-Unlit"
             #pragma shader_feature _FLIPBOOK_BLENDING
             #pragma shader_feature _VERTEX_COLORS
             #pragma shader_feature _CLIPPING
+            #pragma shader_feature _NEAR_FADE
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex UnlitPassVertex //This is the name of the vertex step
             #pragma fragment UnlitPassFragment //This is the name of the frag step
