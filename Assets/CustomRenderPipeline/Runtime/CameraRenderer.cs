@@ -21,6 +21,7 @@ public partial class CameraRenderer
 	//We want to seperate the color and depth buffers so we can sample them seperately
 	static int colorAttachmentId = Shader.PropertyToID("_CameraColorAttachment");
 	static int depthAttachmentId = Shader.PropertyToID("_CameraDepthAttachment");
+	static int depthTextureId = Shader.PropertyToID("_CameraDepthTexture");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -32,6 +33,8 @@ public partial class CameraRenderer
 	PostFXStack postFXStack = new PostFXStack(); //Controls what effects will be applied
 
 	bool useHDR;
+
+	bool useDepthTexture;
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
@@ -46,7 +49,7 @@ public partial class CameraRenderer
 		//use our default if nothing is found
 		CameraSettings cameraSettings =
 	crpCamera ? crpCamera.Settings : defaultCameraSettings;
-
+		useDepthTexture = true;
         if (cameraSettings.overridePostFX)
         {
 			postFXSettings = cameraSettings.postFXSettings;
@@ -91,6 +94,10 @@ public partial class CameraRenderer
 			buffer.ReleaseTemporaryRT(colorAttachmentId);
 			buffer.ReleaseTemporaryRT(depthAttachmentId);
 		}
+        if (useDepthTexture)
+        {
+			buffer.ReleaseTemporaryRT(depthTextureId);
+        }
 	}
 	bool Cull(float maxShadowDistance)
 	{
@@ -197,6 +204,7 @@ public partial class CameraRenderer
 		);
 
 		context.DrawSkybox(camera);
+		CopyAttachments();
 		//Time to draw transparent geometry. This makes sure the skybox doesn't draw over transparent geo
 		sortingSettings.criteria = SortingCriteria.CommonTransparent;
 		drawingSettings.sortingSettings = sortingSettings;
@@ -206,4 +214,15 @@ public partial class CameraRenderer
 			cullingResults, ref drawingSettings, ref filteringSettings
 		);
 	}
+	//Copy our depth and color buffers
+	void CopyAttachments()
+    {
+        if (useDepthTexture)
+        {
+			buffer.GetTemporaryRT(depthTextureId, camera.pixelWidth, camera.pixelHeight,
+				32, FilterMode.Point, RenderTextureFormat.Depth);
+			buffer.CopyTexture(depthAttachmentId, depthTextureId);
+			ExecuteBuffer();
+		}
+    }
 }
