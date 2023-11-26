@@ -17,8 +17,10 @@ public partial class CameraRenderer
 		name = bufferName
 	};
 
-	static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer"); //We want to read from a frame that isn't being written on
-
+	//static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer"); //We want to read from a frame that isn't being written on
+	//We want to seperate the color and depth buffers so we can sample them seperately
+	static int colorAttachmentId = Shader.PropertyToID("_CameraColorAttachment");
+	static int depthAttachmentId = Shader.PropertyToID("_CameraDepthAttachment");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -74,7 +76,7 @@ public partial class CameraRenderer
 		//Render the Post FX at the very end
 		if (postFXStack.IsActive)
 		{
-			postFXStack.Render(frameBufferId);
+			postFXStack.Render(colorAttachmentId);
 		}
 		DrawGizmosAfterFX();
 		Cleanup();
@@ -86,7 +88,8 @@ public partial class CameraRenderer
 		lighting.Cleanup();
 		if (postFXStack.IsActive)
 		{
-			buffer.ReleaseTemporaryRT(frameBufferId);
+			buffer.ReleaseTemporaryRT(colorAttachmentId);
+			buffer.ReleaseTemporaryRT(depthAttachmentId);
 		}
 	}
 	bool Cull(float maxShadowDistance)
@@ -113,13 +116,21 @@ public partial class CameraRenderer
 				flags = CameraClearFlags.Color;
             }
 			//Store the current frame in the frame buffer for reading
+			//First we sample the color 
 			buffer.GetTemporaryRT(
-				frameBufferId, camera.pixelWidth, camera.pixelHeight,
-				32, FilterMode.Bilinear, useHDR ?
+				colorAttachmentId, camera.pixelWidth, camera.pixelHeight,
+				0, FilterMode.Bilinear, useHDR ?
 					RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default
 			);
+			//Then sample depth
+			buffer.GetTemporaryRT(
+				depthAttachmentId, camera.pixelWidth, camera.pixelHeight,
+				32, FilterMode.Point, RenderTextureFormat.Depth
+			);
 			buffer.SetRenderTarget(
-				frameBufferId,
+				colorAttachmentId,
+				RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
+				depthAttachmentId,
 				RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
 			);
 		}
