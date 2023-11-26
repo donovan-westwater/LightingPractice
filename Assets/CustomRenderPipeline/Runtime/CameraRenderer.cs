@@ -22,6 +22,7 @@ public partial class CameraRenderer
 	static int colorAttachmentId = Shader.PropertyToID("_CameraColorAttachment");
 	static int depthAttachmentId = Shader.PropertyToID("_CameraDepthAttachment");
 	static int depthTextureId = Shader.PropertyToID("_CameraDepthTexture");
+	static int sourceTextureId = Shader.PropertyToID("_SourceTexture");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -35,6 +36,19 @@ public partial class CameraRenderer
 	bool useHDR;
 
 	bool useDepthTexture;
+
+	bool useIntermediateBuffer;
+	
+	Material material;
+
+	public CameraRenderer(Shader shader)
+	{
+		material = CoreUtils.CreateEngineMaterial(shader);
+	}
+	public void Dispose()
+	{
+		CoreUtils.Destroy(material);
+	}
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
@@ -80,7 +94,11 @@ public partial class CameraRenderer
 		if (postFXStack.IsActive)
 		{
 			postFXStack.Render(colorAttachmentId);
-		}
+		}else if (useIntermediateBuffer) //Draw our final output into the buffer for sampling depth for particles
+        {
+			Draw(colorAttachmentId, BuiltinRenderTextureType.CameraTarget);
+			ExecuteBuffer();
+        }
 		DrawGizmosAfterFX();
 		Cleanup();
 		//You need to submit the draw command to the command buffer
@@ -89,15 +107,16 @@ public partial class CameraRenderer
 	void Cleanup()
 	{
 		lighting.Cleanup();
-		if (postFXStack.IsActive)
+		if (useIntermediateBuffer)
 		{
 			buffer.ReleaseTemporaryRT(colorAttachmentId);
 			buffer.ReleaseTemporaryRT(depthAttachmentId);
+		
+			if (useDepthTexture)
+			{
+				buffer.ReleaseTemporaryRT(depthTextureId);
+			}
 		}
-        if (useDepthTexture)
-        {
-			buffer.ReleaseTemporaryRT(depthTextureId);
-        }
 	}
 	bool Cull(float maxShadowDistance)
 	{
@@ -115,7 +134,9 @@ public partial class CameraRenderer
 		context.SetupCameraProperties(camera);
 		//Clear flags for cam layers and combining results for multiple cameras
 		CameraClearFlags flags = camera.clearFlags;
-        if (postFXStack.IsActive)
+		//Make sure we can use the depth buffer even if the postfx stack is off
+		useIntermediateBuffer = useDepthTexture || postFXStack.IsActive;
+        if (useIntermediateBuffer)
         {
 			//Clear the  frame buffer
 			if(flags > CameraClearFlags.Color)
@@ -212,6 +233,17 @@ public partial class CameraRenderer
 
 		context.DrawRenderers(
 			cullingResults, ref drawingSettings, ref filteringSettings
+		);
+	}
+	//Draw into a render texture from another texture
+	void Draw(RenderTargetIdentifier from, RenderTargetIdentifier to)
+    {
+		buffer.SetGlobalTexture(sourceTextureId, from);
+		buffer.SetRenderTarget(
+			to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
+		);
+		buffer.DrawProcedural(
+			Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3
 		);
 	}
 	//Copy our depth and color buffers

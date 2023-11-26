@@ -10,7 +10,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     //Edit pipeline settings on construction
     public CustomRenderPipeline(bool allowHDR,bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
         bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postfxSettings
-        , int colorLUTResolution)
+        , int colorLUTResolution, Shader cameraRendererShader)
     {
         this.allowHDR = allowHDR;
         this.shadowSettings = shadowSettings;
@@ -22,9 +22,9 @@ public partial class CustomRenderPipeline : RenderPipeline
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;//Enable batching to improve preformance
         GraphicsSettings.lightsUseLinearIntensity = true; //Want lights to use linear
         InitializeForEditor();
-
+        camRenderer = new CameraRenderer(cameraRendererShader);
     }
-    CameraRenderer camRenderer = new CameraRenderer();
+    CameraRenderer camRenderer;// = new CameraRenderer();
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
         foreach(Camera c in cameras)
@@ -32,5 +32,12 @@ public partial class CustomRenderPipeline : RenderPipeline
             camRenderer.Render(context, c, allowHDR,useDynamicBatching, useGPUInstancing, useLightsPerObject
                 ,shadowSettings,postFXSettings, colorLUTResolution);
         }
+    }
+    //Cleanup after once pipeline is deleted
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        DisposeForEditor();
+        camRenderer.Dispose();
     }
 }

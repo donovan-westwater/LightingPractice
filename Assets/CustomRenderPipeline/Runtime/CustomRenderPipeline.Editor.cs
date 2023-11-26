@@ -7,6 +7,7 @@ using LightType = UnityEngine.LightType; //Prevents type clash with global illum
 public partial class CustomRenderPipeline
 {
 	partial void InitializeForEditor();
+	partial void DisposeForEditor();
 #if UNITY_EDITOR
 	//We want to fix the light mapping so that it is not using the legacy light mapping
 	//Spefically, it is using the wrong light fallout. This delegate will correct that
@@ -61,8 +62,8 @@ public partial class CustomRenderPipeline
 		Lightmapping.SetDelegate(lightsDelegate);
 	}
 	//Cleanup delegate once pipeline is deleted
-	protected override void Dispose (bool disposing) {
-		base.Dispose(disposing);
+	partial void DisposeForEditor () {
+		//base.Dispose(disposing);
 		Lightmapping.ResetDelegate();
 	}
 #endif
