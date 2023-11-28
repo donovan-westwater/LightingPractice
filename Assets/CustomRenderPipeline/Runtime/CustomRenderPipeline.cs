@@ -3,16 +3,18 @@ using UnityEngine.Rendering;
 
 public partial class CustomRenderPipeline : RenderPipeline
 {
-    bool useDynamicBatching, useGPUInstancing, useLightsPerObject,allowHDR;
+    bool useDynamicBatching, useGPUInstancing, useLightsPerObject;
     ShadowSettings shadowSettings;
     PostFXSettings postFXSettings;
+    CameraBufferSettings cameraBufferSettings;
     int colorLUTResolution;
     //Edit pipeline settings on construction
-    public CustomRenderPipeline(bool allowHDR,bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
+    public CustomRenderPipeline(CameraBufferSettings cameraBufferSettings,
+        bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,
         bool useLightsPerObject, ShadowSettings shadowSettings, PostFXSettings postfxSettings
         , int colorLUTResolution, Shader cameraRendererShader)
     {
-        this.allowHDR = allowHDR;
+        this.cameraBufferSettings = cameraBufferSettings;
         this.shadowSettings = shadowSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
@@ -29,7 +31,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     {
         foreach(Camera c in cameras)
         {
-            camRenderer.Render(context, c, allowHDR,useDynamicBatching, useGPUInstancing, useLightsPerObject
+            camRenderer.Render(context, c, cameraBufferSettings,useDynamicBatching, useGPUInstancing, useLightsPerObject
                 ,shadowSettings,postFXSettings, colorLUTResolution);
         }
     }

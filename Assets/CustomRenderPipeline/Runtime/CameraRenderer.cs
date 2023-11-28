@@ -52,7 +52,8 @@ public partial class CameraRenderer
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
 		ScriptableRenderContext context, Camera camera,
-		bool allowHDR,bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
+		CameraBufferSettings bufferSettings,
+		bool useDynamicBatching, bool useGPUInstancing, bool useLightsPerObject,
 		ShadowSettings shadowSettings, PostFXSettings postFXSettings, int colorLUTResolution
 	)
 	{
@@ -63,7 +64,15 @@ public partial class CameraRenderer
 		//use our default if nothing is found
 		CameraSettings cameraSettings =
 	crpCamera ? crpCamera.Settings : defaultCameraSettings;
-		useDepthTexture = true;
+		//Do we use the depth sample pass?
+		if(camera.cameraType == CameraType.Reflection)
+        {
+			useDepthTexture = bufferSettings.copyDepthReflections;
+        }
+        else
+        {
+			useDepthTexture = bufferSettings.copyDepth && bufferSettings.copyDepth;
+        }
         if (cameraSettings.overridePostFX)
         {
 			postFXSettings = cameraSettings.postFXSettings;
@@ -74,7 +83,7 @@ public partial class CameraRenderer
 		{
 			return;
 		}
-		useHDR = allowHDR && camera.allowHDR;
+		useHDR = bufferSettings.allowHDR && camera.allowHDR;
 		//Want to setup shadows first before drawing the actual objects
 		buffer.BeginSample(SampleName);
 		ExecuteBuffer();

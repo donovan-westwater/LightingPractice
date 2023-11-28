@@ -13,7 +13,10 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 	[SerializeField]
 	PostFXSettings postFXSettings = default;
 	[SerializeField]
-	bool allowHDR = true; //Allows a wider range of color intenisties
+	CameraBufferSettings cameraBuffer = new CameraBufferSettings
+	{
+		allowHDR = true
+	};
 	//Look up table setup to precalculate convertions between unaltered to altered colors
 	//This saves a lot of calculation time for color grading
 	public enum ColorLUTResolution { _16 = 16, _32 = 32, _64 = 64}
@@ -23,7 +26,7 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 	Shader cameraRendererShader = default;
 	protected override RenderPipeline CreatePipeline()
 	{
-		return new CustomRenderPipeline(allowHDR,useDynamicBatching, useGPUInstancing, useSRPBatcher,
+		return new CustomRenderPipeline(cameraBuffer,useDynamicBatching, useGPUInstancing, useSRPBatcher,
 			useLightsPerObject,shadows, postFXSettings, (int)colorLUTResolution,cameraRendererShader);
 	}
 }
