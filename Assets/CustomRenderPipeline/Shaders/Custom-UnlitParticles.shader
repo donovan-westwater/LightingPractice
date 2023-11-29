@@ -7,6 +7,9 @@ Shader "Unlit/Particles/Custom-Unlit"
         [HDR] _BaseColor("Color",Color) = (1.0,1.0,0.0,1.0)
         [Toggle(_VERTEX_COLORS)] _VertexColors("Vertex Colors", Float) = 0
         [Toggle(_FLIPBOOK_BLENDING)] _FlippbookBlending("Flipbook Blending",Float) = 0
+        [Toggle(_SOFT_PARTICLES)] _SoftParticles("Enable Soft Particles",Float ) = 0
+        _SoftParticlesDistance("Soft Particles Distance", Range(0.0,10.0)) = 0
+        _SoftParticlesRange("Soft Particles Range", Range(0.01,10.0)) = 1
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
             [Toggle(_CLIPPING)] _Clipping("Alpha Clipping", Float) = 0 //Want to  be able to disable alpha clipping
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Src Blend", Float) = 1
@@ -36,6 +39,7 @@ Shader "Unlit/Particles/Custom-Unlit"
             #pragma shader_feature _VERTEX_COLORS
             #pragma shader_feature _CLIPPING
             #pragma shader_feature _NEAR_FADE
+            #pragma shader_feature _SOFT_PARTICLES
             #pragma multi_compile_instancing //Helps consolidate draw calls with objects of the same mesh
             #pragma vertex UnlitPassVertex //This is the name of the vertex step
             #pragma fragment UnlitPassFragment //This is the name of the frag step

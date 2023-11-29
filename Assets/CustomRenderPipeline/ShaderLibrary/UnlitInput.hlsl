@@ -12,6 +12,8 @@ UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST) //UV scaling and transforms can
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)//color used for unlit shader. Is assigned in Custom-Unlit
 UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeDistance) //When should particles disappears 
 UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeRange) //When does the near plane end
+UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesDistance) //Same as near fade dist but with recognizes object depth
+UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesRange) //same as near fade range but recognizes object depth
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
 //Are not discarded to one
@@ -24,6 +26,7 @@ struct InputConfig {
 	float3 flipbookUVB;
 	bool flipbookBlending;
 	bool nearFade;
+	bool softParticles;
 };
 
 InputConfig GetInputConfig(float4 positionSS, float2 baseUV) {
@@ -34,6 +37,7 @@ InputConfig GetInputConfig(float4 positionSS, float2 baseUV) {
 	c.flipbookUVB = 0.0;
 	c.flipbookBlending = false;
 	c.nearFade = false;
+	c.softParticles = false;
 	return c;
 }
 
@@ -55,6 +59,14 @@ float4 GetBase(InputConfig c) {
 		float nearAttenuation = (c.fragment.depth - INPUT_PROP(_NearFadeDistance)) /
 			INPUT_PROP(_NearFadeRange);
 		map.a *= saturate(nearAttenuation);
+	}
+	if (c.softParticles) {
+		//We compare the depth of the fragment and whatever is currently drawn the the depth buffer.
+		//Using the delta we can then fade out the particles as they get close to geometery
+		float depthDelta = c.fragment.bufferDepth - c.fragment.depth; 
+		float softAttenuation = (depthDelta - INPUT_PROP(_SoftParticlesDistance))
+			/ INPUT_PROP(_SoftParticlesRange);
+		map.a *= saturate(softAttenuation);
 	}
 	float4 color = INPUT_PROP(_BaseColor);
 	return map * color * c.color;
