@@ -43,6 +43,8 @@ public partial class CameraRenderer
 
 	Texture2D missingTexture;
 
+	static bool copyTextureSupported = SystemInfo.copyTextureSupport > CopyTextureSupport.None; //Copy Texture not supported in WebGL 2.0
+
 	public CameraRenderer(Shader shader)
 	{
 		material = CoreUtils.CreateEngineMaterial(shader);
@@ -257,14 +259,14 @@ public partial class CameraRenderer
 		);
 	}
 	//Draw into a render texture from another texture
-	void Draw(RenderTargetIdentifier from, RenderTargetIdentifier to)
+	void Draw(RenderTargetIdentifier from, RenderTargetIdentifier to, bool isDepth = false)
     {
 		buffer.SetGlobalTexture(sourceTextureId, from);
 		buffer.SetRenderTarget(
 			to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store
 		);
 		buffer.DrawProcedural(
-			Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3
+			Matrix4x4.identity, material, isDepth ? 1 : 0, MeshTopology.Triangles, 3
 		);
 	}
 	//Copy our depth and color buffers
@@ -274,7 +276,23 @@ public partial class CameraRenderer
         {
 			buffer.GetTemporaryRT(depthTextureId, camera.pixelWidth, camera.pixelHeight,
 				32, FilterMode.Point, RenderTextureFormat.Depth);
-			buffer.CopyTexture(depthAttachmentId, depthTextureId);
+            if (copyTextureSupported)
+            {
+				buffer.CopyTexture(depthAttachmentId, depthTextureId);
+            }
+            else
+            {
+				Draw(depthAttachmentId, depthTextureId,true);
+				//We are drawing to the wrong render target if we leave it there
+				//move it back
+				buffer.SetRenderTarget(
+					colorAttachmentId,
+					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store,
+					depthAttachmentId,
+					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
+				);
+			}
+			
 			ExecuteBuffer();
 		}
     }
