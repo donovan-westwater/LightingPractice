@@ -41,13 +41,24 @@ public partial class CameraRenderer
 	
 	Material material;
 
+	Texture2D missingTexture;
+
 	public CameraRenderer(Shader shader)
 	{
 		material = CoreUtils.CreateEngineMaterial(shader);
+		//Create a texture to be rendered when depth doesn't exist
+		missingTexture = new Texture2D(1, 1)
+		{
+			hideFlags = HideFlags.HideAndDontSave,
+			name = "Missing"
+		};
+		missingTexture.SetPixel(0, 0, Color.white * 0.5f);
+		missingTexture.Apply(true, true);
 	}
 	public void Dispose()
 	{
 		CoreUtils.Destroy(material);
+		CoreUtils.Destroy(missingTexture);
 	}
 	//Called by custom render pipeline to render new images onto the screen
 	public void Render(
@@ -179,6 +190,7 @@ public partial class CameraRenderer
 				camera.backgroundColor.linear : Color.clear
 		);
 		buffer.BeginSample(SampleName);
+		buffer.SetGlobalTexture(depthTextureId, missingTexture);
 		ExecuteBuffer();
 	}
 
