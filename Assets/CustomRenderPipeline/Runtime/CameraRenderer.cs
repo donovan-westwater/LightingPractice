@@ -22,6 +22,7 @@ public partial class CameraRenderer
 	static int colorAttachmentId = Shader.PropertyToID("_CameraColorAttachment");
 	static int depthAttachmentId = Shader.PropertyToID("_CameraDepthAttachment");
 	static int depthTextureId = Shader.PropertyToID("_CameraDepthTexture");
+	static int colorTextureId = Shader.PropertyToID("_CameraColorTexture");
 	static int sourceTextureId = Shader.PropertyToID("_SourceTexture");
 	ScriptableRenderContext context;
 
@@ -36,6 +37,8 @@ public partial class CameraRenderer
 	bool useHDR;
 
 	bool useDepthTexture;
+
+	bool useColorTexture;
 
 	bool useIntermediateBuffer;
 	
@@ -81,9 +84,11 @@ public partial class CameraRenderer
 		if(camera.cameraType == CameraType.Reflection)
         {
 			useDepthTexture = bufferSettings.copyDepthReflections;
+			useColorTexture = bufferSettings.copyColorReflections;
         }
         else
         {
+			useColorTexture = bufferSettings.copyColor && cameraSettings.copyColor;
 			useDepthTexture = bufferSettings.copyDepth && bufferSettings.copyDepth;
         }
         if (cameraSettings.overridePostFX)
@@ -133,7 +138,11 @@ public partial class CameraRenderer
 		{
 			buffer.ReleaseTemporaryRT(colorAttachmentId);
 			buffer.ReleaseTemporaryRT(depthAttachmentId);
-		
+            if (useColorTexture)
+            {
+				buffer.ReleaseTemporaryRT(colorTextureId);
+            }
+
 			if (useDepthTexture)
 			{
 				buffer.ReleaseTemporaryRT(depthTextureId);
@@ -157,7 +166,7 @@ public partial class CameraRenderer
 		//Clear flags for cam layers and combining results for multiple cameras
 		CameraClearFlags flags = camera.clearFlags;
 		//Make sure we can use the depth buffer even if the postfx stack is off
-		useIntermediateBuffer = useDepthTexture || postFXStack.IsActive;
+		useIntermediateBuffer = useColorTexture || useDepthTexture || postFXStack.IsActive;
         if (useIntermediateBuffer)
         {
 			//Clear the  frame buffer
@@ -193,6 +202,7 @@ public partial class CameraRenderer
 		);
 		buffer.BeginSample(SampleName);
 		buffer.SetGlobalTexture(depthTextureId, missingTexture);
+		buffer.SetGlobalTexture(colorTextureId, missingTexture);
 		ExecuteBuffer();
 	}
 
@@ -248,7 +258,10 @@ public partial class CameraRenderer
 		);
 
 		context.DrawSkybox(camera);
-		CopyAttachments();
+		if(useColorTexture || useDepthTexture)
+        {
+			CopyAttachments();
+		}
 		//Time to draw transparent geometry. This makes sure the skybox doesn't draw over transparent geo
 		sortingSettings.criteria = SortingCriteria.CommonTransparent;
 		drawingSettings.sortingSettings = sortingSettings;
@@ -272,6 +285,20 @@ public partial class CameraRenderer
 	//Copy our depth and color buffers
 	void CopyAttachments()
     {
+        if (useColorTexture)
+        {
+			buffer.GetTemporaryRT(colorTextureId, camera.pixelWidth, camera.pixelHeight, 0
+				, FilterMode.Bilinear,
+				useHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default);
+            if (copyTextureSupported)
+            {
+				buffer.CopyTexture(colorAttachmentId, colorTextureId);
+            }
+            else
+            {
+				Draw(colorAttachmentId, colorTextureId);
+            }
+        }
         if (useDepthTexture)
         {
 			buffer.GetTemporaryRT(depthTextureId, camera.pixelWidth, camera.pixelHeight,
@@ -285,6 +312,15 @@ public partial class CameraRenderer
 				Draw(depthAttachmentId, depthTextureId,true);
 				//We are drawing to the wrong render target if we leave it there
 				//move it back
+				//buffer.SetRenderTarget(
+				//	colorAttachmentId,
+				//	RenderBufferLoadAction.Load, RenderBufferStoreAction.Store,
+				//	depthAttachmentId,
+				//	RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
+				//);
+			}
+            if (!copyTextureSupported)
+            {
 				buffer.SetRenderTarget(
 					colorAttachmentId,
 					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store,
@@ -292,7 +328,6 @@ public partial class CameraRenderer
 					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
 				);
 			}
-			
 			ExecuteBuffer();
 		}
     }

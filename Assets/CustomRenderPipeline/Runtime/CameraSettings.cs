@@ -29,4 +29,5 @@ public class CameraSettings
 	public int renderingLayerMask = -1;
 	public bool maskLights = false; //Disables the light mask
 	public bool copyDepth = true; //Uses the depth pass for that specfic camera
+	public bool copyColor = true;
 }
