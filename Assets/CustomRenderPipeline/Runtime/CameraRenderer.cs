@@ -319,16 +319,16 @@ public partial class CameraRenderer
 				//	RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
 				//);
 			}
-            if (!copyTextureSupported)
-            {
-				buffer.SetRenderTarget(
-					colorAttachmentId,
-					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store,
-					depthAttachmentId,
-					RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
-				);
-			}
-			ExecuteBuffer();
 		}
-    }
+		if (!copyTextureSupported)
+		{
+			buffer.SetRenderTarget(
+				colorAttachmentId,
+				RenderBufferLoadAction.Load, RenderBufferStoreAction.Store,
+				depthAttachmentId,
+				RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
+			);
+		}
+		ExecuteBuffer();
+	}
 }
