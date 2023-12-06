@@ -81,6 +81,10 @@ float4 UnlitPassFragment(Varyings input) : SV_TARGET{
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(config)); //Discard frag if 0 or less
 	#endif 
+	#if defined(_DISTORTION)
+		float2 distortion = GetDistortion(config);
+		base = GetBufferColor(config.fragment, distortion);
+	#endif
 	return float4(base.rgb, GetFinalAlpha(base.a));
 }
 

@@ -757,7 +757,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!199 &978817162
 ParticleSystemRenderer:
   serializedVersion: 6
@@ -5648,6 +5648,8 @@ MonoBehaviour:
     postFXSettings: {fileID: 0}
     renderingLayerMask: 1
     maskLights: 1
+    copyDepth: 1
+    copyColor: 1
 --- !u!1 &1422866508
 GameObject:
   m_ObjectHideFlags: 0
@@ -5857,7 +5859,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!199 &1570839519
 ParticleSystemRenderer:
   serializedVersion: 6

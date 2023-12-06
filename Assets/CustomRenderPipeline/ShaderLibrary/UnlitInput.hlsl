@@ -4,7 +4,9 @@
 //This input file is meant to Meta Pass to determine how surfaces should be affected by diffuse reflectiveity
 //Because this is a new meta pass for surfaces, we need a new input file to define the properties
 TEXTURE2D(_BaseMap);
+TEXTURE2D(_DistortionMap);
 SAMPLER(sampler_BaseMap);
+SAMPLER(sampler_DistortionMap);
 //We want to be able to bundle draw calls to CPU and GPU as batches (if we were using cbuffer)
 //Since cbuffer wont work with per object material properties, then we need to setup GPU instacing instead
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
@@ -14,6 +16,7 @@ UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeDistance) //When should particles di
 UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeRange) //When does the near plane end
 UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesDistance) //Same as near fade dist but with recognizes object depth
 UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesRange) //same as near fade range but recognizes object depth
+UNITY_DEFINE_INSTANCED_PROP(float, _DistortionStrength) //Increases the intensity of the effect
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
 //Are not discarded to one
@@ -70,6 +73,16 @@ float4 GetBase(InputConfig c) {
 	}
 	float4 color = INPUT_PROP(_BaseColor);
 	return map * color * c.color;
+}
+float2 GetDistortion(InputConfig c) {
+	float4 rawMap = SAMPLE_TEXTURE2D(_DistortionMap, sampler_DistortionMap, c.baseUV);
+	if (c.flipbookBlending) {
+		rawMap = lerp(
+			rawMap, SAMPLE_TEXTURE2D(_DistortionMap, sampler_DistortionMap, c.flipbookUVB.xy),
+			c.flipbookUVB.z
+		);
+	}
+	return DecodeNormal(rawMap, INPUT_PROP(_DistortionStrength)).xy;
 }
 float3 GetEmission(InputConfig c) {
 	return GetBase(c).rgb;
