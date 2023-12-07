@@ -24,6 +24,8 @@ public partial class CameraRenderer
 	static int depthTextureId = Shader.PropertyToID("_CameraDepthTexture");
 	static int colorTextureId = Shader.PropertyToID("_CameraColorTexture");
 	static int sourceTextureId = Shader.PropertyToID("_SourceTexture");
+	static int srcBlendId = Shader.PropertyToID("_CameraSrcBlend");
+	static int dstBlendId = Shader.PropertyToID("_CameraDstBlend");
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -48,6 +50,7 @@ public partial class CameraRenderer
 
 	static bool copyTextureSupported = SystemInfo.copyTextureSupport > CopyTextureSupport.None; //Copy Texture not supported in WebGL 2.0
 
+	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
 	public CameraRenderer(Shader shader)
 	{
 		material = CoreUtils.CreateEngineMaterial(shader);
@@ -123,7 +126,7 @@ public partial class CameraRenderer
 			postFXStack.Render(colorAttachmentId);
 		}else if (useIntermediateBuffer) //Draw our final output into the buffer for sampling depth for particles
         {
-			Draw(colorAttachmentId, BuiltinRenderTextureType.CameraTarget);
+			DrawFinal(cameraSettings.finalBlendMode);
 			ExecuteBuffer();
         }
 		DrawGizmosAfterFX();
@@ -281,6 +284,29 @@ public partial class CameraRenderer
 		buffer.DrawProcedural(
 			Matrix4x4.identity, material, isDepth ? 1 : 0, MeshTopology.Triangles, 3
 		);
+	}
+	//Copy of the PostFX draw function where we set the blend mode back to 1 - 0 
+	//This allows the function to not effect other copy issues
+	//This means we can copy to an intermediate texture and handle multiple cameras
+	void DrawFinal(CameraSettings.FinalBlendMode finalBlendMode)
+	{
+		//Copy over to the from the camera rt to the intermediate rt
+		buffer.SetGlobalFloat(srcBlendId, (float)finalBlendMode.source);
+		buffer.SetGlobalFloat(dstBlendId, (float)finalBlendMode.destination);
+		buffer.SetGlobalTexture(sourceTextureId, colorAttachmentId);
+		buffer.SetRenderTarget(
+			BuiltinRenderTextureType.CameraTarget,
+			finalBlendMode.destination == BlendMode.Zero && camera.rect == fullViewRect ?
+				RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load,
+			RenderBufferStoreAction.Store
+		);
+		buffer.SetViewport(camera.pixelRect);
+		buffer.DrawProcedural(
+			Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3
+		);
+		//reset the blending so that they aren't effected by the distortion blending
+		buffer.SetGlobalFloat(srcBlendId, 1f);
+		buffer.SetGlobalFloat(dstBlendId, 0f);
 	}
 	//Copy our depth and color buffers
 	void CopyAttachments()
