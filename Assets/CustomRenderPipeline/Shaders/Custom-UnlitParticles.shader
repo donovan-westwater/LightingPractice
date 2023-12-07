@@ -25,6 +25,7 @@ Shader "Unlit/Particles/Custom-Unlit"
         [Toggle(_DISTORTION)] _Distortion("Distortion", Float) = 0
         [NoScaleOffset] _DistortionMap("Distortion Vectors", 2D) = "bumb" {}
         _DistortionStrength("Distortion Strength", Range(0.0, 0.2)) = 0.1
+        _DistortionBlend("Distortion Blend", Range(0.0,1.0)) = 1
     }
     SubShader
     {

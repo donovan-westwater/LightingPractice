@@ -17,6 +17,7 @@ UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeRange) //When does the near plane en
 UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesDistance) //Same as near fade dist but with recognizes object depth
 UNITY_DEFINE_INSTANCED_PROP(float, _SoftParticlesRange) //same as near fade range but recognizes object depth
 UNITY_DEFINE_INSTANCED_PROP(float, _DistortionStrength) //Increases the intensity of the effect
+UNITY_DEFINE_INSTANCED_PROP(float, _DistortionBlend) //Controls the blending between the original and distortion maps
 UNITY_DEFINE_INSTANCED_PROP(float, _Cutoff) //For cutting holes in objects via alpha
 UNITY_DEFINE_INSTANCED_PROP(float, _ZWrite) //Add a setting to prevent issues with base maps of varying alphas, We want to set alphas that
 //Are not discarded to one
@@ -83,6 +84,9 @@ float2 GetDistortion(InputConfig c) {
 		);
 	}
 	return DecodeNormal(rawMap, INPUT_PROP(_DistortionStrength)).xy;
+}
+float GetDistortionBlend(InputConfig c) {
+	return INPUT_PROP(_DistortionBlend);
 }
 float3 GetEmission(InputConfig c) {
 	return GetBase(c).rgb;
