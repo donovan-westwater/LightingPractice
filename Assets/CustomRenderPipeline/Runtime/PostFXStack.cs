@@ -47,6 +47,7 @@ public partial class PostFXStack
 	int smhMidtonesId = Shader.PropertyToID("_SMHMidtones");
 	int smhHighlightsId = Shader.PropertyToID("_SMHHighlights");
 	int smhRangeId = Shader.PropertyToID("_SMHRange");
+	int finalResultId = Shader.PropertyToID("_FinalResult");
 	ScriptableRenderContext context;
 	Vector2Int bufferSize;
 	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
@@ -72,7 +73,8 @@ public partial class PostFXStack
 		ColorGradingReinhard,
 		ColorGradingNeutralCustom,
 		Copy,
-		Final
+		Final,
+		FinalRescale
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
 
@@ -134,7 +136,7 @@ public partial class PostFXStack
 	}
 	//Final Draw call for post processing
 	void DrawFinal(
-		RenderTargetIdentifier from
+		RenderTargetIdentifier from, Pass pass
 	)
 	{
 		buffer.SetGlobalFloat(finalSrcBlendId, (float)finalBlendMode.source);
@@ -151,7 +153,7 @@ public partial class PostFXStack
 		//Helps us avoid issues with split screen
 		//Tell the gpu to draw the full screen triangle
 		buffer.DrawProcedural(
-			Matrix4x4.identity, settings.Material, (int)Pass.Final,
+			Matrix4x4.identity, settings.Material, (int)pass,
 			MeshTopology.Triangles, 3
 		);
 	}
@@ -356,7 +358,23 @@ public partial class PostFXStack
 		buffer.SetGlobalVector(colorGradingLUTParametersId,
 			new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f)
 		);
-		DrawFinal(sourceId);
+		if(bufferSize.x == camera.pixelWidth)
+        {
+			DrawFinal(sourceId,Pass.Final);
+		}
+        else
+        {
+			//Rescale the image in LDR before switching to HDR
+			buffer.SetGlobalFloat(finalSrcBlendId, 1f);
+			buffer.SetGlobalFloat(finalDstBlendId, 0f);
+			buffer.GetTemporaryRT(
+				finalResultId, bufferSize.x, bufferSize.y, 0,
+				FilterMode.Bilinear, RenderTextureFormat.Default
+			);
+			Draw(sourceId, finalResultId, Pass.Final);
+			DrawFinal(finalResultId, Pass.FinalRescale);
+			buffer.ReleaseTemporaryRT(finalResultId);
+		}
 		buffer.ReleaseTemporaryRT(colorGradingLUTId);
 	}
 }
