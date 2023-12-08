@@ -3,6 +3,8 @@
 
 TEXTURE2D(_CameraDepthTexture);
 TEXTURE2D(_CameraColorTexture);
+
+float4 _CameraBufferSize;
 //Organizes our screen space, fragment infomation
 struct Fragment {
 	float2 positionSS;
@@ -14,7 +16,7 @@ struct Fragment {
 Fragment GetFragment(float4 positionSS) {
 	Fragment f;
 	f.positionSS = positionSS.xy;
-	f.screenUV = f.positionSS / _ScreenParams.xy;
+	f.screenUV = f.positionSS * _CameraBufferSize.xy;
 	f.depth = IsOrthographicCamera() ? 
 		OrthographicDepthBufferToLinear(positionSS.z) : positionSS.w;
 	f.bufferDepth = SAMPLE_DEPTH_TEXTURE_LOD(_CameraDepthTexture,sampler_point_clamp,f.screenUV,0);

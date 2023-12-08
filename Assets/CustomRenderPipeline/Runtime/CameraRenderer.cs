@@ -26,6 +26,7 @@ public partial class CameraRenderer
 	static int sourceTextureId = Shader.PropertyToID("_SourceTexture");
 	static int srcBlendId = Shader.PropertyToID("_CameraSrcBlend");
 	static int dstBlendId = Shader.PropertyToID("_CameraDstBlend");
+	static int bufferSizeId = Shader.PropertyToID("_CameraBufferSize"); //We want to tell the shader the correct buffersizes
 	ScriptableRenderContext context;
 
 	Camera camera;
@@ -49,6 +50,8 @@ public partial class CameraRenderer
 	Material material;
 
 	Texture2D missingTexture;
+
+	Vector2Int bufferSize; //Size of the render buffer of the camera
 
 	static bool copyTextureSupported = SystemInfo.copyTextureSupport > CopyTextureSupport.None; //Copy Texture not supported in WebGL 2.0
 
@@ -109,9 +112,22 @@ public partial class CameraRenderer
 		{
 			return;
 		}
+        //Apply render scale
+        if (useScaledRendering)
+        {
+			bufferSize.x = (int)(camera.pixelWidth * renderScale);
+			bufferSize.y = (int)(camera.pixelHeight * renderScale);
+		}
+		else
+		{
+			bufferSize.x = camera.pixelWidth;
+			bufferSize.y = camera.pixelHeight;
+		}
 		useHDR = bufferSettings.allowHDR && camera.allowHDR;
 		//Want to setup shadows first before drawing the actual objects
 		buffer.BeginSample(SampleName);
+		buffer.SetGlobalVector(bufferSizeId, new Vector4(1f / bufferSize.x, 1f / bufferSize.y
+			, bufferSize.x, bufferSize.y)); //We use the same format as _ScreenParams that unity sends
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject,
 			cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
@@ -186,13 +202,13 @@ public partial class CameraRenderer
 			//Store the current frame in the frame buffer for reading
 			//First we sample the color 
 			buffer.GetTemporaryRT(
-				colorAttachmentId, camera.pixelWidth, camera.pixelHeight,
+				colorAttachmentId, bufferSize.x, bufferSize.y,
 				0, FilterMode.Bilinear, useHDR ?
 					RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default
 			);
 			//Then sample depth
 			buffer.GetTemporaryRT(
-				depthAttachmentId, camera.pixelWidth, camera.pixelHeight,
+				depthAttachmentId, bufferSize.x, bufferSize.y,
 				32, FilterMode.Point, RenderTextureFormat.Depth
 			);
 			buffer.SetRenderTarget(
@@ -319,7 +335,7 @@ public partial class CameraRenderer
     {
         if (useColorTexture)
         {
-			buffer.GetTemporaryRT(colorTextureId, camera.pixelWidth, camera.pixelHeight, 0
+			buffer.GetTemporaryRT(colorTextureId, bufferSize.x, bufferSize.y, 0
 				, FilterMode.Bilinear,
 				useHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default);
             if (copyTextureSupported)
@@ -333,7 +349,7 @@ public partial class CameraRenderer
         }
         if (useDepthTexture)
         {
-			buffer.GetTemporaryRT(depthTextureId, camera.pixelWidth, camera.pixelHeight,
+			buffer.GetTemporaryRT(depthTextureId, bufferSize.x, bufferSize.y,
 				32, FilterMode.Point, RenderTextureFormat.Depth);
             if (copyTextureSupported)
             {
