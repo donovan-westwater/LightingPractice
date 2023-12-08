@@ -94,6 +94,7 @@ partial class CameraRenderer
 		{
 			//UI wont show up ini scene view without this!
 			ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+			useScaledRendering = false;
 		}
 	}
 	//Make sure each camera gets their own scope

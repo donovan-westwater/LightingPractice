@@ -38,6 +38,8 @@ public partial class CameraRenderer
 
 	bool useHDR;
 
+	bool useScaledRendering;
+
 	bool useDepthTexture;
 
 	bool useColorTexture;
@@ -98,6 +100,9 @@ public partial class CameraRenderer
         {
 			postFXSettings = cameraSettings.postFXSettings;
         }
+		//Check to see if we want to use render scale
+		float renderScale = bufferSettings.renderScale;
+		useScaledRendering = Mathf.Abs(renderScale-1f) > 0.01f; //Slight variations won't do anything
 		PrepareBuffer();
 		PrepareForSceneWindow();
 		if (!Cull(shadowSettings.maxDistance)) //Cull objects if they return false in cull function
@@ -169,7 +174,8 @@ public partial class CameraRenderer
 		//Clear flags for cam layers and combining results for multiple cameras
 		CameraClearFlags flags = camera.clearFlags;
 		//Make sure we can use the depth buffer even if the postfx stack is off
-		useIntermediateBuffer = useColorTexture || useDepthTexture || postFXStack.IsActive;
+		useIntermediateBuffer = useColorTexture || useDepthTexture || postFXStack.IsActive
+			|| useScaledRendering;
         if (useIntermediateBuffer)
         {
 			//Clear the  frame buffer
