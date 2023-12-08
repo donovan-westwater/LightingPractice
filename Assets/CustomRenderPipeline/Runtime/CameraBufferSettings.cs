@@ -13,5 +13,7 @@ public struct CameraBufferSettings
 	public bool copyColor, copyColorReflections;
 	[Range(CameraRenderer.renderScaleMin, CameraRenderer.renderScaleMax)]
 	public float renderScale; //Controls the size of image buffers. Going above causes too many pixels to get skipped when downsampling
-	public bool bicubicRescaling; //Upsamples to reduce aliasing
+	public enum BicubicRescalingMode { Off, UpOnly, UpAndDown }
+
+	public BicubicRescalingMode bicubicRescaling; //Upsamples to reduce aliasing
 }
