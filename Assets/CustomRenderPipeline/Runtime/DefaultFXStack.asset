@@ -19,14 +19,15 @@ MonoBehaviour:
     mode: 0
   bloom:
     maxIterations: 0
-    downscaleLimit: 0
+    downscaleLimit: 1
     bicubicUpsampling: 0
-    threshold: 0
-    thresholdKnee: 0
-    intensity: 0
+    threshold: 0.5
+    thresholdKnee: 0.5
+    intensity: 0.2
     fadeFireflies: 0
     mode: 0
     scatter: 0.7
+    ignoreRenderScale: 1
   colorAdjustments:
     postExposure: 0
     contrast: 0

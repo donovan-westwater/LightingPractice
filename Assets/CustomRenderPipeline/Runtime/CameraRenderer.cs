@@ -56,6 +56,8 @@ public partial class CameraRenderer
 	static bool copyTextureSupported = SystemInfo.copyTextureSupport > CopyTextureSupport.None; //Copy Texture not supported in WebGL 2.0
 
 	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
+
+	public const float renderScaleMin = 0.1f, renderScaleMax = 2f;
 	public CameraRenderer(Shader shader)
 	{
 		material = CoreUtils.CreateEngineMaterial(shader);
@@ -104,7 +106,7 @@ public partial class CameraRenderer
 			postFXSettings = cameraSettings.postFXSettings;
         }
 		//Check to see if we want to use render scale
-		float renderScale = bufferSettings.renderScale;
+		float renderScale = cameraSettings.GetRenderScale(bufferSettings.renderScale);
 		useScaledRendering = Mathf.Abs(renderScale-1f) > 0.01f; //Slight variations won't do anything
 		PrepareBuffer();
 		PrepareForSceneWindow();
@@ -115,6 +117,7 @@ public partial class CameraRenderer
         //Apply render scale
         if (useScaledRendering)
         {
+			renderScale = Mathf.Clamp(renderScale,renderScaleMin, renderScaleMax);
 			bufferSize.x = (int)(camera.pixelWidth * renderScale);
 			bufferSize.y = (int)(camera.pixelHeight * renderScale);
 		}

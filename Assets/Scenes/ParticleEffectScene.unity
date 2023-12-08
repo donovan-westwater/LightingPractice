@@ -5650,6 +5650,8 @@ MonoBehaviour:
     maskLights: 1
     copyDepth: 1
     copyColor: 1
+    renderScaleMode: 0
+    renderScale: 1
 --- !u!1 &1422866508
 GameObject:
   m_ObjectHideFlags: 0

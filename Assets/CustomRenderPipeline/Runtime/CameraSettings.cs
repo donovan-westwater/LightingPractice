@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 
 //These are settings that are meant to specify settings for inidividual cmaeras
@@ -30,4 +31,15 @@ public class CameraSettings
 	public bool maskLights = false; //Disables the light mask
 	public bool copyDepth = true; //Uses the depth pass for that specfic camera
 	public bool copyColor = true;
+	public enum RenderScaleMode { Inherit,Multiply,Override};
+	public RenderScaleMode renderScaleMode = RenderScaleMode.Inherit;
+	[Range(CameraRenderer.renderScaleMin, CameraRenderer.renderScaleMax)]
+	public float renderScale = 1f;
+	public float GetRenderScale(float scale)
+	{
+		return
+			renderScaleMode == RenderScaleMode.Inherit ? scale :
+			renderScaleMode == RenderScaleMode.Override ? renderScale :
+			scale * renderScale;
+	}
 }
