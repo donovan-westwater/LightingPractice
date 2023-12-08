@@ -15,7 +15,8 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 	[SerializeField]
 	CameraBufferSettings cameraBuffer = new CameraBufferSettings
 	{
-		allowHDR = true
+		allowHDR = true,
+		renderScale = 1f
 	};
 	//Look up table setup to precalculate convertions between unaltered to altered colors
 	//This saves a lot of calculation time for color grading

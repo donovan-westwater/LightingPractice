@@ -11,4 +11,6 @@ public struct CameraBufferSettings
 	public bool copyDepth, copyDepthReflections;
 
 	public bool copyColor, copyColorReflections;
+	[Range(0.1f, 2f)]
+	public float renderScale; //Controls the size of image buffers. Going above causes too many pixels to get skipped when downsampling
 }
