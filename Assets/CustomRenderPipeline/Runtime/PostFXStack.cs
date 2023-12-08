@@ -48,7 +48,7 @@ public partial class PostFXStack
 	int smhHighlightsId = Shader.PropertyToID("_SMHHighlights");
 	int smhRangeId = Shader.PropertyToID("_SMHRange");
 	ScriptableRenderContext context;
-
+	Vector2Int bufferSize;
 	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
 
 	Camera camera;
@@ -86,13 +86,14 @@ public partial class PostFXStack
         }
     }
 	public void Setup(
-		ScriptableRenderContext context, Camera camera, PostFXSettings settings, bool useHDR
+		ScriptableRenderContext context, Camera camera, Vector2Int bufferSize, PostFXSettings settings, bool useHDR
 	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode)
 	{
 		this.finalBlendMode = finalBlendMode;
 		this.useHDR = useHDR;
 		this.context = context;
 		this.camera = camera;
+		this.bufferSize = bufferSize;
 		this.colorLUTResolution = colorLUTResolution;
 		//Only applies the Post Process effect for the assigned camera
 		this.settings = camera.cameraType <= CameraType.SceneView ? settings : null;
@@ -160,7 +161,17 @@ public partial class PostFXStack
     {
         //buffer.BeginSample("Bloom");
 		PostFXSettings.BloomSettings bloom = settings.Bloom;
-        int width = camera.pixelWidth / 2, height = camera.pixelHeight / 2;
+        int width , height;
+        if (bloom.ignoreRenderScale)
+        {
+			width = camera.pixelWidth / 2;
+			height = camera.pixelHeight / 2;
+		}
+		else
+		{
+			width = bufferSize.x / 2;
+			height = bufferSize.y / 2;
+		}
 		//Just draw the image unaltered.
 		if (bloom.maxIterations == 0 || bloom.intensity <= 0f ||
 			height < bloom.downscaleLimit * 2 || width < bloom.downscaleLimit * 2)
@@ -260,7 +271,7 @@ public partial class PostFXStack
 		buffer.SetGlobalFloat(bloomIntensityId, finalIntensity);
 		buffer.SetGlobalTexture(fxSource2Id, sourceId);
 		buffer.GetTemporaryRT(
-			bloomResultId, camera.pixelWidth, camera.pixelHeight, 0,
+			bloomResultId, bufferSize.x, bufferSize.y, 0,
 			FilterMode.Bilinear, format
 		);
 		Draw(fromId, bloomResultId, finalPass);

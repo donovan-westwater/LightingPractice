@@ -41,6 +41,8 @@ public class PostFXSettings : ScriptableObject {
 
 		[Range(0.05f, 0.95f)]
 		public float scatter; //intensity of light scattering
+
+		public bool ignoreRenderScale;
 	}
 	[System.Serializable]
 	public struct ToneMappingSettings

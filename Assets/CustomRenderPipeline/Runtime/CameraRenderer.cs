@@ -131,7 +131,7 @@ public partial class CameraRenderer
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject,
 			cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
-		postFXStack.Setup(context, camera, postFXSettings,useHDR, colorLUTResolution,
+		postFXStack.Setup(context, camera, bufferSize,postFXSettings,useHDR, colorLUTResolution,
 			cameraSettings.finalBlendMode);
 		buffer.EndSample(SampleName);
 		Setup();
