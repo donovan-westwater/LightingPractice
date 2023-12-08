@@ -48,6 +48,8 @@ public partial class PostFXStack
 	int smhHighlightsId = Shader.PropertyToID("_SMHHighlights");
 	int smhRangeId = Shader.PropertyToID("_SMHRange");
 	int finalResultId = Shader.PropertyToID("_FinalResult");
+	int copyBicubicId = Shader.PropertyToID("_CopyBicubic");
+	bool bicubicRescaling;
 	ScriptableRenderContext context;
 	Vector2Int bufferSize;
 	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
@@ -89,8 +91,9 @@ public partial class PostFXStack
     }
 	public void Setup(
 		ScriptableRenderContext context, Camera camera, Vector2Int bufferSize, PostFXSettings settings, bool useHDR
-	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode)
+	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode, bool bicubicRescaling)
 	{
+		this.bicubicRescaling = bicubicRescaling;
 		this.finalBlendMode = finalBlendMode;
 		this.useHDR = useHDR;
 		this.context = context;
@@ -372,6 +375,7 @@ public partial class PostFXStack
 				FilterMode.Bilinear, RenderTextureFormat.Default
 			);
 			Draw(sourceId, finalResultId, Pass.Final);
+			buffer.SetGlobalFloat(copyBicubicId, bicubicRescaling ? 1f : 0f);
 			DrawFinal(finalResultId, Pass.FinalRescale);
 			buffer.ReleaseTemporaryRT(finalResultId);
 		}

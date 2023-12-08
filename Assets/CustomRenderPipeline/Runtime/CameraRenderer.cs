@@ -135,7 +135,7 @@ public partial class CameraRenderer
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject,
 			cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
 		postFXStack.Setup(context, camera, bufferSize,postFXSettings,useHDR, colorLUTResolution,
-			cameraSettings.finalBlendMode);
+			cameraSettings.finalBlendMode,bufferSettings.bicubicRescaling);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject
