@@ -53,7 +53,7 @@ public partial class PostFXStack
 	ScriptableRenderContext context;
 	Vector2Int bufferSize;
 	static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
-
+	CameraBufferSettings.FXAA fxaa;
 	Camera camera;
 
 	PostFXSettings settings;
@@ -92,7 +92,7 @@ public partial class PostFXStack
 	public void Setup(
 		ScriptableRenderContext context, Camera camera, Vector2Int bufferSize, PostFXSettings settings, bool useHDR
 	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode,
-		CameraBufferSettings.BicubicRescalingMode bicubicRescaling)
+		CameraBufferSettings.BicubicRescalingMode bicubicRescaling, CameraBufferSettings.FXAA fxaa)
 	{
 		this.bicubicRescaling = bicubicRescaling;
 		this.finalBlendMode = finalBlendMode;
@@ -101,6 +101,7 @@ public partial class PostFXStack
 		this.camera = camera;
 		this.bufferSize = bufferSize;
 		this.colorLUTResolution = colorLUTResolution;
+		this.fxaa = fxaa;
 		//Only applies the Post Process effect for the assigned camera
 		this.settings = camera.cameraType <= CameraType.SceneView ? settings : null;
 		ApplySceneViewState();

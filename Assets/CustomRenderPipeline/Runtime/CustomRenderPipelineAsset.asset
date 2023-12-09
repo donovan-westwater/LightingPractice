@@ -39,5 +39,6 @@ MonoBehaviour:
     copyColor: 1
     copyColorReflections: 0
     renderScale: 1
+    bicubicRescaling: 0
   colorLUTResolution: 32
   cameraRendererShader: {fileID: 4800000, guid: 22ea6e3eac14ef84aa8432bddae09a2b, type: 3}

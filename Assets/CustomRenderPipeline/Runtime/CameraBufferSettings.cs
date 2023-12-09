@@ -1,11 +1,18 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
+[Serializable]
 public struct CameraBufferSettings
 {
-
+	//Stands for Fast Apporixmate Anti Anliasing
+	[Serializable]
+	public struct FXAA
+    {
+		public bool enabled;
+    }
+	public FXAA fxaa;
 	public bool allowHDR;//Allows a wider range of color intenisties
 
 	public bool copyDepth, copyDepthReflections;

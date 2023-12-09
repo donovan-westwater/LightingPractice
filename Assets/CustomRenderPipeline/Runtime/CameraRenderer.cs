@@ -134,8 +134,9 @@ public partial class CameraRenderer
 		ExecuteBuffer();
 		lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject,
 			cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
+		bufferSettings.fxaa.enabled &= cameraSettings.allowFXAA;
 		postFXStack.Setup(context, camera, bufferSize,postFXSettings,useHDR, colorLUTResolution,
-			cameraSettings.finalBlendMode,bufferSettings.bicubicRescaling);
+			cameraSettings.finalBlendMode,bufferSettings.bicubicRescaling,bufferSettings.fxaa);
 		buffer.EndSample(SampleName);
 		Setup();
 		DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject

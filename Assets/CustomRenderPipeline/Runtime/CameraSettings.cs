@@ -35,6 +35,7 @@ public class CameraSettings
 	public RenderScaleMode renderScaleMode = RenderScaleMode.Inherit;
 	[Range(CameraRenderer.renderScaleMin, CameraRenderer.renderScaleMax)]
 	public float renderScale = 1f;
+	public bool allowFXAA = false;
 	public float GetRenderScale(float scale)
 	{
 		return
