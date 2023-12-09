@@ -47,6 +47,7 @@ public partial class PostFXStack
 	int smhMidtonesId = Shader.PropertyToID("_SMHMidtones");
 	int smhHighlightsId = Shader.PropertyToID("_SMHHighlights");
 	int smhRangeId = Shader.PropertyToID("_SMHRange");
+	int colorGradingResultId = Shader.PropertyToID("_ColorGradingResult");
 	int finalResultId = Shader.PropertyToID("_FinalResult");
 	int copyBicubicId = Shader.PropertyToID("_CopyBicubic");
 	CameraBufferSettings.BicubicRescalingMode bicubicRescaling;
@@ -75,8 +76,9 @@ public partial class PostFXStack
 		ColorGradingReinhard,
 		ColorGradingNeutralCustom,
 		Copy,
-		Final,
-		FinalRescale
+		ApplyColorGrading,
+		FinalRescale,
+		FXAA
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
 
@@ -113,12 +115,12 @@ public partial class PostFXStack
 		//Pass results of the bloom to the tone mapper
 		if (DoBloom(sourceId))
 		{
-			DoColorGradingAndToneMapping(bloomResultId);
+			DoFinal(bloomResultId);
 			buffer.ReleaseTemporaryRT(bloomResultId);
 		}
 		else
 		{
-			DoColorGradingAndToneMapping(sourceId);
+			DoFinal(sourceId);
 		}
 		context.ExecuteCommandBuffer(buffer);
 		buffer.Clear();
@@ -332,7 +334,7 @@ public partial class PostFXStack
 			smh.shadowsStart, smh.shadowsEnd, smh.highlightsStart, smh.highLightsEnd
 		));
 	}
-	void DoColorGradingAndToneMapping(int sourceId)
+	void DoFinal(int sourceId)
     {
 		ConfigureColorAdjustments();
 		ConfigureWhiteBalance();
@@ -363,20 +365,46 @@ public partial class PostFXStack
 		buffer.SetGlobalVector(colorGradingLUTParametersId,
 			new Vector4(1f / lutWidth, 1f / lutHeight, lutHeight - 1f)
 		);
-		if(bufferSize.x == camera.pixelWidth)
+		//FXAA
+		//Reset blend modes for final blending (Rescale the image in LDR before switching to HDR)
+		buffer.SetGlobalFloat(finalSrcBlendId, 1f);
+		buffer.SetGlobalFloat(finalDstBlendId, 0f);
+		if (fxaa.enabled)
+		{
+			buffer.GetTemporaryRT(colorGradingResultId, bufferSize.x, bufferSize.y, 0
+				, FilterMode.Bilinear, RenderTextureFormat.Default);
+			//Copy the color grading result into the a temp rt for the FXAA to use
+			Draw(sourceId, colorGradingResultId, Pass.ApplyColorGrading);
+		}
+		if (bufferSize.x == camera.pixelWidth)
         {
-			DrawFinal(sourceId,Pass.Final);
+            if (fxaa.enabled)
+            {
+				//Preform the actual FXAA here!
+				DrawFinal(colorGradingResultId, Pass.FXAA);
+				buffer.ReleaseTemporaryRT(colorGradingResultId);
+            }
+            else { 
+				DrawFinal(sourceId,Pass.ApplyColorGrading);
+			}
 		}
         else
         {
 			//Rescale the image in LDR before switching to HDR
-			buffer.SetGlobalFloat(finalSrcBlendId, 1f);
-			buffer.SetGlobalFloat(finalDstBlendId, 0f);
+			//buffer.SetGlobalFloat(finalSrcBlendId, 1f);
+			//buffer.SetGlobalFloat(finalDstBlendId, 0f);
 			buffer.GetTemporaryRT(
 				finalResultId, bufferSize.x, bufferSize.y, 0,
 				FilterMode.Bilinear, RenderTextureFormat.Default
 			);
-			Draw(sourceId, finalResultId, Pass.Final);
+            if (fxaa.enabled)
+            {
+				Draw(colorGradingResultId, finalResultId, Pass.FXAA);
+				buffer.ReleaseTemporaryRT(colorGradingResultId);
+            }
+            else { 
+				Draw(sourceId, finalResultId, Pass.ApplyColorGrading);
+			}
 			bool bicubicSampling =
 				bicubicRescaling == CameraBufferSettings.BicubicRescalingMode.UpAndDown ||
 				bicubicRescaling == CameraBufferSettings.BicubicRescalingMode.UpOnly &&
