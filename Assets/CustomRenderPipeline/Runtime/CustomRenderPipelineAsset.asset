@@ -33,6 +33,8 @@ MonoBehaviour:
       filter: 2
   postFXSettings: {fileID: 11400000, guid: 0d9bd9fbe5674ff458010c49c63f2f87, type: 2}
   cameraBuffer:
+    fxaa:
+      enabled: 1
     allowHDR: 1
     copyDepth: 1
     copyDepthReflections: 0
