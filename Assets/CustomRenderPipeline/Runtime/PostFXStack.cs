@@ -8,7 +8,7 @@ public partial class PostFXStack
 {
 	//This class handles the Post FX settings, the fx stack buffer, and the caemra
 	const string bufferName = "Post FX";
-	bool useHDR;
+	bool useHDR, keepAlpha;
 	CameraSettings.FinalBlendMode finalBlendMode;
 	CommandBuffer buffer = new CommandBuffer
 	{
@@ -77,8 +77,10 @@ public partial class PostFXStack
 		ColorGradingNeutralCustom,
 		Copy,
 		ApplyColorGrading,
+		ApplyColorGradingWithLuma,
 		FinalRescale,
-		FXAA
+		FXAA,
+		FXAAWithLuma
     }
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
 
@@ -92,13 +94,15 @@ public partial class PostFXStack
         }
     }
 	public void Setup(
-		ScriptableRenderContext context, Camera camera, Vector2Int bufferSize, PostFXSettings settings, bool useHDR
+		ScriptableRenderContext context, Camera camera, Vector2Int bufferSize, PostFXSettings settings
+		,bool keepAlpha, bool useHDR
 	,int colorLUTResolution, CameraSettings.FinalBlendMode finalBlendMode,
 		CameraBufferSettings.BicubicRescalingMode bicubicRescaling, CameraBufferSettings.FXAA fxaa)
 	{
 		this.bicubicRescaling = bicubicRescaling;
 		this.finalBlendMode = finalBlendMode;
 		this.useHDR = useHDR;
+		this.keepAlpha = keepAlpha;
 		this.context = context;
 		this.camera = camera;
 		this.bufferSize = bufferSize;
@@ -374,14 +378,15 @@ public partial class PostFXStack
 			buffer.GetTemporaryRT(colorGradingResultId, bufferSize.x, bufferSize.y, 0
 				, FilterMode.Bilinear, RenderTextureFormat.Default);
 			//Copy the color grading result into the a temp rt for the FXAA to use
-			Draw(sourceId, colorGradingResultId, Pass.ApplyColorGrading);
+			Draw(sourceId, colorGradingResultId, keepAlpha ?
+				Pass.ApplyColorGrading : Pass.ApplyColorGradingWithLuma);
 		}
 		if (bufferSize.x == camera.pixelWidth)
         {
             if (fxaa.enabled)
             {
 				//Preform the actual FXAA here!
-				DrawFinal(colorGradingResultId, Pass.FXAA);
+				DrawFinal(colorGradingResultId, keepAlpha ? Pass.FXAA : Pass.FXAAWithLuma);
 				buffer.ReleaseTemporaryRT(colorGradingResultId);
             }
             else { 
@@ -399,7 +404,7 @@ public partial class PostFXStack
 			);
             if (fxaa.enabled)
             {
-				Draw(colorGradingResultId, finalResultId, Pass.FXAA);
+				Draw(colorGradingResultId, finalResultId, keepAlpha ? Pass.FXAA : Pass.FXAAWithLuma);
 				buffer.ReleaseTemporaryRT(colorGradingResultId);
             }
             else { 
