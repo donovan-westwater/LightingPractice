@@ -35,6 +35,8 @@ MonoBehaviour:
   cameraBuffer:
     fxaa:
       enabled: 1
+      fixedThreshold: 0.0833
+      relativeThreshold: 0.166
     allowHDR: 1
     copyDepth: 1
     copyDepthReflections: 0
