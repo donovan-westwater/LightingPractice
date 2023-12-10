@@ -16,7 +16,11 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 	CameraBufferSettings cameraBuffer = new CameraBufferSettings
 	{
 		allowHDR = true,
-		renderScale = 1f
+		renderScale = 1f,
+		fxaa = new CameraBufferSettings.FXAA
+		{
+			fixedThreshold = 0.0833f
+        }
 	};
 	//Look up table setup to precalculate convertions between unaltered to altered colors
 	//This saves a lot of calculation time for color grading

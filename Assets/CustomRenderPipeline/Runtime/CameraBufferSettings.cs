@@ -11,7 +11,9 @@ public struct CameraBufferSettings
 	public struct FXAA
     {
 		public bool enabled;
-    }
+		[Range(0.0312f, 0.0833f)] //Based on the original algorthmn description for what values to use
+		public float fixedThreshold;
+	}
 	public FXAA fxaa;
 	public bool allowHDR;//Allows a wider range of color intenisties
 

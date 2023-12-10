@@ -50,6 +50,8 @@ public partial class PostFXStack
 	int colorGradingResultId = Shader.PropertyToID("_ColorGradingResult");
 	int finalResultId = Shader.PropertyToID("_FinalResult");
 	int copyBicubicId = Shader.PropertyToID("_CopyBicubic");
+	//FXAA
+	int fxaaConfigId = Shader.PropertyToID("_FXAAConfig");
 	CameraBufferSettings.BicubicRescalingMode bicubicRescaling;
 	ScriptableRenderContext context;
 	Vector2Int bufferSize;
@@ -375,6 +377,8 @@ public partial class PostFXStack
 		buffer.SetGlobalFloat(finalDstBlendId, 0f);
 		if (fxaa.enabled)
 		{
+			//Preform the actual FXAA here!
+			buffer.SetGlobalVector(fxaaConfigId, new Vector4(fxaa.fixedThreshold, 0f));
 			buffer.GetTemporaryRT(colorGradingResultId, bufferSize.x, bufferSize.y, 0
 				, FilterMode.Bilinear, RenderTextureFormat.Default);
 			//Copy the color grading result into the a temp rt for the FXAA to use
@@ -385,7 +389,6 @@ public partial class PostFXStack
         {
             if (fxaa.enabled)
             {
-				//Preform the actual FXAA here!
 				DrawFinal(colorGradingResultId, keepAlpha ? Pass.FXAA : Pass.FXAAWithLuma);
 				buffer.ReleaseTemporaryRT(colorGradingResultId);
             }

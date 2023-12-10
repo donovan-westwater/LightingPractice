@@ -1,5 +1,7 @@
 #ifndef CUSTOM_FXAA_PASS_INCLUDED
 #define CUSTOM_FXAA_PASS_INCLUDED
+float4 _FXAAConfig;
+
 //Manages the convolution process for getting the Luma Neighborhood
 struct LumaNeighborhood {
 	float m, n, e, s, w;
@@ -18,6 +20,9 @@ float GetLuma(float2 uv, float uOffset = 0.0, float vOffset = 0.0) {
 	return GetSource(uv).g;
 #endif 
 }
+bool canSkipFXAA(LumaNeighborhood lum) {
+	return lum.range < _FXAAConfig.x;
+}
 //We want to get the luminance around the main pixel
 //We use this to get the contrast between the vertical and horizontal directions
 LumaNeighborhood GetLumaNeighborhood(float2 uv) {
@@ -35,6 +40,7 @@ LumaNeighborhood GetLumaNeighborhood(float2 uv) {
 }
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
+	if (canSkipFXAA(luma)) return 0.0;
 	return luma.range;
 }
 
