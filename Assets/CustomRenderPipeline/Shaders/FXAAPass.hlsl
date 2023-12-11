@@ -12,6 +12,7 @@ struct LumaNeighborhood {
 struct FXAAEdge {
 	bool isHorizontal;
 	float pixelStep;//size of the pixel to blend
+		float lumaGradient, otherLuma;
 };
 //We want to get the lumanice for a given pixel but also for its neighbors
 float GetLuma(float2 uv, float uOffset = 0.0, float vOffset = 0.0) {
@@ -63,6 +64,14 @@ FXAAEdge GetFXAAEdge(LumaNeighborhood luma) {
 	//We want to blend in the direction of the higher contrast
 	float gradientP = abs(lumaP - luma.m);
 	float gradientN = abs(lumaN - luma.m);
+	if(gradientP < gradientN){
+		edge.lumaGradient = gradientN;
+		edge.otherLuma = lumaN;
+	}
+	else {
+		edge.lumaGradient = gradientP;
+		edge.otherLuma = lumaP;
+	}
 	edge.pixelStep = gradientP < gradientN ? -edge.pixelStep : edge.pixelStep;
 	return edge;
 }
@@ -101,13 +110,18 @@ float GetSubpixelBlendFactor(LumaNeighborhood luma) {
 	filter = smoothstep(0, 1, filter);
 	return filter * filter * _FXAAConfig.z;
 }
+float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv) {
+	return edge.lumaGradient;
+}
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
-	if (canSkipFXAA(luma)) return GetSource(input.screenUV);
+if (canSkipFXAA(luma)) return 0.0;// return GetSource(input.screenUV);
 	
 	FXAAEdge edge = GetFXAAEdge(luma);
 	//We blend between the neighboring pixel and the middle pixel
 	float blendFactor = GetSubpixelBlendFactor(luma);
+	blendFactor = GetEdgeBlendFactor(luma, edge, input.screenUV);
+	return blendFactor;
 	float2 blendUV = input.screenUV;
 	if (edge.isHorizontal) {
 		blendUV.y += blendFactor * edge.pixelStep;
