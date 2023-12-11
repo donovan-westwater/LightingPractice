@@ -103,10 +103,20 @@ float GetSubpixelBlendFactor(LumaNeighborhood luma) {
 }
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
-	if (canSkipFXAA(luma)) return 0.0;
+	if (canSkipFXAA(luma)) return GetSource(input.screenUV);
 	
 	FXAAEdge edge = GetFXAAEdge(luma);
-	return edge.pixelStep < 0.0 ? float4(1.0, 0.0, 0.0, 0.0) : 1.0;
+	//We blend between the neighboring pixel and the middle pixel
+	float blendFactor = GetSubpixelBlendFactor(luma);
+	float2 blendUV = input.screenUV;
+	if (edge.isHorizontal) {
+		blendUV.y += blendFactor * edge.pixelStep;
+	}
+	else {
+		blendUV.x += blendFactor * edge.pixelStep;
+	}
+	return GetSource(blendUV);
+	//return edge.pixelStep < 0.0 ? float4(1.0, 0.0, 0.0, 0.0) : 1.0;
 	//return GetSubpixelBlendFactor(luma);
 }
 
