@@ -65,6 +65,7 @@ FXAAEdge GetFXAAEdge(LumaNeighborhood luma) {
 	float gradientP = abs(lumaP - luma.m);
 	float gradientN = abs(lumaN - luma.m);
 	if(gradientP < gradientN){
+		edge.pixelStep = -edge.pixelStep;
 		edge.lumaGradient = gradientN;
 		edge.otherLuma = lumaN;
 	}
@@ -72,7 +73,7 @@ FXAAEdge GetFXAAEdge(LumaNeighborhood luma) {
 		edge.lumaGradient = gradientP;
 		edge.otherLuma = lumaP;
 	}
-	edge.pixelStep = gradientP < gradientN ? -edge.pixelStep : edge.pixelStep;
+	//edge.pixelStep = gradientP < gradientN ? -edge.pixelStep : edge.pixelStep;
 	return edge;
 }
 //We want to get the luminance around the main pixel
@@ -169,23 +170,24 @@ float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv) {
 		distanceToNearestEnd = distanceToEndN;
 		deltaSign = lumaDeltaN >= 0;
 	}
-	//return distanceToNearestEnd;
+	//return 10.0*distanceToNearestEnd;
 	if (deltaSign == (luma.m - edgeLuma >= 0)) {
 		return 0.0;
 	}
 	else {
-		return 10.0 * distanceToNearestEnd;
+		return 0.5 - distanceToNearestEnd / (distanceToEndP + distanceToEndN);
 	}
 }
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
-if (canSkipFXAA(luma)) return 0.0;// return GetSource(input.screenUV);
+if (canSkipFXAA(luma)) return GetSource(input.screenUV);
 	
 	FXAAEdge edge = GetFXAAEdge(luma);
 	//We blend between the neighboring pixel and the middle pixel
-	float blendFactor = GetSubpixelBlendFactor(luma);
-	blendFactor = GetEdgeBlendFactor(luma, edge, input.screenUV);
-	return blendFactor;
+	float blendFactor = max(GetSubpixelBlendFactor(luma)
+	,GetEdgeBlendFactor(luma, edge, input.screenUV));
+	//blendFactor = GetSubpixelBlendFactor(luma);
+	//return blendFactor;
 	float2 blendUV = input.screenUV;
 	if (edge.isHorizontal) {
 		blendUV.y += blendFactor * edge.pixelStep;
