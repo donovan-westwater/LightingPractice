@@ -52,6 +52,9 @@ public partial class PostFXStack
 	int copyBicubicId = Shader.PropertyToID("_CopyBicubic");
 	//FXAA
 	int fxaaConfigId = Shader.PropertyToID("_FXAAConfig");
+	const string
+		fxaaQualityLowKeyword = "FXAA_QUALITY_LOW",
+		fxaaQualityMediumKeyword = "FXAA_QUALITY_MEDIUM";
 	CameraBufferSettings.BicubicRescalingMode bicubicRescaling;
 	ScriptableRenderContext context;
 	Vector2Int bufferSize;
@@ -340,6 +343,27 @@ public partial class PostFXStack
 			smh.shadowsStart, smh.shadowsEnd, smh.highlightsStart, smh.highLightsEnd
 		));
 	}
+	void ConfigureFXAA()
+	{
+		if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Low)
+		{
+			buffer.EnableShaderKeyword(fxaaQualityLowKeyword);
+			buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
+		}
+		else if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Medium)
+		{
+			buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
+			buffer.EnableShaderKeyword(fxaaQualityMediumKeyword);
+		}
+		else
+		{
+			buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
+			buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
+		}
+		buffer.SetGlobalVector(fxaaConfigId, new Vector4(
+			fxaa.fixedThreshold, fxaa.relativeThreshold, fxaa.subpixelBlending
+		));
+	}
 	void DoFinal(int sourceId)
     {
 		ConfigureColorAdjustments();
@@ -378,8 +402,7 @@ public partial class PostFXStack
 		if (fxaa.enabled)
 		{
 			//Preform the actual FXAA here!
-			buffer.SetGlobalVector(fxaaConfigId, new Vector4(fxaa.fixedThreshold,fxaa.relativeThreshold
-				, fxaa.subpixelBlending,0f));
+			ConfigureFXAA();
 			buffer.GetTemporaryRT(colorGradingResultId, bufferSize.x, bufferSize.y, 0
 				, FilterMode.Bilinear, RenderTextureFormat.Default);
 			//Copy the color grading result into the a temp rt for the FXAA to use

@@ -17,6 +17,9 @@ public struct CameraBufferSettings
 		public float relativeThreshold;
 		[Range(0, 1)]
 		public float subpixelBlending;
+		public enum Quality { Low, Medium, High }
+
+		public Quality quality;
 	}
 	public FXAA fxaa;
 	public bool allowHDR;//Allows a wider range of color intenisties
