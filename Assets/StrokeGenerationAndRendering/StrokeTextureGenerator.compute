@@ -1,0 +1,16 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2DArray<float4> _Results;
+int resolution;
+int previousResolution;
+SamplerState sampler_LinearClamp;
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    _Results[uint3(id.x,id.y,0)] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    
+}
