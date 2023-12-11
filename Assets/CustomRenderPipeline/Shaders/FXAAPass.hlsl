@@ -130,50 +130,52 @@ float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv) {
 	//get the gradient between offset and org edge and check if it meets a threshold
 	//This tells us if we are in the positive direction
 	float2 uvP = edgeUV + uvStep;
-	float lumaGradientP = abs(GetLuma(uvP) - edgeLuma);
-	bool atEndP = lumaGradientP >= gradientThreshold;
+	float lumaDeltaP = GetLuma(uvP) - edgeLuma;
+	bool atEndP = abs(lumaDeltaP) >= gradientThreshold;
 	//repeat until we break or walk the whole edge
 	int i;
 	for (i = 0; i < 99 && !atEndP; i++) {
 		uvP += uvStep;
-		lumaGradientP = abs(GetLuma(uvP) - edgeLuma);
-		atEndP = lumaGradientP >= gradientThreshold;
-	}
-	//Get the distnace to the end from the postive direction
-	float distanceToEndP;
-	if (edge.isHorizontal) {
-		distanceToEndP = uvP.x - uv.x;
-	}
-	else {
-		distanceToEndP = uvP.y - uv.y;
+		lumaDeltaP = GetLuma(uvP) - edgeLuma;
+		atEndP = abs(lumaDeltaP) >= gradientThreshold;
 	}
 	//Do the same in the negative direction
 	float2 uvN = edgeUV - uvStep;
-	float lumaGradientN = abs(GetLuma(uvN) - edgeLuma);
-	bool atEndN = lumaGradientN >= gradientThreshold;
-	for (i = 0; i < 99; i++) {
-		uvN = edgeUV + uvStep;
-		lumaGradientN = abs(GetLuma(uvN) - edgeLuma);
-		atEndN = lumaGradientN >= gradientThreshold;
+	float lumaDeltaN = GetLuma(uvN) - edgeLuma;
+	bool atEndN = abs(lumaDeltaN) >= gradientThreshold;
+	for (i = 0; i < 99 && !atEndN; i++) {
+		uvN -= uvStep;
+		lumaDeltaN = GetLuma(uvN) - edgeLuma;
+		atEndN = abs(lumaDeltaN) >= gradientThreshold;
 	}
-	//Get the distnace to the end from the negative direction
-	float distanceToEndN;
+	//Get the distnace to the end from the negative and postive directions
+	float distanceToEndP, distanceToEndN;
 	if (edge.isHorizontal) {
-		distanceToEndN = uvN.x - uv.x;
+		distanceToEndP = uvP.x - uv.x;
+		distanceToEndN = uv.x - uvN.x;
 	}
 	else {
-		distanceToEndN = uvN.y - uv.y;
+		distanceToEndP = uvP.y - uv.y;
+		distanceToEndN = uv.y - uvN.y;
 	}
 	//Get the final distance
 	float distanceToNearestEnd;
+	bool deltaSign;
 	if (distanceToEndP <= distanceToEndN) {
 		distanceToNearestEnd = distanceToEndP;
+		deltaSign = lumaDeltaP >= 0;
 	}
 	else {
 		distanceToNearestEnd = distanceToEndN;
+		deltaSign = lumaDeltaN >= 0;
 	}
-
-	return 10.0 * distanceToNearestEnd;
+	//return distanceToNearestEnd;
+	if (deltaSign == (luma.m - edgeLuma >= 0)) {
+		return 0.0;
+	}
+	else {
+		return 10.0 * distanceToNearestEnd;
+	}
 }
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
