@@ -111,7 +111,69 @@ float GetSubpixelBlendFactor(LumaNeighborhood luma) {
 	return filter * filter * _FXAAConfig.z;
 }
 float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv) {
-	return edge.lumaGradient;
+	//We want to trace along the edge to get a better idea of what to blend
+	//Sample the pixel between the current and next pixel
+	float2 edgeUV = uv;
+	float2 uvStep = 0.0;
+	if (edge.isHorizontal) {
+		edgeUV.y += 0.5 * edge.pixelStep;
+		uvStep.x = GetSourceTexelSize().x;
+	}
+	else {
+		edgeUV.x += 0.5 * edge.pixelStep;
+		uvStep.y = GetSourceTexelSize().y;
+	}
+	//Deteremine contrast between orginal sample and new samples
+	//If the contrast is too great we are off the edge
+	float edgeLuma = 0.5 * (luma.m + edge.otherLuma);
+	float gradientThreshold = 0.25 * edge.lumaGradient;
+	//get the gradient between offset and org edge and check if it meets a threshold
+	//This tells us if we are in the positive direction
+	float2 uvP = edgeUV + uvStep;
+	float lumaGradientP = abs(GetLuma(uvP) - edgeLuma);
+	bool atEndP = lumaGradientP >= gradientThreshold;
+	//repeat until we break or walk the whole edge
+	int i;
+	for (i = 0; i < 99 && !atEndP; i++) {
+		uvP += uvStep;
+		lumaGradientP = abs(GetLuma(uvP) - edgeLuma);
+		atEndP = lumaGradientP >= gradientThreshold;
+	}
+	//Get the distnace to the end from the postive direction
+	float distanceToEndP;
+	if (edge.isHorizontal) {
+		distanceToEndP = uvP.x - uv.x;
+	}
+	else {
+		distanceToEndP = uvP.y - uv.y;
+	}
+	//Do the same in the negative direction
+	float2 uvN = edgeUV - uvStep;
+	float lumaGradientN = abs(GetLuma(uvN) - edgeLuma);
+	bool atEndN = lumaGradientN >= gradientThreshold;
+	for (i = 0; i < 99; i++) {
+		uvN = edgeUV + uvStep;
+		lumaGradientN = abs(GetLuma(uvN) - edgeLuma);
+		atEndN = lumaGradientN >= gradientThreshold;
+	}
+	//Get the distnace to the end from the negative direction
+	float distanceToEndN;
+	if (edge.isHorizontal) {
+		distanceToEndN = uvN.x - uv.x;
+	}
+	else {
+		distanceToEndN = uvN.y - uv.y;
+	}
+	//Get the final distance
+	float distanceToNearestEnd;
+	if (distanceToEndP <= distanceToEndN) {
+		distanceToNearestEnd = distanceToEndP;
+	}
+	else {
+		distanceToNearestEnd = distanceToEndN;
+	}
+
+	return 10.0 * distanceToNearestEnd;
 }
 float4 FXAAPassFragment(Varyings input) : SV_TARGET{
 	LumaNeighborhood luma = GetLumaNeighborhood(input.screenUV);
