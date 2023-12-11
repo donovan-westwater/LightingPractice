@@ -135,19 +135,21 @@ float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv) {
 	bool atEndP = abs(lumaDeltaP) >= gradientThreshold;
 	//repeat until we break or walk the whole edge
 	int i;
-	for (i = 0; i < 99 && !atEndP; i++) {
+	for (i = 0; i < 3 && !atEndP; i++) {
 		uvP += uvStep;
 		lumaDeltaP = GetLuma(uvP) - edgeLuma;
 		atEndP = abs(lumaDeltaP) >= gradientThreshold;
+		if (!atEndP) uvP += uvStep;
 	}
 	//Do the same in the negative direction
 	float2 uvN = edgeUV - uvStep;
 	float lumaDeltaN = GetLuma(uvN) - edgeLuma;
 	bool atEndN = abs(lumaDeltaN) >= gradientThreshold;
-	for (i = 0; i < 99 && !atEndN; i++) {
+	for (i = 0; i < 3 && !atEndN; i++) {
 		uvN -= uvStep;
 		lumaDeltaN = GetLuma(uvN) - edgeLuma;
 		atEndN = abs(lumaDeltaN) >= gradientThreshold;
+		if (!atEndN) uvN -= uvStep;
 	}
 	//Get the distnace to the end from the negative and postive directions
 	float distanceToEndP, distanceToEndN;
