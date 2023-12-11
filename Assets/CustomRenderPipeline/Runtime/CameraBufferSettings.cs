@@ -15,6 +15,8 @@ public struct CameraBufferSettings
 		public float fixedThreshold;
 		[Range(0.063f, 0.333f)] //Based on the original algorthmn description for what values to use
 		public float relativeThreshold;
+		[Range(0, 1)]
+		public float subpixelBlending;
 	}
 	public FXAA fxaa;
 	public bool allowHDR;//Allows a wider range of color intenisties

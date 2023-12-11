@@ -20,7 +20,8 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 		fxaa = new CameraBufferSettings.FXAA
 		{
 			fixedThreshold = 0.0833f,
-			relativeThreshold = 0.166f
+			relativeThreshold = 0.166f,
+			subpixelBlending = .75f
         }
 	};
 	//Look up table setup to precalculate convertions between unaltered to altered colors
