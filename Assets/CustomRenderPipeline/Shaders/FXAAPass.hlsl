@@ -72,8 +72,8 @@ FXAAEdge GetFXAAEdge(LumaNeighborhood luma) {
 	}
 	else {
 		edge.pixelStep = GetSourceTexelSize().x;
-		lumaP = luma.w;
-		lumaN = luma.e;
+		lumaP = luma.e;
+		lumaN = luma.w;
 	}
 	//We want to figure out which way to blend the pixel
 	//We want to blend in the direction of the higher contrast
