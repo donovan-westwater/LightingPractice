@@ -11,6 +11,7 @@ SamplerState sampler_LinearClamp;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
-    _Results[uint3(id.x,id.y,0)] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    _Results[uint3(id.x,id.y,id.z)] = float4(id.z &id.x&id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    if (id.z > 0)_Results[uint3(id.x, id.y, id.z)] = float4(1, 0, 1, 1);
     
 }

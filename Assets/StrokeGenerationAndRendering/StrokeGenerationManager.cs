@@ -24,15 +24,24 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeGenShader.SetTexture(0, Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
         strokeGenShader.SetInt(Shader.PropertyToID("previousResolution"), highestRes/2);
-        strokeGenShader.Dispatch(0, 32, 32, 1);
+        strokeGenShader.Dispatch(0, 32, 32, 2);
         //Retrive map from GPU so we don't have to do this again
         var rtTmp = RenderTexture.active;
-        RenderTexture.active = outArray[0];
+        Graphics.SetRenderTarget(outArray[0], 0, CubemapFace.Unknown, 0);
+        //RenderTexture.active = outArray[0];
         Texture2D test = new Texture2D(highestRes, highestRes);
         test.ReadPixels(new Rect(0, 0, outArray[0].width, outArray[0].height), 0, 0);
         test.Apply();
         RenderTexture.active = rtTmp;
         TAM.SetPixels(test.GetPixels(0, 0, test.width, test.height),0,0);
+        //Test for getting the 2nd one
+        rtTmp = RenderTexture.active;
+        Graphics.SetRenderTarget(outArray[0], 0,CubemapFace.Unknown,1);
+        test = new Texture2D(highestRes, highestRes);
+        test.ReadPixels(new Rect(0, 0, outArray[0].width, outArray[0].height), 0, 0);
+        test.Apply();
+        RenderTexture.active = rtTmp;
+        TAM.SetPixels(test.GetPixels(0, 0, test.width, test.height), 1, 0);
         AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
         outArray[0].Release();
     }
