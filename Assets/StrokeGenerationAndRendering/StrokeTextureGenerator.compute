@@ -3,7 +3,7 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2DArray<float4> _Results;
+RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 int previousResolution;
 SamplerState sampler_LinearClamp;
@@ -11,7 +11,8 @@ SamplerState sampler_LinearClamp;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
-    _Results[uint3(id.x,id.y,id.z)] = float4(id.z &id.x&id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
-    if (id.z > 0)_Results[uint3(id.x, id.y, id.z)] = float4(1, 0, 1, 1);
+    _Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    _Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
+    //if (id.z > 0)_Results[uint3(id.x, id.y, id.z)] = float4(0, 0, 0, 0);
     
 }

@@ -343,7 +343,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 868120e6420368041b2ddb79fbebff0c, type: 2}
+  - {fileID: 2100000, guid: 92a998f6065fb8e43b0367dcfeaa02a1, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -418,6 +418,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   strokeGenShader: {fileID: 7200000, guid: 4439f190f6afcc142b3c4ab18777d360, type: 3}
   highestRes: 256
+  testMat: {fileID: 2100000, guid: 92a998f6065fb8e43b0367dcfeaa02a1, type: 2}
 --- !u!4 &1851101522
 Transform:
   m_ObjectHideFlags: 0
