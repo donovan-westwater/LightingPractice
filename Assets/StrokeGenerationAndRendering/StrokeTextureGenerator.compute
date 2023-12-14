@@ -11,9 +11,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
     for (int j = 7; j >= 0; j--) {
-        //int mipRes = resolution >> j;
-        //if (id.x > mipRes || id.y > mipRes) break;
-        _Results[uint3(id.x, id.y, j)] = float4(j/7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+        int mipRes = resolution >> j;
+        if (id.x > mipRes || id.y > mipRes) _Results[uint3(id.x, id.y, j)] = 0.0;
+        else _Results[uint3(id.x, id.y, j)] = float4(j/7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
     }
     //_Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
     //_Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
