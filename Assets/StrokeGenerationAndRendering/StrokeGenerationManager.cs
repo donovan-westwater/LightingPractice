@@ -9,6 +9,7 @@ using UnityEngine.Rendering;
 public class StrokeGenerationManager : MonoBehaviour
 {
     public ComputeShader strokeGenShader;
+    public ComputeShader resetShader;
     public int highestRes = 256;
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
@@ -24,11 +25,13 @@ public class StrokeGenerationManager : MonoBehaviour
         outArray[0].volumeDepth = 8;
         outArray[0].enableRandomWrite = true;
         outArray[0].Create();
+        resetShader.SetTexture(resetShader.FindKernel("CSReset"), Shader.PropertyToID("ResetResults"), outArray[0]);
+        resetShader.Dispatch(resetShader.FindKernel("CSReset"), 32, 32, 1);
         //We dispatch to the shader in sequental layers, starting from the bottom mips to the top
         //We wait for each to finish before moving on
-        strokeGenShader.SetTexture(0, Shader.PropertyToID("_Results"),outArray[0]);
+        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
-        strokeGenShader.Dispatch(0, 32, 32, 1);
+        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //Retrive map from GPU so we don't have to do this again
         var rtTmp = RenderTexture.active;
         Graphics.SetRenderTarget(outArray[0], 0, CubemapFace.Unknown, 0);

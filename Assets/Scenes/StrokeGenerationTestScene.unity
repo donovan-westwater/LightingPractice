@@ -417,6 +417,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   strokeGenShader: {fileID: 7200000, guid: 4439f190f6afcc142b3c4ab18777d360, type: 3}
+  resetShader: {fileID: 7200000, guid: 4db56f72c9a085449b0c11589b89743e, type: 3}
   highestRes: 256
   testMat: {fileID: 2100000, guid: 92a998f6065fb8e43b0367dcfeaa02a1, type: 2}
 --- !u!4 &1851101522
