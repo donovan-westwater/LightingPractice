@@ -31,7 +31,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //We wait for each to finish before moving on
         strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
-        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
+        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 2, 2, 1);
         //Retrive map from GPU so we don't have to do this again
         var rtTmp = RenderTexture.active;
         Graphics.SetRenderTarget(outArray[0], 0, CubemapFace.Unknown, 0);

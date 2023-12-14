@@ -7,9 +7,9 @@ RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 SamplerState sampler_LinearClamp;
 
-float goalVal = 0.875;
-float mipGoals[8] = {1, 1, 1, 1, 1, 1, 1, 1};
-int mipPixels[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+static float goalVal = 0.875;
+static float mipGoals[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+static int mipPixels[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 struct Stroke {
     float2 normPos;
     float normLength;
@@ -43,9 +43,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
             for (int sc = 0; sc < pixelLength; sc++) {
-                //DEBUG: Clear starting pixel so everything is set to white [TURN INTO SEPERATE COMPUTE SHADER!]
-                _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(1.0, 1.0, 1.0, 1.0);
-                //DEBUG END
                 if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
                 _Results[uint3(pixelPos.x+sc, pixelPos.y, j)] = float4(0.0,0.0,1.0,1.0);
                 mipPixels[j]++;
