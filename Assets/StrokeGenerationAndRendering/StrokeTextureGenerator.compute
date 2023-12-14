@@ -7,6 +7,9 @@ RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 SamplerState sampler_LinearClamp;
 
+float goalVal = 0.875;
+float mipGoals[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+int mipPixels[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 struct Stroke {
     float2 normPos;
     float normLength;
@@ -21,7 +24,7 @@ float nrand(float2 uv)
 Stroke StrokeRandomizer(float2 uv) {
     float x = nrand(uv);
     float y = nrand(uv+float2(.1,.1));
-    float l = nrand(uv + float2(.1, -.1));
+    float l = 0.3+0.7*nrand(uv + float2(.1, -.1)); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
     s.normLength = l;
@@ -34,13 +37,20 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;
-        if (id.x > mipRes || id.y > mipRes) _Results[uint3(id.x, id.y, j)] = 0.0;
+        if ((id.x > mipRes || id.y > mipRes)) _Results[uint3(id.x, id.y, j)] = 1.0;
         else {
             //_Results[uint3(id.x, id.y, j)] = float4(j / 7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
             uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
             for (int sc = 0; sc < pixelLength; sc++) {
-                _Results[uint3(id.x+sc, id.y, j)] = float4(0.0,0.0,1.0,1.0);
+                //DEBUG: Clear starting pixel so everything is set to white [TURN INTO SEPERATE COMPUTE SHADER!]
+                _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(1.0, 1.0, 1.0, 1.0);
+                //DEBUG END
+                if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
+                _Results[uint3(pixelPos.x+sc, pixelPos.y, j)] = float4(0.0,0.0,1.0,1.0);
+                mipPixels[j]++;
+                float totalPixels = (float)(mipRes * mipRes);
+                mipGoals[j] = (totalPixels - (float)mipPixels[j])/totalPixels;
             }
             
         }
