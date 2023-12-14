@@ -5,14 +5,18 @@
 // with cs.SetTexture
 RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
-int previousResolution;
 SamplerState sampler_LinearClamp;
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
-    _Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
-    _Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
+    for (int j = 7; j >= 0; j--) {
+        //int mipRes = resolution >> j;
+        //if (id.x > mipRes || id.y > mipRes) break;
+        _Results[uint3(id.x, id.y, j)] = float4(j/7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    }
+    //_Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    //_Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
     //if (id.z > 0)_Results[uint3(id.x, id.y, id.z)] = float4(0, 0, 0, 0);
     
 }

@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 public class StrokeGenerationManager : MonoBehaviour
 {
@@ -25,7 +28,6 @@ public class StrokeGenerationManager : MonoBehaviour
         //We wait for each to finish before moving on
         strokeGenShader.SetTexture(0, Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
-        strokeGenShader.SetInt(Shader.PropertyToID("previousResolution"), highestRes/2);
         strokeGenShader.Dispatch(0, 32, 32, 1);
         //Retrive map from GPU so we don't have to do this again
         var rtTmp = RenderTexture.active;
@@ -65,9 +67,33 @@ public class StrokeGenerationManager : MonoBehaviour
         TAM.SetPixels(totalC, 0);
         TAM.Apply();
         //AssetDatabase.CreateAsset(outArray[0], "Assets/StrokeGenerationAndRendering/Test.renderTexture");
-        testMat.SetTexture("_MainTex", outArray[0]);
-        AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
-        //outArray[0].Release();
+        //testMat.SetTexture("_MainTex", outArray[0]);
+        //AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
+        SaveRT3DToTexture3DAsset(outArray[0], "StrokeGenerationAndRendering/TAM");
+        outArray[0].Release();
     }
-
+    //Subarray section is broken. FIX!
+    void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
+    {
+        int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
+        var a = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        NativeArray<float> outputA = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, 0, (_) =>
+        {
+            Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.None);
+            //NativeArray<float>.Copy(a, 0, outputA, 0, 1);
+            //output.SetPixelData(outputA, 0, 0);
+            for(int index = 0; index < depth; index++)
+            {
+                var tmpA = a.GetSubArray(index * width * height,width * height);
+                output.SetPixelData(tmpA, 0, index);
+            }
+            output.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+            AssetDatabase.CreateAsset(output, $"Assets/{pathWithoutAssetsAndExtension}.asset");
+            AssetDatabase.SaveAssetIfDirty(output);
+            a.Dispose();
+            outputA.Dispose();
+            rt3D.Release();
+        });
+    }
 }
