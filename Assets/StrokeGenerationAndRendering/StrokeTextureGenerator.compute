@@ -6,14 +6,44 @@
 RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 SamplerState sampler_LinearClamp;
+
+struct Stroke {
+    float2 normPos;
+    float normLength;
+    //Add more strange stroke behavior later via compliler derectives in functions/ this struct
+};
+//Found here:https://gist.github.com/keijiro/ee7bc388272548396870#file-prng-cginc-L1
+//VERY COMMON PSUEDO RANDOM FUNCTION!
+float nrand(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+}
+Stroke StrokeRandomizer(float2 uv) {
+    float x = nrand(uv);
+    float y = nrand(uv+float2(.1,.1));
+    float l = nrand(uv + float2(.1, -.1));
+    Stroke s;
+    s.normPos = float2(x, y);
+    s.normLength = l;
+    return s;
+}
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
+    Stroke s = StrokeRandomizer(float2(id.x, id.y));
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;
         if (id.x > mipRes || id.y > mipRes) _Results[uint3(id.x, id.y, j)] = 0.0;
-        else _Results[uint3(id.x, id.y, j)] = float4(j/7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+        else {
+            //_Results[uint3(id.x, id.y, j)] = float4(j / 7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+            uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
+            uint pixelLength = (uint)(mipRes * s.normLength);
+            for (int sc = 0; sc < pixelLength; sc++) {
+                _Results[uint3(id.x+sc, id.y, j)] = float4(0.0,0.0,1.0,1.0);
+            }
+            
+        }
     }
     //_Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
     //_Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
