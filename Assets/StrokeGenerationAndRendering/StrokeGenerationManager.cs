@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -31,7 +32,22 @@ public class StrokeGenerationManager : MonoBehaviour
         //We wait for each to finish before moving on
         strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
-        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 2, 2, 1);
+        ComputeBuffer pixelCountBuffer, mipGoalsBuffer;
+        uint[] pixelCounts = Enumerable.Repeat(0u, 8).ToArray();
+        pixelCountBuffer = new ComputeBuffer(pixelCounts.Length, sizeof(uint));
+        pixelCountBuffer.SetData(pixelCounts);
+        float[] mipGoals = Enumerable.Repeat(0.0f, 8).ToArray();
+        mipGoalsBuffer = new ComputeBuffer(mipGoals.Length, sizeof(float));
+        mipGoalsBuffer.SetData(mipGoals);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
+        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
+        pixelCountBuffer.GetData(pixelCounts);
+        for(int pc =0; pc < pixelCounts.Length; pc++)
+        {
+            Debug.Log(pixelCounts[pc]);
+        }
+        
         //Retrive map from GPU so we don't have to do this again
         var rtTmp = RenderTexture.active;
         Graphics.SetRenderTarget(outArray[0], 0, CubemapFace.Unknown, 0);

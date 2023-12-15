@@ -7,9 +7,12 @@ RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 SamplerState sampler_LinearClamp;
 
-static float goalVal = 0.875;
-static float mipGoals[8] = {1, 1, 1, 1, 1, 1, 1, 1};
-static int mipPixels[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+//USE SHARED INSTEAD OF static!
+//HOWEVER WE ALSO NEED TO SYNC WITH BARRIERS!
+float goalVal = 0.99;//0.875;
+globallycoherent RWStructuredBuffer<float> mipGoals;
+globallycoherent RWStructuredBuffer<uint> mipPixels;
+uint rng_state;
 struct Stroke {
     float2 normPos;
     float normLength;
@@ -21,10 +24,35 @@ float nrand(float2 uv)
 {
     return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
 }
+//From this article: https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
+uint rand_pcg()
+{
+    uint state = rng_state;
+    rng_state = rng_state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+uint pcg_hash(uint input)
+{
+    uint state = input * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+float hash_rand(uint input) {
+    uint r = pcg_hash(input);
+    return (float)r * (1.0 / 4294967296.0);
+}
+float pcg_float() {
+    uint r = rand_pcg();
+    return (float)r * (1.0 / 4294967296.0);
+}
 Stroke StrokeRandomizer(float2 uv) {
-    float x = nrand(uv);
-    float y = nrand(uv+float2(.1,.1));
-    float l = 0.3+0.7*nrand(uv + float2(.1, -.1)); //(.3 - 1.0) range
+    uint seed = (uint)uv.x + resolution * (uint)uv.y;
+    float x = hash_rand(seed);
+    seed = seed << 3;
+    float y = hash_rand(seed);
+    seed = seed | 273809707u;
+    float l = 0.3+0.2*hash_rand(seed); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
     s.normLength = l;
@@ -33,6 +61,7 @@ Stroke StrokeRandomizer(float2 uv) {
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
+    //_Results[uint3(id.x, id.y, 0)] = float4(hash_rand(id.x+resolution*id.y),0,0,1); //Hash rand is good for randomness!
     // TODO: insert actual code here!
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     for (int j = 7; j >= 0; j--) {
@@ -44,10 +73,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             uint pixelLength = (uint)(mipRes * s.normLength);
             for (int sc = 0; sc < pixelLength; sc++) {
                 if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
-                _Results[uint3(pixelPos.x+sc, pixelPos.y, j)] = float4(0.0,0.0,1.0,1.0);
                 mipPixels[j]++;
                 float totalPixels = (float)(mipRes * mipRes);
                 mipGoals[j] = (totalPixels - (float)mipPixels[j])/totalPixels;
+                float pixelPct = (float)mipPixels[j] / totalPixels;
+                _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(pixelPct, 0.0, 1.0, 1.0);
             }
             
         }
