@@ -78,8 +78,10 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
                 if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
                 InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;
                 float totalPixels = (float)(mipRes * mipRes);
-                mipGoals[j] = (totalPixels - (float)mipPixels[j])/totalPixels;
-                float pixelPct = (float)mipPixels[j] / totalPixels;
+                float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+                float og = 0.0;
+                InterlockedExchange(mipGoals[j], goalResult,og);
+                float pixelPct = (float)mipPixels[j] / totalPixels; //DEBUG VAR
                 _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(pixelPct, 0.0, 1.0, 1.0);
             }
             
