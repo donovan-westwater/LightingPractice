@@ -91,7 +91,7 @@ public class StrokeGenerationManager : MonoBehaviour
         SaveRT3DToTexture3DAsset(outArray[0], "StrokeGenerationAndRendering/TAM");
         outArray[0].Release();
     }
-    //Subarray section is broken. FIX!
+
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
     {
         int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;

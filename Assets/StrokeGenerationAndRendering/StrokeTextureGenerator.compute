@@ -59,10 +59,13 @@ Stroke StrokeRandomizer(float2 uv) {
     return s;
 }
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
 {
     //_Results[uint3(id.x, id.y, 0)] = float4(hash_rand(id.x+resolution*id.y),0,0,1); //Hash rand is good for randomness!
     // TODO: insert actual code here!
+    //AllMemoryBarrierWithGroupSync();
+    //if(gid.x == 0) InterlockedAdd(mipPixels[0],1);
+    //AllMemoryBarrierWithGroupSync();
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;
@@ -73,7 +76,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             uint pixelLength = (uint)(mipRes * s.normLength);
             for (int sc = 0; sc < pixelLength; sc++) {
                 if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
-                mipPixels[j]++;
+                InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;
                 float totalPixels = (float)(mipRes * mipRes);
                 mipGoals[j] = (totalPixels - (float)mipPixels[j])/totalPixels;
                 float pixelPct = (float)mipPixels[j] / totalPixels;
