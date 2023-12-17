@@ -36,7 +36,7 @@ public class StrokeGenerationManager : MonoBehaviour
         uint[] pixelCounts = Enumerable.Repeat(0u, 8).ToArray();
         pixelCountBuffer = new ComputeBuffer(pixelCounts.Length, sizeof(uint));
         pixelCountBuffer.SetData(pixelCounts);
-        float[] mipGoals = Enumerable.Repeat(0.0f, 8).ToArray();
+        float[] mipGoals = Enumerable.Repeat(1.0f, 8).ToArray();
         mipGoalsBuffer = new ComputeBuffer(mipGoals.Length, sizeof(float));
         mipGoalsBuffer.SetData(mipGoals);
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
