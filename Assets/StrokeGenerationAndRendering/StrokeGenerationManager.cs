@@ -43,9 +43,10 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
         strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         pixelCountBuffer.GetData(pixelCounts);
-        for(int pc =0; pc < pixelCounts.Length; pc++)
+        mipGoalsBuffer.GetData(mipGoals);
+        for(int pc =0; pc < mipGoals.Length; pc++)
         {
-            Debug.Log(pixelCounts[pc]);
+            Debug.Log(mipGoals[pc]);
         }
         
         //Retrive map from GPU so we don't have to do this again

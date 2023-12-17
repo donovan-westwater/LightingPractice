@@ -7,9 +7,9 @@ RWTexture2DArray<float4> _Results : register(u0);
 int resolution;
 SamplerState sampler_LinearClamp;
 
-//USE SHARED INSTEAD OF static!
-//HOWEVER WE ALSO NEED TO SYNC WITH BARRIERS!
-float goalVal = 0.99;//0.875;
+//THE GOAL IS TO MAKE A SINGLE STROKE ATOMIC!
+//This way we know that a stroke has not been partially applied
+float goalVal = -0.0875;//0.875;
 globallycoherent RWStructuredBuffer<float> mipGoals;
 globallycoherent RWStructuredBuffer<uint> mipPixels;
 uint rng_state;
@@ -61,31 +61,37 @@ Stroke StrokeRandomizer(float2 uv) {
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
 {
-    //_Results[uint3(id.x, id.y, 0)] = float4(hash_rand(id.x+resolution*id.y),0,0,1); //Hash rand is good for randomness!
-    // TODO: insert actual code here!
-    //AllMemoryBarrierWithGroupSync();
-    //if(gid.x == 0) InterlockedAdd(mipPixels[0],1);
-    //AllMemoryBarrierWithGroupSync();
+    //Once we generate the Strokes, we check to see if any of the pixels lie on the stroke 
+    // Assoiated with z and then add the pixel to the texture and increment the 
+
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    //AllMemoryBarrierWithGroupSync();
     for (int j = 7; j >= 0; j--) {
+        //AllMemoryBarrierWithGroupSync();
         int mipRes = resolution >> j;
         if ((id.x > mipRes || id.y > mipRes)) _Results[uint3(id.x, id.y, j)] = 1.0;
         else {
             //_Results[uint3(id.x, id.y, j)] = float4(j / 7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
             uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
+            uint endPoint = pixelPos.x + pixelLength;
+            endPoint = clamp(endPoint, 0u, mipRes);
+            pixelLength = endPoint - pixelPos.x;
+            InterlockedAdd(mipPixels[j], pixelLength);
+            float totalPixels = (float)(mipRes * mipRes);
+            float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+            float og = 0.0;
+            InterlockedExchange(mipGoals[j], goalResult, og);
+            if (mipGoals[j] < goalVal) break;
+            //if(mipGoals[j] < goalVal) break;
             for (int sc = 0; sc < pixelLength; sc++) {
-                if (pixelPos.x + sc > mipRes || mipGoals[j] < goalVal) break;
-                InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;
-                float totalPixels = (float)(mipRes * mipRes);
-                float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
-                float og = 0.0;
-                InterlockedExchange(mipGoals[j], goalResult,og);
+                //InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;            
                 float pixelPct = (float)mipPixels[j] / totalPixels; //DEBUG VAR
                 _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(pixelPct, 0.0, 1.0, 1.0);
             }
             
         }
+        //AllMemoryBarrierWithGroupSync();
     }
     //_Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
     //_Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
