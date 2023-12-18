@@ -72,8 +72,8 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
         if ((id.x > mipRes || id.y > mipRes)) _Results[uint3(id.x, id.y, j)] = 1.0;
         else {
             //_Results[uint3(id.x, id.y, j)] = float4(j / 7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
-            //Current Bug: Pixels are being added so fast that it trips the goal val faster than it should
-            if (mipGoals[j] < goalVal) continue;
+            //Current Bug: Continue isn't being continued correctly
+            if (mipGoals[j] < goalVal) continue; //BUG: goalVal doesn't match earlier assignment!!!!!!!!!
             uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
             uint endPoint = pixelPos.x + pixelLength;
@@ -84,6 +84,7 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
             float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
             float og = 0.0;
             InterlockedExchange(mipGoals[j], goalResult, og);
+            //InterlockedExchange(mipGoals[j], goalVal, og);
             if (goalResult < goalVal) continue;
             //if(mipGoals[j] < goalVal) break;
             for (int sc = 0; sc < pixelLength; sc++) {

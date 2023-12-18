@@ -11,7 +11,7 @@ public class StrokeGenerationManager : MonoBehaviour
 {
     public ComputeShader strokeGenShader;
     public ComputeShader resetShader;
-    public int highestRes = 256;
+    public int highestRes = 512;
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
     public Material testMat;
@@ -41,6 +41,7 @@ public class StrokeGenerationManager : MonoBehaviour
         mipGoalsBuffer.SetData(mipGoals);
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
+        strokeGenShader.SetFloat("goalVal", 0.80f);//.875
         strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
