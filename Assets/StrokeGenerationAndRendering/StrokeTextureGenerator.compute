@@ -79,15 +79,26 @@ void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
             uint endPoint = pixelPos.x + pixelLength;
             endPoint = clamp(endPoint, 0u, mipRes);
             pixelLength = endPoint - pixelPos.x;
-            InterlockedAdd(mipPixels[j], pixelLength);
-            float totalPixels = (float)(mipRes * mipRes);
-            float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
-            float og = 0.0;
-            InterlockedExchange(mipGoals[j], goalResult, og);
+            //InterlockedAdd(mipPixels[j], pixelLength);
+            //float totalPixels = (float)(mipRes * mipRes);
+            //float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+            //float og = 0.0;
+            //InterlockedExchange(mipGoals[j], goalResult, og);
             //InterlockedExchange(mipGoals[j], goalVal, og);
-            if (goalResult < goalVal) continue;
+            //if (goalResult < goalVal) continue;
             //if(mipGoals[j] < goalVal) break;
             for (int sc = 0; sc < pixelLength; sc++) {
+                float totalPixels = (float)(mipRes * mipRes);
+                float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+                if (goalResult < goalVal) break;
+                if (_Results[uint3(pixelPos.x + sc, pixelPos.y, j)].r > .95
+                    && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].g > .95
+                    && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].b > .95) {
+                    InterlockedAdd(mipPixels[j], 1);
+                    goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+                    float og = 0.0;
+                    InterlockedExchange(mipGoals[j], goalResult, og);
+                }
                 //InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;            
                 float pixelPct = (float)mipPixels[j] / totalPixels; //DEBUG VAR
                 _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(pixelPct, 0.0, 1.0, 1.0);
