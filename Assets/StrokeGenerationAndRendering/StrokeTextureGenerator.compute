@@ -101,12 +101,15 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
 [numthreads(8, 8, 1)]
 void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
     //Take the currently selected final stroke and apply it!
+    //if(resolution == 0)_Results[id.xyz] = float4(finalStroke[0].normLength, 0.0, 0.0, 1.0);
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;
         float totalPixels = (float)(mipRes * mipRes);
         uint2 pixelPos = uint2((uint)(finalStroke[0].normPos.x * mipRes), (uint)(finalStroke[0].normPos.y * mipRes));
         uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
-        if(id.x == pixelPos.x && id.y == pixelPos.y) _Results[uint3(pixelPos.x, pixelPos.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        bool check = id.x >= pixelPos.x && id.x <= (pixelPos.x + pixelLength)
+            && pixelPos.y == id.y;
+        if(check) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
         if (_Results[uint3(pixelPos.x, pixelPos.y, j)].r < .95
             || _Results[uint3(pixelPos.x, pixelPos.y, j)].g < .95
             || _Results[uint3(pixelPos.x , pixelPos.y, j)].b < .95) {

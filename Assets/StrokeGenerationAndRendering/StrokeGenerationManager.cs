@@ -49,7 +49,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //THe maddness has taken hold and now we enter the lands of insanity
         strokeBuffer = new ComputeBuffer(1, sizeof(float)*3);
         Stroke[] inital = new Stroke[1];
-        inital[0].normLength = 0;
+        inital[0].normLength = 0.0f;
         inital[0].normPos = Vector2.zero;
         strokeBuffer.SetData(inital);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
