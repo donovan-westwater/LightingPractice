@@ -15,6 +15,12 @@ public class StrokeGenerationManager : MonoBehaviour
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
     public Material testMat;
+    struct Stroke
+    {
+        public Vector2 normPos;
+        public float normLength;
+        //Add more strange stroke behavior later via compliler derectives in functions/ this struct
+    };
     // Start is called before the first frame update
     void Start()
     {
@@ -32,19 +38,47 @@ public class StrokeGenerationManager : MonoBehaviour
         //We wait for each to finish before moving on
         strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[0]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
-        ComputeBuffer pixelCountBuffer, mipGoalsBuffer;
+        ComputeBuffer pixelCountBuffer, mipGoalsBuffer, strokeBuffer;
         uint[] pixelCounts = Enumerable.Repeat(0u, 8).ToArray();
         pixelCountBuffer = new ComputeBuffer(pixelCounts.Length, sizeof(uint));
         pixelCountBuffer.SetData(pixelCounts);
         float[] mipGoals = Enumerable.Repeat(1.0f, 8).ToArray();
         mipGoalsBuffer = new ComputeBuffer(mipGoals.Length, sizeof(float));
         mipGoalsBuffer.SetData(mipGoals);
-        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
-        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
+        //Passing in a single stroke in an array because I have lost my mind and can't find any better solutions
+        //THe maddness has taken hold and now we enter the lands of insanity
+        strokeBuffer = new ComputeBuffer(1, sizeof(float)*3);
+        Stroke[] inital = new Stroke[1];
+        inital[0].normLength = 0;
+        inital[0].normPos = Vector2.zero;
+        strokeBuffer.SetData(inital);
+        //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
+        //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
         strokeGenShader.SetFloat("goalVal", 0.80f);//.875
-        strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
+        //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
+        //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSGatherStrokes"), "mipGoals", mipGoalsBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSGatherStrokes"), "mipPixels", pixelCountBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSGatherStrokes"), "finalStroke", strokeBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "mipGoals", mipGoalsBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "mipPixels", pixelCountBuffer);
+        strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "finalStroke", strokeBuffer);
+        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[0]);
+        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[0]);
+        //CREATE COMPUTE BUFFER FOR STROKE STRUCT OF FINAL STROKE
+        CommandBuffer comBuff = new CommandBuffer();
+        comBuff.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+
+        comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
+        comBuff.CreateAsyncGraphicsFence();
+        comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
+
+        Graphics.ExecuteCommandBufferAsync(comBuff, 0);
+
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
+        strokeBuffer.GetData(inital);
+        Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
         for(int pc =0; pc < mipGoals.Length; pc++)
         {
             Debug.Log(mipGoals[pc]);

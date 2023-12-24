@@ -1,4 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSGatherStrokes
+#pragma kernel CSApplyStroke
 #pragma kernel CSMain
 
 // Create a RenderTexture with enableRandomWrite flag and set it
@@ -13,11 +15,14 @@ float goalVal = 1.995;//0.875;
 globallycoherent RWStructuredBuffer<float> mipGoals;
 globallycoherent RWStructuredBuffer<uint> mipPixels;
 uint rng_state;
+
 struct Stroke {
     float2 normPos;
     float normLength;
     //Add more strange stroke behavior later via compliler derectives in functions/ this struct
 };
+RWStructuredBuffer<Stroke> finalStroke: register(u1);
+groupshared float maxCanidateToneVal = 0.0;
 //Found here:https://gist.github.com/keijiro/ee7bc388272548396870#file-prng-cginc-L1
 //VERY COMMON PSUEDO RANDOM FUNCTION!
 float nrand(float2 uv)
@@ -57,6 +62,60 @@ Stroke StrokeRandomizer(float2 uv) {
     s.normPos = float2(x, y);
     s.normLength = l;
     return s;
+}
+[numthreads(1000,1,1)]
+void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
+    Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    if (id.x == 0 && id.y == 0 && id.z == 0) finalStroke[0] = s;
+    float toneSum = 0;
+    for (int j = 7; j >= 0; j--) {
+        int mipRes = resolution >> j;
+        float totalPixels = (float)(mipRes * mipRes);
+        if (mipGoals[j] < goalVal) continue;
+        uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
+        uint pixelLength = (uint)(mipRes * s.normLength);
+        uint pixelsAdded = 0;
+        for (int sc = 0; sc < pixelLength; sc++) {
+            float newPixels = (float)(pixelsAdded + mipPixels[j]);
+            float newToneAvg = (totalPixels - newPixels) / totalPixels;
+            if (newToneAvg < goalVal) break;
+            if (_Results[uint3(pixelPos.x + sc, pixelPos.y, j)].r > .95
+                && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].g > .95
+                && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].b > .95) {
+                pixelsAdded++;
+            }
+        }
+        float newPixels = (float)(pixelsAdded + mipPixels[j]);
+        float goalResult = (totalPixels - newPixels) / totalPixels;
+        toneSum += goalResult;
+    }
+    toneSum /= 8.0;
+    //Wait for all the candidates to be found before comparing?
+    //AllMemoryBarrierWithGroupSync();
+    if (toneSum > maxCanidateToneVal) {
+        float og = 0.0;
+        InterlockedExchange(maxCanidateToneVal, toneSum, og);
+        finalStroke[0] = s;
+    }
+}
+[numthreads(8, 8, 1)]
+void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
+    //Take the currently selected final stroke and apply it!
+    for (int j = 7; j >= 0; j--) {
+        int mipRes = resolution >> j;
+        float totalPixels = (float)(mipRes * mipRes);
+        uint2 pixelPos = uint2((uint)(finalStroke[0].normPos.x * mipRes), (uint)(finalStroke[0].normPos.y * mipRes));
+        uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
+        if(id.x == pixelPos.x && id.y == pixelPos.y) _Results[uint3(pixelPos.x, pixelPos.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (_Results[uint3(pixelPos.x, pixelPos.y, j)].r < .95
+            || _Results[uint3(pixelPos.x, pixelPos.y, j)].g < .95
+            || _Results[uint3(pixelPos.x , pixelPos.y, j)].b < .95) {
+            InterlockedAdd(mipPixels[j], 1);
+            float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+            float og = 0.0;
+            InterlockedExchange(mipGoals[j], goalResult, og);
+        }
+    }
 }
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
