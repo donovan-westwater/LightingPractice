@@ -54,7 +54,7 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeBuffer.SetData(inital);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
-        strokeGenShader.SetFloat("goalVal", 0.80f);//.875
+        strokeGenShader.SetFloat("goalVal", 0.10f);//.875
         //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSGatherStrokes"), "mipGoals", mipGoalsBuffer);
@@ -67,20 +67,29 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[0]);
         //CREATE COMPUTE BUFFER FOR STROKE STRUCT OF FINAL STROKE
         CommandBuffer comBuff = new CommandBuffer();
-        comBuff.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        comBuff.SetExecutionFlags(CommandBufferExecutionFlags.None);
 
+        //comBuff.CreateAsyncGraphicsFence();
         comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
-        comBuff.CreateAsyncGraphicsFence();
         comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
-        comBuff.CreateAsyncGraphicsFence();
 
-        Graphics.ExecuteCommandBufferAsync(comBuff, 0);
-        Graphics.ExecuteCommandBufferAsync(comBuff, 0);
+        //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
+        //comBuff.WaitOnAsyncGraphicsFence(applyFence);
+        int strokeN = 0;
+        while(strokeN < 20)
+        {
+            Graphics.ExecuteCommandBuffer(comBuff);
+            strokeBuffer.GetData(inital);
+            Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+            strokeN++;
+        }
+        
+        //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
 
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
-        strokeBuffer.GetData(inital);
-        Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+        //strokeBuffer.GetData(inital);
+        //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
         for(int pc =0; pc < mipGoals.Length; pc++)
         {
             Debug.Log(mipGoals[pc]);
