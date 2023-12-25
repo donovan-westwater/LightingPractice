@@ -110,9 +110,9 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
         bool check = id.x >= pixelPos.x && id.x <= (pixelPos.x + pixelLength)
             && pixelPos.y == id.y;
         if(check) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
-        if (_Results[uint3(pixelPos.x, pixelPos.y, j)].r < .95
-            || _Results[uint3(pixelPos.x, pixelPos.y, j)].g < .95
-            || _Results[uint3(pixelPos.x , pixelPos.y, j)].b < .95) {
+        if (_Results[uint3(id.x, id.y, j)].r < .95
+            || _Results[uint3(id.x, id.y, j)].g < .95
+            || _Results[uint3(id.x, id.y, j)].b < .95) {
             InterlockedAdd(mipPixels[j], 1);
             float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
             float og = 0.0;
