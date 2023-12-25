@@ -72,7 +72,9 @@ public class StrokeGenerationManager : MonoBehaviour
         comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
         comBuff.CreateAsyncGraphicsFence();
         comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
+        comBuff.CreateAsyncGraphicsFence();
 
+        Graphics.ExecuteCommandBufferAsync(comBuff, 0);
         Graphics.ExecuteCommandBufferAsync(comBuff, 0);
 
         pixelCountBuffer.GetData(pixelCounts);
