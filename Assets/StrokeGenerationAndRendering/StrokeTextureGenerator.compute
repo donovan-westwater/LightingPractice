@@ -56,7 +56,8 @@ Stroke StrokeRandomizer(float2 uv) {
     float x = hash_rand(seed);
     seed = seed << 3;
     float y = hash_rand(seed);
-    seed = seed | 273809707u;
+    seed = ~seed;
+    //seed = seed | 273809707u;
     float l = 0.3+0.2*hash_rand(seed); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
@@ -66,7 +67,9 @@ Stroke StrokeRandomizer(float2 uv) {
 [numthreads(1000,1,1)]
 void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) finalStroke[0] = s;
+    
     float toneSum = 0;
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;
@@ -97,6 +100,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(maxCanidateToneVal, toneSum, og);
         finalStroke[0] = s;
     }
+    
 }
 [numthreads(8, 8, 1)]
 void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
