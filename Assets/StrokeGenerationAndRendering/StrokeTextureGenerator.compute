@@ -98,7 +98,10 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     if (toneSum > maxCanidateToneVal) {
         float og = 0.0;
         InterlockedExchange(maxCanidateToneVal, toneSum, og);
-        finalStroke[0] = s;
+        InterlockedExchange(finalStroke[0].normLength, s.normLength,og);
+        InterlockedExchange(finalStroke[0].normPos.x, s.normPos.x, og);
+        InterlockedExchange(finalStroke[0].normPos.y, s.normPos.y, og);
+        //finalStroke[0] = s;
     }
     
 }
@@ -113,10 +116,13 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
         uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
         bool check = id.x >= pixelPos.x && id.x <= (pixelPos.x + pixelLength)
             && pixelPos.y == id.y;
-        if(check) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
-        if (_Results[uint3(id.x, id.y, j)].r < .95
+        bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
+            && _Results[uint3(id.x, id.y, j)].g > .95
+            && _Results[uint3(id.x, id.y, j)].b > .95;
+        if (check) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (isPrevWhite && (_Results[uint3(id.x, id.y, j)].r < .95
             || _Results[uint3(id.x, id.y, j)].g < .95
-            || _Results[uint3(id.x, id.y, j)].b < .95) {
+            || _Results[uint3(id.x, id.y, j)].b < .95)) {
             InterlockedAdd(mipPixels[j], 1);
             float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
             float og = 0.0;
