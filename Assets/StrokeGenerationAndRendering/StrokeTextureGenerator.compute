@@ -14,7 +14,7 @@ SamplerState sampler_LinearClamp;
 float goalVal = 1.995;//0.875;
 globallycoherent RWStructuredBuffer<float> mipGoals;
 globallycoherent RWStructuredBuffer<uint> mipPixels;
-uint rng_state;
+uint rng_state = 0u;
 
 struct Stroke {
     float2 normPos;
@@ -53,6 +53,7 @@ float pcg_float() {
 }
 Stroke StrokeRandomizer(float2 uv) {
     uint seed = (uint)uv.x + resolution * (uint)uv.y;
+    seed *= rng_state;
     float x = hash_rand(seed);
     seed = seed << 3;
     float y = hash_rand(seed);

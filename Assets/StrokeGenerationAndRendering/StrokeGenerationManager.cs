@@ -12,6 +12,7 @@ public class StrokeGenerationManager : MonoBehaviour
     public ComputeShader strokeGenShader;
     public ComputeShader resetShader;
     public int highestRes = 512;
+    uint rng_state = 1245;
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
     public Material testMat;
@@ -55,6 +56,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
         strokeGenShader.SetFloat("goalVal", 0.10f);//.875
+        strokeGenShader.SetInt("rng_state", (int)rng_state);
         //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSGatherStrokes"), "mipGoals", mipGoalsBuffer);
@@ -77,12 +79,14 @@ public class StrokeGenerationManager : MonoBehaviour
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         int strokeN = 0;
-        while(strokeN < 10)
+        while(strokeN < 20)
         {
             Graphics.ExecuteCommandBuffer(comBuff);
             strokeBuffer.GetData(inital);
             Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
             strokeN++;
+            rng_state = rng_state * 747796405u + 2891336453u;
+            strokeGenShader.SetInt("rng_state",(int) rng_state);
         }
         
         //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
