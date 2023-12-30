@@ -70,13 +70,14 @@ public class StrokeGenerationManager : MonoBehaviour
         comBuff.SetExecutionFlags(CommandBufferExecutionFlags.None);
 
         //comBuff.CreateAsyncGraphicsFence();
+        comBuff.SetComputeFloatParam(strokeGenShader, Shader.PropertyToID("maxCanidateToneVal"), 0f);
         comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
         comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
 
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         int strokeN = 0;
-        while(strokeN < 20)
+        while(strokeN < 10)
         {
             Graphics.ExecuteCommandBuffer(comBuff);
             strokeBuffer.GetData(inital);

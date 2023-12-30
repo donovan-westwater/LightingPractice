@@ -68,7 +68,7 @@ Stroke StrokeRandomizer(float2 uv) {
 void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
-    //if (id.x == 0 && id.y == 0 && id.z == 0) finalStroke[0] = s;
+    //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
     
     float toneSum = 0;
     for (int j = 7; j >= 0; j--) {
