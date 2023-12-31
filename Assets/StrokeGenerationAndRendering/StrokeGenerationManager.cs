@@ -55,7 +55,7 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeBuffer.SetData(inital);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
-        strokeGenShader.SetFloat("goalVal", 0.10f);//.875
+        strokeGenShader.SetFloat("goalVal", 0.875f);//.875
         strokeGenShader.SetInt("rng_state", (int)rng_state);
         //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!
@@ -79,7 +79,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         int strokeN = 0;
-        while(strokeN < 20)
+        while(strokeN < 500)
         {
             Graphics.ExecuteCommandBuffer(comBuff);
             strokeBuffer.GetData(inital);
