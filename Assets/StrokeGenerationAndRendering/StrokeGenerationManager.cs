@@ -20,6 +20,7 @@ public class StrokeGenerationManager : MonoBehaviour
     {
         public Vector2 normPos;
         public float normLength;
+        public int isVertical;
         //Add more strange stroke behavior later via compliler derectives in functions/ this struct
     };
     // Start is called before the first frame update
@@ -48,14 +49,15 @@ public class StrokeGenerationManager : MonoBehaviour
         mipGoalsBuffer.SetData(mipGoals);
         //Passing in a single stroke in an array because I have lost my mind and can't find any better solutions
         //THe maddness has taken hold and now we enter the lands of insanity
-        strokeBuffer = new ComputeBuffer(1, sizeof(float)*3);
+        strokeBuffer = new ComputeBuffer(1, sizeof(float)*4);
         Stroke[] inital = new Stroke[1];
         inital[0].normLength = 0.0f;
         inital[0].normPos = Vector2.zero;
+        inital[0].isVertical = 0;
         strokeBuffer.SetData(inital);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
-        strokeGenShader.SetFloat("goalVal", 0.875f);//.875
+        strokeGenShader.SetFloat("goalVal", 0.0875f);//.875
         strokeGenShader.SetInt("rng_state", (int)rng_state);
         //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!

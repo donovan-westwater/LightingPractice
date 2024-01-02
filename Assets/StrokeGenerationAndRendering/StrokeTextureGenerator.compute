@@ -19,6 +19,7 @@ uint rng_state = 0u;
 struct Stroke {
     float2 normPos;
     float normLength;
+    int isVertical;
     //Add more strange stroke behavior later via compliler derectives in functions/ this struct
 };
 RWStructuredBuffer<Stroke> finalStroke: register(u1);
@@ -68,6 +69,7 @@ Stroke StrokeRandomizer(float2 uv) {
 [numthreads(1000,1,1)]
 void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    s.isVertical = 0;// goalVal < .5;
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
     
@@ -82,10 +84,12 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         for (int sc = 0; sc < pixelLength; sc++) {
             float newPixels = (float)(pixelsAdded + mipPixels[j]);
             float newToneAvg = (totalPixels - newPixels) / totalPixels;
+            uint3 testPoint = uint3(pixelPos.x + sc, pixelPos.y, j);
+            if (s.isVertical) testPoint = uint3(pixelPos.x, pixelPos.y + sc, j);
             if (newToneAvg < goalVal) break;
-            if (_Results[uint3(pixelPos.x + sc, pixelPos.y, j)].r > .95
-                && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].g > .95
-                && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].b > .95) {
+            if (_Results[testPoint].r > .95
+                && _Results[testPoint].g > .95
+                && _Results[testPoint].b > .95) {
                 pixelsAdded++;
             }
         }
@@ -102,6 +106,8 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(finalStroke[0].normLength, s.normLength,og);
         InterlockedExchange(finalStroke[0].normPos.x, s.normPos.x, og);
         InterlockedExchange(finalStroke[0].normPos.y, s.normPos.y, og);
+        int ogInt = 0;
+        InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
         //finalStroke[0] = s;
     }
     
@@ -118,6 +124,8 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
         uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
         bool check = id.x >= pixelPos.x && id.x <= (pixelPos.x + pixelLength)
             && pixelPos.y == id.y;
+        if(finalStroke[0].isVertical) check = id.y >= pixelPos.y && id.y <= (pixelPos.y + pixelLength)
+            && pixelPos.x == id.x;
         bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
             && _Results[uint3(id.x, id.y, j)].g > .95
             && _Results[uint3(id.x, id.y, j)].b > .95;
