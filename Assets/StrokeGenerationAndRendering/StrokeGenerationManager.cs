@@ -87,7 +87,7 @@ public class StrokeGenerationManager : MonoBehaviour
 
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
-        for (int textNo = 1; textNo < 3; textNo++)
+        for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
             if (textNo > 0) CreateRenderTexture(textNo);
             Graphics.CopyTexture(outArray[textNo - 1], outArray[textNo]);
@@ -120,11 +120,19 @@ public class StrokeGenerationManager : MonoBehaviour
         //AssetDatabase.CreateAsset(outArray[0], "Assets/StrokeGenerationAndRendering/Test.renderTexture");
         //testMat.SetTexture("_MainTex", outArray[0]);
         //AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
-        SaveRT3DToTexture3DAsset(outArray[1], "StrokeGenerationAndRendering/TAM");
-        SaveRT3DToTexture3DAsset(outArray[2], "StrokeGenerationAndRendering/TAM_Tone2");
-        outArray[0].Release();
-        outArray[1].Release();
-        outArray[2].Release();
+
+        for(int toneN = 0;toneN <  outArray.Length;toneN++)
+        {
+            string suffix = "_Tone" + (toneN + 1);
+            string name = "StrokeGenerationAndRendering/TAM" + suffix;
+            SaveRT3DToTexture3DAsset(outArray[toneN], name);
+            outArray[toneN].Release();
+        }
+        //SaveRT3DToTexture3DAsset(outArray[1], "StrokeGenerationAndRendering/TAM");
+        //SaveRT3DToTexture3DAsset(outArray[2], "StrokeGenerationAndRendering/TAM_Tone2");
+        //outArray[0].Release();
+        //outArray[1].Release();
+        //outArray[2].Release();
     }
 
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
