@@ -57,7 +57,7 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeBuffer.SetData(inital);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipGoals", mipGoalsBuffer);
         //strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSMain"), "mipPixels", pixelCountBuffer);
-        strokeGenShader.SetFloat("goalVal", 0.0875f);//.875
+        strokeGenShader.SetFloat("goalVal", 0.875f);//.875
         strokeGenShader.SetInt("rng_state", (int)rng_state);
         //strokeGenShader.Dispatch(strokeGenShader.FindKernel("CSMain"), 32, 32, 1);
         //TEST CODE TO APPLY A SINGLE STROKE TO TEXTURE!
