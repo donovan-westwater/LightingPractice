@@ -89,13 +89,13 @@ public class StrokeGenerationManager : MonoBehaviour
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
-            if (textNo > 0) CreateRenderTexture(textNo);
+            CreateRenderTexture(textNo);
             Graphics.CopyTexture(outArray[textNo - 1], outArray[textNo]);
-            strokeGenShader.SetFloat("goalVal", 1f - .125f * (textNo));
+            strokeGenShader.SetFloat("goalVal", 1f - (1f/7f) * (textNo));
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
-            while (strokeN < 500)
+            while (strokeN < 700)
             {
                 Graphics.ExecuteCommandBuffer(comBuff);
                 //strokeBuffer.GetData(inital);
