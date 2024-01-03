@@ -23,22 +23,29 @@ public class StrokeGenerationManager : MonoBehaviour
         public int isVertical;
         //Add more strange stroke behavior later via compliler derectives in functions/ this struct
     };
+    RenderTexture CreateRenderTexture(int index)
+    {
+        //Setup the highest res mipMap layer
+        outArray[index] = new RenderTexture(highestRes, highestRes, 0);
+        outArray[index].dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
+        outArray[index].volumeDepth = 8;
+        outArray[index].enableRandomWrite = true;
+        outArray[index].Create();
+        return outArray[index];
+    }
     // Start is called before the first frame update
     void Start()
     {
         //Create Asset to store our art map in
         TAM = new Texture3D(highestRes, highestRes,8 , TextureFormat.ARGB32,1);
-        //Setup the highest res mipMap layer
-        outArray[0] = new RenderTexture(highestRes, highestRes, 0);
-        outArray[0].dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
-        outArray[0].volumeDepth = 8;
-        outArray[0].enableRandomWrite = true;
-        outArray[0].Create();
+        CreateRenderTexture(0);
+        CreateRenderTexture(1);
         resetShader.SetTexture(resetShader.FindKernel("CSReset"), Shader.PropertyToID("ResetResults"), outArray[0]);
         resetShader.Dispatch(resetShader.FindKernel("CSReset"), 32, 32, 1);
+        //Graphics.CopyTexture(outArray[0], outArray[1]);
         //We dispatch to the shader in sequental layers, starting from the bottom mips to the top
         //We wait for each to finish before moving on
-        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[0]);
+        //strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[1]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
         ComputeBuffer pixelCountBuffer, mipGoalsBuffer, strokeBuffer;
         uint[] pixelCounts = Enumerable.Repeat(0u, 8).ToArray();
@@ -67,8 +74,8 @@ public class StrokeGenerationManager : MonoBehaviour
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "mipGoals", mipGoalsBuffer);
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "mipPixels", pixelCountBuffer);
         strokeGenShader.SetBuffer(strokeGenShader.FindKernel("CSApplyStroke"), "finalStroke", strokeBuffer);
-        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[0]);
-        strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[0]);
+        //strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[1]);
+        //strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[1]);
         //CREATE COMPUTE BUFFER FOR STROKE STRUCT OF FINAL STROKE
         CommandBuffer comBuff = new CommandBuffer();
         comBuff.SetExecutionFlags(CommandBufferExecutionFlags.None);
@@ -80,18 +87,26 @@ public class StrokeGenerationManager : MonoBehaviour
 
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
-        int strokeN = 0;
-        while(strokeN < 500)
+        for (int textNo = 1; textNo < 3; textNo++)
         {
-            Graphics.ExecuteCommandBuffer(comBuff);
-            strokeBuffer.GetData(inital);
-            Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
-            strokeN++;
-            rng_state = rng_state * 747796405u + 2891336453u;
-            strokeGenShader.SetInt("rng_state",(int) rng_state);
+            if (textNo > 0) CreateRenderTexture(textNo);
+            Graphics.CopyTexture(outArray[textNo - 1], outArray[textNo]);
+            strokeGenShader.SetFloat("goalVal", 1f - .125f * (textNo));
+            strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
+            strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
+            int strokeN = 0;
+            while (strokeN < 500)
+            {
+                Graphics.ExecuteCommandBuffer(comBuff);
+                //strokeBuffer.GetData(inital);
+                //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+                strokeN++;
+                rng_state = rng_state * 747796405u + 2891336453u;
+                strokeGenShader.SetInt("rng_state", (int)rng_state);
+            }
+            
         }
-        
-        //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
+            //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
 
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
@@ -102,48 +117,14 @@ public class StrokeGenerationManager : MonoBehaviour
             Debug.Log(mipGoals[pc]);
         }
         
-        //Retrive map from GPU so we don't have to do this again
-        var rtTmp = RenderTexture.active;
-        Graphics.SetRenderTarget(outArray[0], 0, CubemapFace.Unknown, 0);
-        //RenderTexture.active = outArray[0];
-        Texture2D test = new Texture2D(highestRes, highestRes);
-        test.ReadPixels(new Rect(0, 0, outArray[0].width, outArray[0].height), 0, 0);
-        test.Apply();
-        RenderTexture.active = rtTmp;
-        Color[] tex1C = test.GetPixels();
-        //TAM.SetPixels(test.GetPixels(0, 0, test.width, test.height),0,0);
-        //Test for getting the 2nd one
-        rtTmp = RenderTexture.active;
-        Graphics.SetRenderTarget(outArray[0], 0,CubemapFace.Unknown,1);
-        test = new Texture2D(highestRes, highestRes);
-        test.ReadPixels(new Rect(0, 0, outArray[0].width, outArray[0].height), 0, 0);
-        test.Apply();
-        Color[] tex2C = test.GetPixels();
-        Color c = test.GetPixel(0, 0);
-        if (c.r > 0) Debug.Log("2nd level is working");
-        RenderTexture.active = rtTmp;
-        //TAM.SetPixels(test.GetPixels(0, 0, test.width, test.height), 1, 0);
-        Color[] totalC = TAM.GetPixels(0);
-        int i = 0;
-        int j;
-        for (j =0;j < tex1C.Length; j++)
-        {
-            totalC[i] = tex1C[j];
-            i++;
-        }
-        for (j = 0; j < tex2C.Length; j++)
-        {
-            if (tex2C[j].r > 0) Debug.Log("RED");
-            totalC[i] = tex2C[j];
-            i++;
-        }
-        TAM.SetPixels(totalC, 0);
-        TAM.Apply();
         //AssetDatabase.CreateAsset(outArray[0], "Assets/StrokeGenerationAndRendering/Test.renderTexture");
         //testMat.SetTexture("_MainTex", outArray[0]);
         //AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
-        SaveRT3DToTexture3DAsset(outArray[0], "StrokeGenerationAndRendering/TAM");
+        SaveRT3DToTexture3DAsset(outArray[1], "StrokeGenerationAndRendering/TAM");
+        SaveRT3DToTexture3DAsset(outArray[2], "StrokeGenerationAndRendering/TAM_Tone2");
         outArray[0].Release();
+        outArray[1].Release();
+        outArray[2].Release();
     }
 
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
