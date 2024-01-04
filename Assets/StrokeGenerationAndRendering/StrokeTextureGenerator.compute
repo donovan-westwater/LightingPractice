@@ -20,6 +20,7 @@ struct Stroke {
     float2 normPos;
     float normLength;
     int isVertical;
+    //Add angle and use cos and sin to rotate the line
     //Add more strange stroke behavior later via compliler derectives in functions/ this struct
 };
 RWStructuredBuffer<Stroke> finalStroke: register(u1);
@@ -52,6 +53,29 @@ float pcg_float() {
     uint r = rand_pcg();
     return (float)r * (1.0 / 4294967296.0);
 }
+uint closestPixelToStroke(Stroke s, uint2 pixel, uint res) {
+    uint2 sStart = (uint2) (s.normPos * res);
+    uint2 sEnd = (uint2) (s.normPos * uint2(res, 1));
+    if(s.isVertical) sEnd = (uint2) (s.normPos * uint2(1, res));
+    float l2 = (s.normLength * s.normLength * res);
+    float t = max(0, min(1, dot(pixel - sStart, sEnd- sStart) / l2));
+    uint2 projP = (uint2)(sStart + t * (sEnd - sStart));
+    return (uint)length(projP - pixel);
+}
+uint strokeRadiusInterploation(Stroke s, uint2 pixel, uint res) {
+    uint2 sStart = (uint2) (s.normPos * res);
+    uint2 sEnd = (uint2) (s.normPos * uint2(res, 1));
+    if (s.isVertical) sEnd = (uint2) (s.normPos * uint2(1, res));
+    float l2 = (s.normLength * s.normLength * res);
+    float t = max(0, min(1, dot(pixel - sStart, sEnd - sStart) / l2));
+    uint radius = (uint)(8 + t * -6);
+    return radius;
+}
+//(EDIT THE STROKE DISTRIBUTION FIRST!!!! IT ISN'T THE BEST YET!)
+//Add a rectanglar area sweep where we check to see if the pixels are inside the area of the stroke
+//We need a function to calculate if the pixel is inside the enclosed area
+//We need a function to sweep a specfic section of the stroke to look for pixels
+//The above need to use normalized length/width which is adjusted by resolution
 Stroke StrokeRandomizer(float2 uv) {
     uint seed = (uint)uv.x + resolution * (uint)uv.y;
     seed *= rng_state;
@@ -92,10 +116,13 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                 && _Results[testPoint].b > .95) {
                 pixelsAdded++;
             }
-        }
+        }//I think this is doing the exact oppoiste of what I intend it to. 
+        //It is going to find the stroke with the least coverage instead of the most
+        //This because the goal result being lower gets us further away from the max tone val
+        //FIX THIS!
         float newPixels = (float)(pixelsAdded + mipPixels[j]);
         float goalResult = (totalPixels - newPixels) / totalPixels;
-        toneSum += goalResult;
+        toneSum += mipGoals[j] - goalResult;
     }
     toneSum /= 8.0;
     //Wait for all the candidates to be found before comparing?
