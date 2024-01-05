@@ -91,15 +91,15 @@ public class StrokeGenerationManager : MonoBehaviour
         {
             CreateRenderTexture(textNo);
             Graphics.CopyTexture(outArray[textNo - 1], outArray[textNo]);
-            strokeGenShader.SetFloat("goalVal", 1f - (1f/7f) * (textNo));
+            strokeGenShader.SetFloat("goalVal", 1f - (1f/8f) * (textNo));
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
             while (strokeN < 700)
             {
                 Graphics.ExecuteCommandBuffer(comBuff);
-                //strokeBuffer.GetData(inital);
-                //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+                strokeBuffer.GetData(inital);
+                Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
                 strokeN++;
                 rng_state = rng_state * 747796405u + 2891336453u;
                 strokeGenShader.SetInt("rng_state", (int)rng_state);
