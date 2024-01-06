@@ -6,6 +6,7 @@
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2DArray<float4> _Results : register(u0);
+Texture2D colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
 int resolution;
 SamplerState sampler_LinearClamp;
 
@@ -96,7 +97,8 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     s.isVertical = goalVal < .5;
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
-    
+    float sampleTest = colorPyramid.mips[1][id.xy].z;
+    if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
     for (int j = 7; j >= 0; j--) {
         int mipRes = resolution >> j;

@@ -30,6 +30,10 @@ public class StrokeGenerationManager : MonoBehaviour
         outArray[index].dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
         outArray[index].volumeDepth = 8;
         outArray[index].enableRandomWrite = true;
+        //NEW CODE 1/5/2024
+        //outArray[index].useMipMap = true;
+        //outArray[index].autoGenerateMips = false;
+        //NEW CODE 1/5/2024 END
         outArray[index].Create();
         return outArray[index];
     }
@@ -87,6 +91,10 @@ public class StrokeGenerationManager : MonoBehaviour
 
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
+        RenderTexture colorPyramid = new RenderTexture(highestRes, highestRes,0);
+        colorPyramid.dimension = TextureDimension.Tex2D;
+        colorPyramid.useMipMap = true;
+        colorPyramid.autoGenerateMips = false;
         for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
             CreateRenderTexture(textNo);
@@ -97,6 +105,11 @@ public class StrokeGenerationManager : MonoBehaviour
             int strokeN = 0;
             while (strokeN < 700)
             {
+                //NEW CODE start 1/5/24
+                Graphics.CopyTexture(outArray[textNo], 0, 0, colorPyramid, 0, 0);
+                colorPyramid.GenerateMips();
+                strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
+                //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);
                 strokeBuffer.GetData(inital);
                 Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
