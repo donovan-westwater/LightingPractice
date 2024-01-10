@@ -6,7 +6,7 @@
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2DArray<float4> _Results : register(u0);
-Texture2D colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
+Texture2DArray colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
 int resolution;
 SamplerState sampler_LinearClamp;
 
@@ -97,34 +97,40 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     s.isVertical = goalVal < .5;
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
-    float sampleTest = colorPyramid.mips[1][id.xy].z;
-    if (sampleTest > 0) s.isVertical = !s.isVertical;
+    //float sampleTest = colorPyramid.mips[1][id.xy].z;
+    //if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
     for (int j = 7; j >= 0; j--) {
-        int mipRes = resolution >> j;
-        float totalPixels = (float)(mipRes * mipRes);
-        if (mipGoals[j] < goalVal) continue;
-        uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
-        uint pixelLength = (uint)(mipRes * s.normLength);
-        uint pixelsAdded = 0;
-        for (int sc = 0; sc < pixelLength; sc++) {
-            float newPixels = (float)(pixelsAdded + mipPixels[j]);
-            float newToneAvg = (totalPixels - newPixels) / totalPixels;
-            uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, j);
-            if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, j);
-            if (newToneAvg < goalVal) break;
-            if (_Results[testPoint].r > .95
-                && _Results[testPoint].g > .95
-                && _Results[testPoint].b > .95) {
-                pixelsAdded++;
-            }
-        }//The stroke lengths are being drawn far longer than they should be!
-        //Seems like the Hash_rand function is bugged and not puttng the strokes in the right places
-        //That is what is causing the length issue
-        //FIX THIS!
-        float newPixels = (float)(pixelsAdded + mipPixels[j]);
-        float goalResult = (totalPixels - newPixels) / totalPixels;
-        toneSum += mipGoals[j] - goalResult;
+        uint mipLevel = 0;
+        for(int k = j; k < 8; k++){
+            int mipRes = resolution >> k;
+            float totalPixels = (float)(mipRes * mipRes);
+            if (mipGoals[j] < goalVal) continue;
+            uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
+            uint pixelLength = (uint)(mipRes * s.normLength);
+            uint pixelsAdded = 0;
+            for (int sc = 0; sc < pixelLength; sc++) {
+                float newPixels = (float)(pixelsAdded + mipPixels[j]);
+                float newToneAvg = (totalPixels - newPixels) / totalPixels;
+                uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, j);
+                if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, j);
+                if (newToneAvg < goalVal) break;
+                if (colorPyramid.mips[mipLevel][testPoint].r > .95
+                    && colorPyramid.mips[mipLevel][testPoint].g > .95
+                    && colorPyramid.mips[mipLevel][testPoint].b > .95) {
+                    pixelsAdded++;
+                }
+            }//The stroke lengths are being drawn far longer than they should be!
+            //Seems like the Hash_rand function is bugged and not puttng the strokes in the right places
+            //That is what is causing the length issue
+            //FIX THIS!
+            float newPixels = (float)(pixelsAdded);
+            //float newPixels = (float)(pixelsAdded + mipPixels[j]);
+            //float goalResult = (totalPixels - newPixels) / totalPixels;
+            toneSum += newPixels;// mipGoals[j] - goalResult;
+            mipLevel++;
+        }
+        toneSum /= (float)mipLevel;
     }
     toneSum /= 8.0;
     //Wait for all the candidates to be found before comparing?

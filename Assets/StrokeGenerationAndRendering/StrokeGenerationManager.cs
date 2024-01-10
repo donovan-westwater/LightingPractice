@@ -92,9 +92,11 @@ public class StrokeGenerationManager : MonoBehaviour
         //GraphicsFence applyFence = comBuff.CreateAsyncGraphicsFence();
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         RenderTexture colorPyramid = new RenderTexture(highestRes, highestRes,0);
-        colorPyramid.dimension = TextureDimension.Tex2D;
+        colorPyramid.dimension = TextureDimension.Tex2DArray;
+        colorPyramid.volumeDepth = 8;
         colorPyramid.useMipMap = true;
         colorPyramid.autoGenerateMips = false;
+        colorPyramid.Create();
         for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
             CreateRenderTexture(textNo);
@@ -106,7 +108,9 @@ public class StrokeGenerationManager : MonoBehaviour
             while (strokeN < 700)
             {
                 //NEW CODE start 1/5/24
-                Graphics.CopyTexture(outArray[textNo], 0, 0, colorPyramid, 0, 0);
+                for(int cI = 0; cI < 8; cI++) { 
+                    Graphics.CopyTexture(outArray[textNo], cI, 0, colorPyramid, cI, 0);
+                }
                 colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
                 //new code end
@@ -123,14 +127,21 @@ public class StrokeGenerationManager : MonoBehaviour
 
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
+        RenderTexture saveHighestResSingle = new RenderTexture(highestRes, highestRes, 0);
+        saveHighestResSingle.autoGenerateMips = true;
+        saveHighestResSingle.dimension = TextureDimension.Tex2D;
+        saveHighestResSingle.useMipMap = true;
+        saveHighestResSingle.Create();
+        Graphics.CopyTexture(outArray[7], 0,0, saveHighestResSingle, 0,0);
+       // saveHighestResSingle.GenerateMips();
         //strokeBuffer.GetData(inital);
         //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
-        for(int pc =0; pc < mipGoals.Length; pc++)
+        for (int pc =0; pc < mipGoals.Length; pc++)
         {
             Debug.Log(mipGoals[pc]);
         }
         
-        //AssetDatabase.CreateAsset(outArray[0], "Assets/StrokeGenerationAndRendering/Test.renderTexture");
+        AssetDatabase.CreateAsset(saveHighestResSingle, "Assets/StrokeGenerationAndRendering/SingleTest.renderTexture");
         //testMat.SetTexture("_MainTex", outArray[0]);
         //AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
 
@@ -141,6 +152,10 @@ public class StrokeGenerationManager : MonoBehaviour
             SaveRT3DToTexture3DAsset(outArray[toneN], name);
             outArray[toneN].Release();
         }
+        SaveRT3DToTexture3DAsset(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
+        //SaveRT3DToTexture3DAsset(saveHighestResSingle, "StrokeGenerationAndRendering/TAM_SINGLE_DEBUG");
+        colorPyramid.Release();
+        //saveHighestResSingle.Release();
         //SaveRT3DToTexture3DAsset(outArray[1], "StrokeGenerationAndRendering/TAM");
         //SaveRT3DToTexture3DAsset(outArray[2], "StrokeGenerationAndRendering/TAM_Tone2");
         //outArray[0].Release();

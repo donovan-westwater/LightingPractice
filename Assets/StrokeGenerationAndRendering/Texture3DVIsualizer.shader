@@ -3,7 +3,10 @@ Shader "Unlit/Texture3DVIsualizer"
     Properties
     {
         _MainTex ("Texture", 2DArray) = "white" {}
+        _SingleTex("Single Texture", 2D) = "white" {}
         _Slice("Slice",Int) = 0
+        _MipLevel("Mip Level",Int) = 0
+        [Toggle] _EnableSingle("Toggle Single",Int) = 0
     }
     SubShader
     {
@@ -34,9 +37,12 @@ Shader "Unlit/Texture3DVIsualizer"
             };
 
             UNITY_DECLARE_TEX2DARRAY(_MainTex);
+            UNITY_DECLARE_TEX2D(_SingleTex);
             float4 _MainTex_ST;
+            float4 _SingleTex_ST;
             int _Slice;
-
+            int _MipLevel;
+            int _EnableSingle;
             v2f vert (appdata v)
             {
                 v2f o;
@@ -50,7 +56,8 @@ Shader "Unlit/Texture3DVIsualizer"
             {
                 // sample the texture
                 float3 uvw = float3(i.uv.x,i.uv.y,_Slice);
-                fixed4 col = UNITY_SAMPLE_TEX2DARRAY(_MainTex, float3(i.uv, _Slice));
+                fixed4 col = UNITY_SAMPLE_TEX2DARRAY_LOD(_MainTex, float3(i.uv, _Slice),_MipLevel);
+                if (_EnableSingle) col = UNITY_SAMPLE_TEX2D_LOD(_SingleTex, float2(i.uv), _MipLevel);
                 // apply fog
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
