@@ -31,9 +31,9 @@ public class GenerateMipsTest : MonoBehaviour
     {
         int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
         int mipWidth = width >> mips, mipHeight = height >> mips;
-        var a = new NativeArray<float>(mipWidth * mipHeight * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        var a = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
         NativeArray<float> outputA = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips, (_) =>
+        AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips,0,mipWidth,0,mipHeight,0,depth,rt3D.graphicsFormat, (_) =>
         {
             Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.None);
             //NativeArray<float>.Copy(a, 0, outputA, 0, 1);
