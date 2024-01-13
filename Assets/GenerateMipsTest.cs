@@ -1,6 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 public class GenerateMipsTest : MonoBehaviour
 {
@@ -12,20 +16,39 @@ public class GenerateMipsTest : MonoBehaviour
         test.enableRandomWrite = true;
         test.autoGenerateMips = false;
         test.useMipMap = true;
-        test.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
+        test.volumeDepth = 8;
+        test.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
         test.Create();
 
         testMips.SetTexture(testMips.FindKernel("CSMain"), "Result", test);
-        testMips.Dispatch(testMips.FindKernel("CSMain"), 32, 32, 1);
+        testMips.Dispatch(testMips.FindKernel("CSMain"), 32, 32, 8);
 
         test.GenerateMips();
-        Texture2D outTex = new Texture2D(256, 256);
-        var rtTmp = RenderTexture.active;
-        RenderTexture.active = test;
-        outTex.ReadPixels(new Rect(0, 0, 256, 256), 0, 0);
-        RenderTexture.active = rtTmp;
-        //Graphics.CopyTexture(test, outTex);
-        outTex.Apply();
-        System.IO.File.WriteAllBytes("Assets/StrokeGenerationAndRendering/MipGenTest" + ".png", outTex.EncodeToPNG());
+
+        SaveRT3DToTexture3DAsset(test,"StrokeGenerationAndRendering/MipGenTest",0);
+    }
+    void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,int mips)
+    {
+        int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
+        int mipWidth = width >> mips, mipHeight = height >> mips;
+        var a = new NativeArray<float>(mipWidth * mipHeight * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        NativeArray<float> outputA = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips, (_) =>
+        {
+            Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.None);
+            //NativeArray<float>.Copy(a, 0, outputA, 0, 1);
+            //output.SetPixelData(outputA, 0, 0);
+            for (int index = 0; index < depth; index++)
+            {
+                var tmpA = a.GetSubArray(index * mipWidth * mipHeight, mipWidth * mipHeight);
+                output.SetPixelData(tmpA, mips, index);
+            }
+            output.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+            AssetDatabase.CreateAsset(output, $"Assets/{pathWithoutAssetsAndExtension}.asset");
+            AssetDatabase.SaveAssetIfDirty(output);
+            a.Dispose();
+            outputA.Dispose();
+            rt3D.Release();
+        });
     }
 }
