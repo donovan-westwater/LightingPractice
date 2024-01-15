@@ -13,6 +13,7 @@ public class GenerateMipsTest : MonoBehaviour
     void Start()
     {
         RenderTexture test = new RenderTexture(256, 256, 0);
+        test.graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
         test.enableRandomWrite = true;
         test.autoGenerateMips = false;
         test.useMipMap = true;
@@ -25,17 +26,17 @@ public class GenerateMipsTest : MonoBehaviour
 
         test.GenerateMips();
 
-        SaveRT3DToTexture3DAsset(test,"StrokeGenerationAndRendering/MipGenTest",0);
+        SaveRT3DToTexture3DAsset(test,"StrokeGenerationAndRendering/MipGenTest",1);
     }
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,int mips)
     {
         int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
         int mipWidth = width >> mips, mipHeight = height >> mips;
-        var a = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
-        NativeArray<float> outputA = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips,0,mipWidth,0,mipHeight,0,depth,rt3D.graphicsFormat, (_) =>
+        var a = new NativeArray<int>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        NativeArray<int> outputA = new NativeArray<int>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        AsyncGPUReadbackRequest reqStore = AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips,0,mipWidth,0,mipHeight,0,depth,rt3D.graphicsFormat, (_) =>
         {
-            Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.None);
+            Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.MipChain);
             //NativeArray<float>.Copy(a, 0, outputA, 0, 1);
             //output.SetPixelData(outputA, 0, 0);
             for (int index = 0; index < depth; index++)
@@ -50,5 +51,6 @@ public class GenerateMipsTest : MonoBehaviour
             outputA.Dispose();
             rt3D.Release();
         });
+        
     }
 }
