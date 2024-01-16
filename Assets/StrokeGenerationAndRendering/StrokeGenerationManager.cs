@@ -149,10 +149,10 @@ public class StrokeGenerationManager : MonoBehaviour
         {
             string suffix = "_Tone" + (toneN + 1);
             string name = "StrokeGenerationAndRendering/TAM" + suffix;
-            SaveRT3DToTexture3DAsset(outArray[toneN], name);
+            SaveRT3DToTexture3DAsset(outArray[toneN], name,TextureCreationFlags.None);
             outArray[toneN].Release();
         }
-        SaveRT3DToTexture3DAsset(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
+        SaveRT3DToTexture3DAsset(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS",TextureCreationFlags.MipChain);
         //SaveRT3DToTexture3DAsset(saveHighestResSingle, "StrokeGenerationAndRendering/TAM_SINGLE_DEBUG");
         colorPyramid.Release();
         //saveHighestResSingle.Release();
@@ -163,7 +163,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //outArray[2].Release();
     }
 
-    void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
+    void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,TextureCreationFlags flag)
     {
         int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
         var a = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)

@@ -21,21 +21,25 @@ public class GenerateMipsTest : MonoBehaviour
         test.volumeDepth = 8;
         test.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
         test.Create();
-        stor = new Texture2DArray(test.width, test.height, test.volumeDepth, test.graphicsFormat, TextureCreationFlags.MipChain);
         testMips.SetTexture(testMips.FindKernel("CSMain"), "Result", test);
         testMips.Dispatch(testMips.FindKernel("CSMain"), 32, 32, 8);
 
         test.GenerateMips();
-        AsyncGPUReadbackRequest[] requests = new AsyncGPUReadbackRequest[test.mipmapCount];
-        for(int m = 0; m < test.mipmapCount; m++)
+        return SaveRTWrapper(test, "StrokeGenerationAndRendering/MipGenTest");
+    }
+    IEnumerator SaveRTWrapper(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
+    {
+        stor = new Texture2DArray(rt3D.width, rt3D.height, rt3D.volumeDepth, rt3D.graphicsFormat, TextureCreationFlags.MipChain);
+        AsyncGPUReadbackRequest[] requests = new AsyncGPUReadbackRequest[rt3D.mipmapCount];
+        for (int m = 0; m < rt3D.mipmapCount; m++)
         {
-            requests[m] = SaveRT3DToTexture3DAsset(test, "StrokeGenerationAndRendering/MipGenTest", m);
+            requests[m] = SaveRT3DToTexture3DAsset(rt3D, pathWithoutAssetsAndExtension, m);
         }
         List<int> finshedReqs = new List<int>();
         int rIndex = 0;
-        while(finshedReqs.Count < test.mipmapCount)
+        while (finshedReqs.Count < rt3D.mipmapCount)
         {
-            if(requests[rIndex].done && !finshedReqs.Contains(rIndex))
+            if (requests[rIndex].done && !finshedReqs.Contains(rIndex))
             {
                 finshedReqs.Add(rIndex);
             }
@@ -43,7 +47,7 @@ public class GenerateMipsTest : MonoBehaviour
             if (rIndex >= requests.Length) rIndex = 0;
             yield return new WaitForEndOfFrame();
         }
-        AssetDatabase.CreateAsset(stor, $"Assets/StrokeGenerationAndRendering/MipGenTest.asset");
+        AssetDatabase.CreateAsset(stor, $"Assets/{pathWithoutAssetsAndExtension}.asset");
         AssetDatabase.SaveAssetIfDirty(stor);
     }
     AsyncGPUReadbackRequest SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,int mips)
