@@ -15,6 +15,7 @@ public class StrokeGenerationManager : MonoBehaviour
     uint rng_state = 1245;
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
+    Texture2DArray stor;
     public Material testMat;
     struct Stroke
     {
@@ -38,7 +39,7 @@ public class StrokeGenerationManager : MonoBehaviour
         return outArray[index];
     }
     // Start is called before the first frame update
-    void Start()
+    IEnumerator Start()
     {
         //Create Asset to store our art map in
         TAM = new Texture3D(highestRes, highestRes,8 , TextureFormat.ARGB32,1);
@@ -93,6 +94,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //comBuff.WaitOnAsyncGraphicsFence(applyFence);
         RenderTexture colorPyramid = new RenderTexture(highestRes, highestRes,0);
         colorPyramid.dimension = TextureDimension.Tex2DArray;
+        colorPyramid.graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
         colorPyramid.volumeDepth = 8;
         colorPyramid.useMipMap = true;
         colorPyramid.autoGenerateMips = false;
@@ -127,24 +129,12 @@ public class StrokeGenerationManager : MonoBehaviour
 
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
-        RenderTexture saveHighestResSingle = new RenderTexture(highestRes, highestRes, 0);
-        saveHighestResSingle.autoGenerateMips = true;
-        saveHighestResSingle.dimension = TextureDimension.Tex2D;
-        saveHighestResSingle.useMipMap = true;
-        saveHighestResSingle.Create();
-        Graphics.CopyTexture(outArray[7], 0,0, saveHighestResSingle, 0,0);
-       // saveHighestResSingle.GenerateMips();
-        //strokeBuffer.GetData(inital);
-        //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+
         for (int pc =0; pc < mipGoals.Length; pc++)
         {
             Debug.Log(mipGoals[pc]);
         }
-        
-        AssetDatabase.CreateAsset(saveHighestResSingle, "Assets/StrokeGenerationAndRendering/SingleTest.renderTexture");
-        //testMat.SetTexture("_MainTex", outArray[0]);
-        //AssetDatabase.CreateAsset(TAM, "Assets/StrokeGenerationAndRendering/TAM.asset");
-
+       
         for(int toneN = 0;toneN <  outArray.Length;toneN++)
         {
             string suffix = "_Tone" + (toneN + 1);
@@ -152,9 +142,10 @@ public class StrokeGenerationManager : MonoBehaviour
             SaveRT3DToTexture3DAsset(outArray[toneN], name,TextureCreationFlags.None);
             outArray[toneN].Release();
         }
-        SaveRT3DToTexture3DAsset(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS",TextureCreationFlags.MipChain);
+        colorPyramid.GenerateMips();
+        return SaveRTWrapper(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
         //SaveRT3DToTexture3DAsset(saveHighestResSingle, "StrokeGenerationAndRendering/TAM_SINGLE_DEBUG");
-        colorPyramid.Release();
+        //colorPyramid.Release();
         //saveHighestResSingle.Release();
         //SaveRT3DToTexture3DAsset(outArray[1], "StrokeGenerationAndRendering/TAM");
         //SaveRT3DToTexture3DAsset(outArray[2], "StrokeGenerationAndRendering/TAM_Tone2");
@@ -185,5 +176,56 @@ public class StrokeGenerationManager : MonoBehaviour
             outputA.Dispose();
             rt3D.Release();
         });
+    }
+    IEnumerator SaveRTWrapper(RenderTexture rt3D, string pathWithoutAssetsAndExtension)
+    {
+        stor = new Texture2DArray(rt3D.width, rt3D.height, rt3D.volumeDepth, rt3D.graphicsFormat, TextureCreationFlags.MipChain);
+        AsyncGPUReadbackRequest[] requests = new AsyncGPUReadbackRequest[rt3D.mipmapCount];
+        for (int m = 0; m < rt3D.mipmapCount; m++)
+        {
+            requests[m] = SaveRTWithAllMips(rt3D, pathWithoutAssetsAndExtension, m);
+        }
+        List<int> finshedReqs = new List<int>();
+        int rIndex = 0;
+        while (finshedReqs.Count < rt3D.mipmapCount)
+        {
+            if (requests[rIndex].done && !finshedReqs.Contains(rIndex))
+            {
+                finshedReqs.Add(rIndex);
+            }
+            rIndex++;
+            if (rIndex >= requests.Length) rIndex = 0;
+            yield return new WaitForEndOfFrame();
+        }
+        AssetDatabase.CreateAsset(stor, $"Assets/{pathWithoutAssetsAndExtension}.asset");
+        AssetDatabase.SaveAssetIfDirty(stor);
+        rt3D.Release();
+    }
+    AsyncGPUReadbackRequest SaveRTWithAllMips(RenderTexture rt3D, string pathWithoutAssetsAndExtension, int mips)
+    {
+        int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
+        int mipWidth = width >> mips, mipHeight = height >> mips;
+        var a = new NativeArray<int>(width * height * depth, Allocator.Persistent, NativeArrayOptions.ClearMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        NativeArray<int> outputA = new NativeArray<int>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        AsyncGPUReadbackRequest reqStore = AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, mips, 0, mipWidth, 0, mipHeight, 0, depth, rt3D.graphicsFormat, (_) =>
+        {
+            //Texture2DArray output = new Texture2DArray(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.MipChain);
+            //NativeArray<float>.Copy(a, 0, outputA, 0, 1);
+            //output.SetPixelData(outputA, 0, 0);
+            for (int index = 0; index < depth; index++)
+            {
+                var tmpA = a.GetSubArray(index * mipWidth * mipHeight, mipWidth * mipHeight);
+                stor.SetPixelData(tmpA, mips, index);
+            }
+            stor.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            //AssetDatabase.CreateAsset(output, $"Assets/{pathWithoutAssetsAndExtension}.asset");
+            //AssetDatabase.SaveAssetIfDirty(output);
+            a.Dispose();
+            outputA.Dispose();
+            //Graphics.CopyTexture(stor, stor);
+            //stor.Apply();
+            //rt3D.Release();
+        });
+        return reqStore;
     }
 }

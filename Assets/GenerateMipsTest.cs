@@ -49,6 +49,7 @@ public class GenerateMipsTest : MonoBehaviour
         }
         AssetDatabase.CreateAsset(stor, $"Assets/{pathWithoutAssetsAndExtension}.asset");
         AssetDatabase.SaveAssetIfDirty(stor);
+        rt3D.Release();
     }
     AsyncGPUReadbackRequest SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,int mips)
     {
