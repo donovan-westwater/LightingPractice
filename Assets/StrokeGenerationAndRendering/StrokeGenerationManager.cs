@@ -99,6 +99,13 @@ public class StrokeGenerationManager : MonoBehaviour
         colorPyramid.useMipMap = true;
         colorPyramid.autoGenerateMips = false;
         colorPyramid.Create();
+        RenderTexture TmpMipPyramid = new RenderTexture(highestRes, highestRes, 0);
+        TmpMipPyramid.dimension = TextureDimension.Tex2DArray;
+        TmpMipPyramid.graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
+        TmpMipPyramid.volumeDepth = 8;
+        TmpMipPyramid.useMipMap = true;
+        TmpMipPyramid.autoGenerateMips = false;
+        TmpMipPyramid.Create();
         for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
             CreateRenderTexture(textNo);
@@ -107,23 +114,28 @@ public class StrokeGenerationManager : MonoBehaviour
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
-            while (strokeN < 700)
+            while (strokeN < 10)//700)
             {
                 //NEW CODE start 1/5/24
-                for(int cI = 0; cI < 8; cI++) { 
-                    Graphics.CopyTexture(outArray[textNo], cI, 0, colorPyramid, cI, 0);
-                }
-                colorPyramid.GenerateMips();
+                //for(int cI = 0; cI < 8; cI++) { 
+                //    Graphics.CopyTexture(outArray[textNo], cI, 0, colorPyramid, cI, 0);
+                //}
+                //colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
                 //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);
+                for (int cI = 0; cI < 8; cI++)
+                {
+                    Graphics.CopyTexture(outArray[textNo], cI, 0, colorPyramid, cI, 0);
+                }
+                colorPyramid.GenerateMips();
                 strokeBuffer.GetData(inital);
                 Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
                 strokeN++;
                 rng_state = rng_state * 747796405u + 2891336453u;
                 strokeGenShader.SetInt("rng_state", (int)rng_state);
             }
-            
+            if(textNo == 1) Graphics.CopyTexture(colorPyramid, TmpMipPyramid);
         }
             //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
 
@@ -142,8 +154,8 @@ public class StrokeGenerationManager : MonoBehaviour
             SaveRT3DToTexture3DAsset(outArray[toneN], name,TextureCreationFlags.None);
             outArray[toneN].Release();
         }
-        colorPyramid.GenerateMips();
-        return SaveRTWrapper(colorPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
+        //colorPyramid.GenerateMips();
+        return SaveRTWrapper(TmpMipPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
         //SaveRT3DToTexture3DAsset(saveHighestResSingle, "StrokeGenerationAndRendering/TAM_SINGLE_DEBUG");
         //colorPyramid.Release();
         //saveHighestResSingle.Release();

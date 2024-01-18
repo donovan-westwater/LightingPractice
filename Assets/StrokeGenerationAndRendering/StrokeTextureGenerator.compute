@@ -100,24 +100,23 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     //float sampleTest = colorPyramid.mips[1][id.xy].z;
     //if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
-    for (int j = 7; j >= 0; j--) {
-        uint mipLevel = 0;
-        for(int k = j; k < 8; k++){
+    for (int j = 0; j < 8; j++) { //Mip Levels
+        for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
-            if (mipGoals[j] < goalVal) continue;
+            if (mipGoals[k] < goalVal) continue;
             uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
             uint pixelsAdded = 0;
             for (int sc = 0; sc < pixelLength; sc++) {
-                float newPixels = (float)(pixelsAdded + mipPixels[j]);
+                float newPixels = (float)(pixelsAdded + mipPixels[k]);
                 float newToneAvg = (totalPixels - newPixels) / totalPixels;
-                uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, j);
-                if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, j);
-                if (newToneAvg < goalVal) break;
-                if (colorPyramid.mips[mipLevel][testPoint].r > .95
-                    && colorPyramid.mips[mipLevel][testPoint].g > .95
-                    && colorPyramid.mips[mipLevel][testPoint].b > .95) {
+                uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, k);
+                if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
+                //if (newToneAvg < goalVal) break;
+                if (colorPyramid.mips[j][testPoint].r > .99
+                    && colorPyramid.mips[j][testPoint].g > .99
+                    && colorPyramid.mips[j][testPoint].b > .99) {
                     pixelsAdded++;
                 }
             }//The stroke lengths are being drawn far longer than they should be!
@@ -128,11 +127,11 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             //float newPixels = (float)(pixelsAdded + mipPixels[j]);
             //float goalResult = (totalPixels - newPixels) / totalPixels;
             toneSum += newPixels;// mipGoals[j] - goalResult;
-            mipLevel++;
         }
-        toneSum /= (float)mipLevel;
+        toneSum /= 8.0;
     }
     toneSum /= 8.0;
+    toneSum /= s.normLength;
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
     if (toneSum > maxCanidateToneVal) {
