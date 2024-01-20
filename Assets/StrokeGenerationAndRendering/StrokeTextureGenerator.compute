@@ -16,7 +16,7 @@ float goalVal = 1.995;//0.875;
 globallycoherent RWStructuredBuffer<float> mipGoals;
 globallycoherent RWStructuredBuffer<uint> mipPixels;
 uint rng_state = 0u;
-
+int drawStrokes = 0;
 struct Stroke {
     float2 normPos;
     float normLength;
@@ -100,7 +100,8 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     //float sampleTest = colorPyramid.mips[1][id.xy].z;
     //if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
-    for (int j = 0; j < 8; j++) { //Mip Levels
+    float debugSum = 0;
+    for (int j = 1; j < 2; j++) { //Mip Levels
         for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
@@ -108,25 +109,34 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
             uint pixelLength = (uint)(mipRes * s.normLength);
             uint pixelsAdded = 0;
-            for (int sc = 0; sc < pixelLength; sc++) {
+            float fuckingtest = 0.0;
+            for (uint sc = 0; sc < pixelLength; sc++) {
                 float newPixels = (float)(pixelsAdded + mipPixels[k]);
                 float newToneAvg = (totalPixels - newPixels) / totalPixels;
                 uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, k);
                 if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
                 //if (newToneAvg < goalVal) break;
-                if (colorPyramid.mips[j][testPoint].r > .99
-                    && colorPyramid.mips[j][testPoint].g > .99
-                    && colorPyramid.mips[j][testPoint].b > .99) {
+                float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
+                float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
+                if (colorCheck.r > .99
+                    && colorCheck.g > .99
+                    && colorCheck.b > .99) {
                     pixelsAdded++;
+                    //fuckingtest = fuckingtest + .20;
+                    fuckingtest += .01;
+                    
                 }
-            }//The stroke lengths are being drawn far longer than they should be!
-            //Seems like the Hash_rand function is bugged and not puttng the strokes in the right places
-            //That is what is causing the length issue
+                if (drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(0, fuckingtest, 0, 1);
+            }//The pixel evaluation system seems like it isn't working at all
+            //Mip map levels past 0 are not being used correctly. Need to understand how to access them better spatially
             //FIX THIS!
             float newPixels = (float)(pixelsAdded);
+            //if (pixelsAdded == 0) newPixels = .85;
             //float newPixels = (float)(pixelsAdded + mipPixels[j]);
             //float goalResult = (totalPixels - newPixels) / totalPixels;
             toneSum += newPixels;// mipGoals[j] - goalResult;
+            debugSum += (float)pixelLength;
+            //_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest, 0.0, 0, 1);
         }
         toneSum /= 8.0;
     }
