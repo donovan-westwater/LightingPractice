@@ -100,13 +100,15 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     //float sampleTest = colorPyramid.mips[1][id.xy].z;
     //if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
-    float debugSum = 0;
-    for (int j = 1; j < 2; j++) { //Mip Levels
+    float debugSum = 0.0;
+    uint3 debugPoint = uint3(0, 0,0);
+    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
         for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
             if (mipGoals[k] < goalVal) continue;
             uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
+            debugPoint = uint3(pixelPos.x,pixelPos.y,0);
             uint pixelLength = (uint)(mipRes * s.normLength);
             uint pixelsAdded = 0;
             float fuckingtest = 0.0;
@@ -122,26 +124,29 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     && colorCheck.g > .99
                     && colorCheck.b > .99) {
                     pixelsAdded++;
-                    //fuckingtest = fuckingtest + .20;
-                    fuckingtest += .01;
+                    fuckingtest = (float)pixelsAdded/(float)pixelLength;
+                    //fuckingtest += .01;
                     
                 }
-                if (drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(0, fuckingtest, 0, 1);
+                fuckingtest = (debugSum + fuckingtest);
+                if (drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(0, fuckingtest/8.0, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Mip map levels past 0 are not being used correctly. Need to understand how to access them better spatially
             //FIX THIS!
             float newPixels = (float)(pixelsAdded);
+            debugSum = fuckingtest;
             //if (pixelsAdded == 0) newPixels = .85;
             //float newPixels = (float)(pixelsAdded + mipPixels[j]);
             //float goalResult = (totalPixels - newPixels) / totalPixels;
             toneSum += newPixels;// mipGoals[j] - goalResult;
-            debugSum += (float)pixelLength;
+            //debugSum += (float)pixelLength;
             //_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest, 0.0, 0, 1);
         }
         toneSum /= 8.0;
     }
     toneSum /= 8.0;
     toneSum /= s.normLength;
+    //if (drawStrokes)_Results[debugPoint] = float4(toneSum, _Results[debugPoint].g, 0, 1);
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
     if (toneSum > maxCanidateToneVal) {
