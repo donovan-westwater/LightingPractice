@@ -102,7 +102,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     float toneSum = 0;
     float debugSum = 0.0;
     uint3 debugPoint = uint3(0, 0,0);
-    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
+    for (int j = 4; j < 5; j++) { //Mip Levels 0-8
         for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
@@ -125,11 +125,12 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     && colorCheck.b > .99) {
                     pixelsAdded++;
                     fuckingtest = (float)pixelsAdded/(float)pixelLength;
-                    //fuckingtest += .01;
+                    //fuckingtest /= 8.0;
+                    //fuckingtest += .1;
                     
                 }
                 fuckingtest = (debugSum + fuckingtest);
-                if (drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(0, fuckingtest/8.0, 0, 1);
+                if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Mip map levels past 0 are not being used correctly. Need to understand how to access them better spatially
             //FIX THIS!
