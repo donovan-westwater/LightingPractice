@@ -11,6 +11,7 @@ public class StrokeGenerationManager : MonoBehaviour
 {
     public ComputeShader strokeGenShader;
     public ComputeShader resetShader;
+    public ComputeShader debugShader;
     public int highestRes = 512;
     uint rng_state = 1245;
     Texture3D TAM;
@@ -109,6 +110,7 @@ public class StrokeGenerationManager : MonoBehaviour
         TmpMipPyramid.volumeDepth = 8;
         TmpMipPyramid.useMipMap = true;
         TmpMipPyramid.autoGenerateMips = false;
+        TmpMipPyramid.enableRandomWrite = true;
         TmpMipPyramid.Create();
         for (int textNo = 1; textNo < outArray.Length; textNo++)
         {
@@ -126,7 +128,7 @@ public class StrokeGenerationManager : MonoBehaviour
                 //}
                 //colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
-                if (strokeN == 4) strokeGenShader.SetInt("drawStrokes", 1);
+                if (strokeN == 6) strokeGenShader.SetInt("drawStrokes", 1);
                 else strokeGenShader.SetInt("drawStrokes", 0);
                 //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);
@@ -141,9 +143,17 @@ public class StrokeGenerationManager : MonoBehaviour
                 rng_state = rng_state * 747796405u + 2891336453u;
                 strokeGenShader.SetInt("rng_state", (int)rng_state);
             }
-            if(textNo == 1) Graphics.CopyTexture(colorPyramid, TmpMipPyramid);
+            if (textNo == 1)
+            {
+                Graphics.CopyTexture(colorPyramid, TmpMipPyramid);
+                debugShader.SetInt("resolution", highestRes);
+                debugShader.SetTexture(debugShader.FindKernel("CSMain"), Shader.PropertyToID("colorPyramid"), colorPyramid);
+                debugShader.SetTexture(debugShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"), TmpMipPyramid);
+                debugShader.Dispatch(debugShader.FindKernel("CSMain"), highestRes / 16, highestRes / 16, 1);
+            }
         }
-            //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
+        
+        //Graphics.ExecuteCommandBufferAsync(comBuff, 0);
 
         pixelCountBuffer.GetData(pixelCounts);
         mipGoalsBuffer.GetData(mipGoals);
