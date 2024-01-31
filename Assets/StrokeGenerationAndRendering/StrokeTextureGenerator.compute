@@ -26,6 +26,7 @@ struct Stroke {
 };
 RWStructuredBuffer<Stroke> finalStroke: register(u1);
 groupshared float maxCanidateToneVal = 0.0;
+groupshared uint maxCanidateToneVal_uint = 0u;
 //Found here:https://gist.github.com/keijiro/ee7bc388272548396870#file-prng-cginc-L1
 //VERY COMMON PSUEDO RANDOM FUNCTION!
 float nrand(float2 uv)
@@ -53,6 +54,25 @@ float hash_rand(uint input) {
 float pcg_float() {
     uint r = rand_pcg();
     return (float)r * (1.0 / 4294967296.0);
+}
+//Conversion from uint to float and vise versea
+//This conversion is bijective and perseverves ordering
+// Check isnan(value) before use.
+uint order_preserving_float_map(float value)
+{
+    // For negative values, the mask becomes 0xffffffff.
+    // For positive values, the mask becomes 0x80000000.
+    uint uvalue = asuint(value);
+    uint mask = -int(uvalue >> 31) | 0x80000000;
+    return uvalue ^ mask;
+}
+
+float inverse_order_preserving_float_map(uint value)
+{
+    // If the msb is set, the mask becomes 0x80000000.
+    // If the msb is unset, the mask becomes 0xffffffff.
+    uint mask = ((value >> 31) - 1) | 0x80000000;
+    return asfloat(value ^ mask);
 }
 uint closestPixelToStroke(Stroke s, uint2 pixel, uint res) {
     uint2 sStart = (uint2) (s.normPos * res);
@@ -103,7 +123,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     float toneSum = 0;
     float debugSum = 0.0;
     uint3 debugPoint = uint3(0, 0,0);
-    for (int j = 4; j < 8; j++) { //Mip Levels 0-8
+    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
         for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
@@ -148,11 +168,24 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     }
     toneSum /= 8.0;
     toneSum /= s.normLength;
-    if (drawStrokes)_Results[debugPoint] = float4(debugSum/4.0//toneSum
+    if (drawStrokes)_Results[debugPoint] = float4(debugSum/8.0//toneSum
         , 0, 0, 1);
+    toneSum = debugSum / 8.;
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
-    if (toneSum > maxCanidateToneVal) {
+     //AllMemoryBarrierWithGroupSync();
+    uint convertTone = order_preserving_float_map(toneSum);
+    uint ogUint = 0u;
+    //Assign the higher uint to the uint val
+    InterlockedMax(maxCanidateToneVal_uint,convertTone ,ogUint);
+    //Make sure all the max operations are finished
+    AllMemoryBarrierWithGroupSync();
+    ogUint = maxCanidateToneVal_uint;
+    //Get back the assigned value to assign to float values
+    float ogTone = toneSum;
+    toneSum = inverse_order_preserving_float_map(ogUint);
+    //Figure out which treat is the correct one
+    if(abs(ogTone-toneSum) < 0.0001){
         float og = 0.0;
         InterlockedExchange(maxCanidateToneVal, toneSum, og);
         InterlockedExchange(finalStroke[0].normLength, s.normLength,og);
@@ -160,7 +193,6 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(finalStroke[0].normPos.y, s.normPos.y, og);
         int ogInt = 0;
         InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
-        //finalStroke[0] = s;
     }
     
 }

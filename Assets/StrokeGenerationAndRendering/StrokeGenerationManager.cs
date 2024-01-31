@@ -42,6 +42,7 @@ public class StrokeGenerationManager : MonoBehaviour
     // Start is called before the first frame update
     IEnumerator Start()
     {
+        //rng_state *= (uint)System.DateTime.Now.Millisecond;
         //Create Asset to store our art map in
         TAM = new Texture3D(highestRes, highestRes,8 , TextureFormat.ARGB32,1);
         CreateRenderTexture(0);
@@ -88,6 +89,7 @@ public class StrokeGenerationManager : MonoBehaviour
 
         //comBuff.CreateAsyncGraphicsFence();
         comBuff.SetComputeFloatParam(strokeGenShader, Shader.PropertyToID("maxCanidateToneVal"), 0f);
+        comBuff.SetComputeIntParam(strokeGenShader, Shader.PropertyToID("maxCanidateToneVal_uint"), (int)0u);
         comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
         comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
 
@@ -120,7 +122,7 @@ public class StrokeGenerationManager : MonoBehaviour
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
-            while (strokeN < 5)//700)
+            while (strokeN < 2)//700)
             {
                 //NEW CODE start 1/5/24
                 //for(int cI = 0; cI < 8; cI++) { 
@@ -128,7 +130,7 @@ public class StrokeGenerationManager : MonoBehaviour
                 //}
                 //colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
-                if (strokeN == 6) strokeGenShader.SetInt("drawStrokes", 1);
+                if (strokeN == -6) strokeGenShader.SetInt("drawStrokes", 1);
                 else strokeGenShader.SetInt("drawStrokes", 0);
                 //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);

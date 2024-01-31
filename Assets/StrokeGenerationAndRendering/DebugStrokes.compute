@@ -12,7 +12,7 @@ SamplerState sampler_LinearClamp;
 void CSMain(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     float debugSum = 0.0;
     uint2 pixelPos = uint2(id.x, id.y);
-    for (int j = 4; j < 8; j++) { //Mip Levels 0-8
+    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
         for (int k = 0; k >= 0; k--) { //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
@@ -31,5 +31,5 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
 
     }
     float b = _Results[uint3(pixelPos.x, pixelPos.y, 0)].g;
-    if (b > 0.0)_Results[uint3(pixelPos.x, pixelPos.y, 0)] = float4(debugSum / 4.0, 0, 0, 1);
+    if (b > 0.0)_Results[uint3(pixelPos.x, pixelPos.y, 0)] = float4(debugSum / 8.0, 0, 0, 1);
 }
