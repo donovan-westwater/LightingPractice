@@ -150,13 +150,13 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     //fuckingtest += .1;
                     
                 }
-                fuckingtest = (debugSum + fuckingtest);
+                //fuckingtest = (debugSum + fuckingtest);
                 //if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Using layers above 5 might be causing issues? still not quite right
             //FIX THIS!
             float newPixels = (float)(pixelsAdded);
-            debugSum = fuckingtest;
+            debugSum += fuckingtest;
             //if (pixelsAdded == 0) newPixels = .85;
             //float newPixels = (float)(pixelsAdded + mipPixels[j]);
             //float goalResult = (totalPixels - newPixels) / totalPixels;
