@@ -130,7 +130,7 @@ public class StrokeGenerationManager : MonoBehaviour
                 //}
                 //colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
-                if (strokeN == -6) strokeGenShader.SetInt("drawStrokes", 1);
+                if (strokeN == -24) strokeGenShader.SetInt("drawStrokes", 1);
                 else strokeGenShader.SetInt("drawStrokes", 0);
                 //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);

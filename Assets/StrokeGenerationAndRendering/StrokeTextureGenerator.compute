@@ -123,8 +123,8 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     float toneSum = 0;
     float debugSum = 0.0;
     uint3 debugPoint = uint3(0, 0,0);
-    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
-        for(int k = 0; k >= 0; k--){ //Tone Levels 7-0
+    for (int j = 0; j < 4; j++) { //Mip Levels 0-8
+        for(int k = 7; k >= 0; k--){ //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
             if (mipGoals[k] < goalVal) continue;
@@ -132,7 +132,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             debugPoint = uint3(pixelPos.x,pixelPos.y,0);
             uint pixelLength = (uint)(mipRes * s.normLength);
             uint pixelsAdded = 0;
-            float fuckingtest = 0.0;
+            float debugtest = 0.0;
             for (uint sc = 0; sc < pixelLength; sc++) {
                 float newPixels = (float)(pixelsAdded + mipPixels[k]);
                 float newToneAvg = (totalPixels - newPixels) / totalPixels;
@@ -145,18 +145,17 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     && colorCheck.g > .99
                     && colorCheck.b > .99) {
                     pixelsAdded++;
-                    fuckingtest = (float)pixelsAdded/(float)pixelLength;
-                    //fuckingtest /= 8.0;
-                    //fuckingtest += .1;
+                    debugtest = (float)pixelsAdded/(float)pixelLength;
+
                     
                 }
-                //fuckingtest = (debugSum + fuckingtest);
+                
                 //if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Using layers above 5 might be causing issues? still not quite right
             //FIX THIS!
             float newPixels = (float)(pixelsAdded);
-            debugSum += fuckingtest;
+            debugSum += debugtest;
             //if (pixelsAdded == 0) newPixels = .85;
             //float newPixels = (float)(pixelsAdded + mipPixels[j]);
             //float goalResult = (totalPixels - newPixels) / totalPixels;
@@ -168,9 +167,9 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     }
     toneSum /= 8.0;
     toneSum /= s.normLength;
-    if (drawStrokes)_Results[debugPoint] = float4(debugSum/8.0//toneSum
+    if (drawStrokes && (2.0*debugSum/16.0) < .5)_Results[debugPoint] = float4(2.0*debugSum/16.0//toneSum
         , 0, 0, 1);
-    toneSum = debugSum / 8.;
+    toneSum = debugSum / 16.;
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
      //AllMemoryBarrierWithGroupSync();
