@@ -11,28 +11,29 @@ SamplerState sampler_LinearClamp;
 //Use that point like you would in the stroke system
 [numthreads(16, 16, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
-    float debugSum = 0.0;
+    float debugSum[8] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     uint2 pixelPos = uint2(id.x, id.y);
-    float2 uniNorm = float2((float)id.x / (float)resolution, (float)id.y / (float)resolution);
+    float2 uniNorm = float2((float)id.x/(float)resolution, (float)id.x / (float)resolution);
     for (int j = 0; j < 8; j++) { //Mip Levels 0-8
         for (int k = 7; k >= 0; k--) { //Tone Levels 7-0
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
             uint pixelsAdded = 0;
             uint3 testPoint = uint3(pixelPos.x, pixelPos.y, k);
-            float mult = 1.0 / ((float)(1 >> k));
-            float3 normPoint = float3(uniNorm.x * mult, uniNorm.y * mult, k);
+            float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes, k);
             float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
             if (colorCheck.r > .99
                 && colorCheck.g > .99
                 && colorCheck.b > .99) {
                 pixelsAdded++;
-                debugSum += 1.0;
+                debugSum[k] += 1.0/8.0;//1.0;
             }
             //if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
-            float b = _Results[uint3(uniNorm.x*mipRes, uniNorm.y*mipRes, k)].g;
-            if (b > 0.0)_Results[uint3(uniNorm.x * mipRes, uniNorm.y * mipRes, k)] = float4(debugSum / 8.0, 0, 0, 1);
+            float r = _Results[uint3(pixelPos.x, pixelPos.y, k)].r;
+            if(r.x > 0.0)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(debugSum[k] , 0, 0, 1);
         }        
     }
+    //float b = _Results[uint3(pixelPos.x, pixelPos.y, 0)].g;
+    //if (b > 0.0)_Results[uint3(pixelPos.x, pixelPos.y, 0)] = float4(debugSum / 8.0, 0, 0, 1);
     
 }
