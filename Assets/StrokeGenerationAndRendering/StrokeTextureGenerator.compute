@@ -140,6 +140,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                 if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
                 //if (newToneAvg < goalVal) break;
                 float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
+                normPoint = float3(normPoint.x / (float)(1 << k), normPoint.y / (float)(1 << k), k);
                 float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
                 if (colorCheck.r > .99
                     && colorCheck.g > .99
