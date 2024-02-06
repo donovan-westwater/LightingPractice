@@ -105,7 +105,7 @@ Stroke StrokeRandomizer(float2 uv) {
     float y = hash_rand(seed);
     seed = ~seed;
     seed = seed | 273809707u;
-    float l = .3+.2*hash_rand(seed); //(.3 - 1.0) range
+    float l = .1+.4*hash_rand(seed); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
     s.normLength = l;
@@ -171,6 +171,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     if (drawStrokes && (2.0*debugSum/16.0) < .5)_Results[debugPoint] = float4(2.0*debugSum/16.0//toneSum
         , 0, 0, 1);
     toneSum = debugSum / 16.;
+    toneSum /= s.normLength;
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
      //AllMemoryBarrierWithGroupSync();
