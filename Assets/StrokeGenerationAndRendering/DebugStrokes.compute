@@ -7,8 +7,7 @@ RWTexture2DArray<float4> _Results;
 Texture2DArray colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
 int resolution;
 SamplerState sampler_LinearClamp;
-//This system doesn't work when using multiple levels. Change it to calculate a normalized point for id.xy
-//Use that point like you would in the stroke system
+//Writing over a couple pixels instead of a single pixel. Should fix this and make sure main one doesn't have same issue
 [numthreads(16, 16, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     float debugSum[8] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };

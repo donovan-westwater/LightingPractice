@@ -19,6 +19,7 @@ uint rng_state = 0u;
 int drawStrokes = 0;
 struct Stroke {
     float2 normPos;
+    float2 xySlope;
     float normLength;
     int isVertical;
     //Add angle and use cos and sin to rotate the line
@@ -105,7 +106,7 @@ Stroke StrokeRandomizer(float2 uv) {
     float y = hash_rand(seed);
     seed = ~seed;
     seed = seed | 273809707u;
-    float l = .1+.4*hash_rand(seed); //(.3 - 1.0) range
+    float l = .1+.7*hash_rand(seed); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
     s.normLength = l;
@@ -116,6 +117,16 @@ Stroke StrokeRandomizer(float2 uv) {
 void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     s.isVertical = goalVal < .5;
+    uint seed = id.x + resolution * id.y;
+    seed *= rng_state;
+    if (s.isVertical) {
+        float angle = (3.14 / 4.0) * hash_rand(seed)+ (3.14 / 4.0);
+        s.xySlope = float2(cos(angle), sin(angle));
+    }
+    else {
+        float angle = (3.14 / 4.0) * hash_rand(seed);
+        s.xySlope = float2(cos(angle), sin(angle));
+    }
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
     //float sampleTest = colorPyramid.mips[1][id.xy].z;
@@ -136,8 +147,9 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             for (uint sc = 0; sc < pixelLength; sc++) {
                 float newPixels = (float)(pixelsAdded + mipPixels[k]);
                 float newToneAvg = (totalPixels - newPixels) / totalPixels;
-                uint3 testPoint = uint3((pixelPos.x + sc) % mipRes, pixelPos.y, k);
-                if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
+                uint3 testPoint = uint3(round((float)pixelPos.x + (float)sc*s.xySlope.x) % mipRes
+                    , round((float)pixelPos.y + (float)sc* s.xySlope.y) % mipRes, k);
+                //if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
                 //if (newToneAvg < goalVal) break;
                 float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
                 normPoint = float3(normPoint.x / (float)(1 << k), normPoint.y / (float)(1 << k), k);
@@ -168,10 +180,11 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     }
     toneSum /= 8.0;
     toneSum /= s.normLength;
-    if (drawStrokes && (2.0*debugSum/16.0) < .5)_Results[debugPoint] = float4(2.0*debugSum/16.0//toneSum
-        , 0, 0, 1);
+   
     toneSum = debugSum / 16.;
     toneSum /= s.normLength;
+    if (drawStrokes)_Results[debugPoint] = float4(toneSum
+        , 0, 0, 1);
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
      //AllMemoryBarrierWithGroupSync();
@@ -192,32 +205,56 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(finalStroke[0].normLength, s.normLength,og);
         InterlockedExchange(finalStroke[0].normPos.x, s.normPos.x, og);
         InterlockedExchange(finalStroke[0].normPos.y, s.normPos.y, og);
+        InterlockedExchange(finalStroke[0].xySlope.x, s.xySlope.x, og);
+        InterlockedExchange(finalStroke[0].xySlope.y, s.xySlope.y, og);
         int ogInt = 0;
         InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
     }
     
 }
+//Diagonal Drawing isn't working. Need to fix it!
 [numthreads(8, 8, 1)]
 void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
     //Take the currently selected final stroke and apply it!
     //if(resolution == 0)_Results[id.xyz] = float4(finalStroke[0].normLength, 0.0, 0.0, 1.0);
+    if (id.x == 0 && id.y == 0) _Results[uint3(id.x, id.y, 0)] = float4(1, 0, 0, 1);
+    if (id.x == resolution-1 && id.y == resolution-1) _Results[uint3(id.x, id.y, 0)] = float4(1, 0, 0, 1);
     for (int j = 7; j >= 0; j--) {
         if (mipGoals[j] < goalVal) continue;
         int mipRes = resolution >> j;
         float totalPixels = (float)(mipRes * mipRes);
         uint2 pixelPos = uint2((uint)(finalStroke[0].normPos.x * mipRes), (uint)(finalStroke[0].normPos.y * mipRes));
         uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
+        /*
         bool check = ((int)id.x < (int)(pixelPos.x + pixelLength) - mipRes
             || (id.x >= pixelPos.x)) && id.x <= clamp(pixelPos.x + pixelLength, 0, mipRes)
             && pixelPos.y == id.y;
         if(finalStroke[0].isVertical) check = ((int)id.y < (int)(pixelPos.y + pixelLength) - mipRes
             || (id.y >= pixelPos.y)) && id.y <= clamp(pixelPos.y + pixelLength,0,mipRes)
             && pixelPos.x == id.x;
-
+        */
+        //Compare projected distance from center of pixel to line to see if it less than sqrt(2*.5^2)
+        float2 testSlope = float2(cos(radians(15)), sin(radians(15)));
+        float testLength = (float)mipRes;
+        float2 strokeLine = testSlope * testLength;//finalStroke[0].normLength;
+        float2 lineStart = float2(.5,.5);
+        float2 lineEnd = lineStart + strokeLine;
+        float2 testPoint = float2((float)id.x + .5, (float)id.y + .5);
+        strokeLine = lineEnd - lineStart;
+        float dUpLine = dot(strokeLine, testPoint) / dot(strokeLine, strokeLine);
+        float2 closestPoint = float2(lineStart.x+dUpLine * strokeLine.x,
+            lineStart.y + dUpLine * strokeLine.y);
+        float distToLine = length(testPoint - closestPoint);
+        bool isOnLine = distToLine < sqrt(2.0 * pow(.5, 2.)) 
+            && dUpLine < mipRes* finalStroke[0].normLength;
         bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
             && _Results[uint3(id.x, id.y, j)].g > .95
             && _Results[uint3(id.x, id.y, j)].b > .95;
-        if (check) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        bool testCheck = closestPoint.x <= (float)(id.x + 1.0) && closestPoint.y <= (float)(id.y + 1.0)
+            && closestPoint.x > (float)id.x && closestPoint.y > (float)id.y;
+        if(distToLine <= sqrt(2.0 * pow(.5, 2.)))_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (testCheck)_Results[uint3(id.x, id.y, j)] = float4(0.0, distToLine, 0.0, 1.0);
+        //if (isOnLine) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
         if (isPrevWhite && (_Results[uint3(id.x, id.y, j)].r < .95
             || _Results[uint3(id.x, id.y, j)].g < .95
             || _Results[uint3(id.x, id.y, j)].b < .95)) {
