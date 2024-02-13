@@ -75,23 +75,32 @@ float inverse_order_preserving_float_map(uint value)
     uint mask = ((value >> 31) - 1) | 0x80000000;
     return asfloat(value ^ mask);
 }
-uint closestPixelToStroke(Stroke s, uint2 pixel, uint res) {
-    uint2 sStart = (uint2) (s.normPos * res);
-    uint2 sEnd = (uint2) (s.normPos * uint2(res, 1));
-    if(s.isVertical) sEnd = (uint2) (s.normPos * uint2(1, res));
-    float l2 = (s.normLength * s.normLength * res);
-    float t = max(0, min(1, dot(pixel - sStart, sEnd- sStart) / l2));
-    uint2 projP = (uint2)(sStart + t * (sEnd - sStart));
-    return (uint)length(projP - pixel);
-}
-uint strokeRadiusInterploation(Stroke s, uint2 pixel, uint res) {
-    uint2 sStart = (uint2) (s.normPos * res);
-    uint2 sEnd = (uint2) (s.normPos * uint2(res, 1));
-    if (s.isVertical) sEnd = (uint2) (s.normPos * uint2(1, res));
-    float l2 = (s.normLength * s.normLength * res);
-    float t = max(0, min(1, dot(pixel - sStart, sEnd - sStart) / l2));
-    uint radius = (uint)(8 + t * -6);
-    return radius;
+float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
+    float2 testSlope = float2(cos(radians(05)), sin(radians(05)));
+    float testLength = (float)mipRes;
+    float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
+    float2 lineStart = float2(.0, .0); //s.pos goes here
+    float2 lineEnd = lineStart + strokeLine;
+    float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
+    strokeLine = lineEnd - lineStart;
+    //Find midpoint of yp and p+1 (for vert is x and x+1)
+    //Find y >= midpoint, chose upper pixel(, else chose lower pixel
+    float m;
+    float midD = 0;
+    bool isOnLine = false;
+    if (s.isVertical) {
+        m = strokeLine.x / strokeLine.y;
+        float x = m * (testPoint.y - .5) + lineStart.x;
+        //midD = sign(m) * (x - testPoint.x);
+        isOnLine = x >= testPoint.x - .5 && x <= testPoint.x + .5;
+    }
+    else {
+        m = strokeLine.y / strokeLine.x;
+        float y = m * (testPoint.x - .5) + lineStart.y;
+        isOnLine = y >= testPoint.y - .5 && y <= testPoint.y + .5;
+    }
+    //bool isOnLine = m <= .5;
+    return isOnLine;// isOnLine;
 }
 //(EDIT THE STROKE DISTRIBUTION FIRST!!!! IT ISN'T THE BEST YET!)
 //Add a rectanglar area sweep where we check to see if the pixels are inside the area of the stroke
@@ -234,7 +243,7 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
             && pixelPos.x == id.x;
         */
         //Compare projected distance from center of pixel to line to see if it less than sqrt(2*.5^2)
-        float2 testSlope = float2(cos(radians(15)), sin(radians(15)));
+        float2 testSlope = float2(cos(radians(05)), sin(radians(05)));
         float testLength = (float)mipRes;
         float2 strokeLine = testSlope * testLength;//finalStroke[0].normLength;
         float2 lineStart = float2(.5,.5);
@@ -245,16 +254,20 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
         float2 closestPoint = float2(lineStart.x+dUpLine * strokeLine.x,
             lineStart.y + dUpLine * strokeLine.y);
         float distToLine = length(testPoint - closestPoint);
-        bool isOnLine = distToLine < sqrt(2.0 * pow(.5, 2.)) 
-            && dUpLine < mipRes* finalStroke[0].normLength;
+        bool mD = isPixelInStroke(finalStroke[0], mipRes, id.xy);
         bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
             && _Results[uint3(id.x, id.y, j)].g > .95
             && _Results[uint3(id.x, id.y, j)].b > .95;
         bool testCheck = closestPoint.x <= (float)(id.x + 1.0) && closestPoint.y <= (float)(id.y + 1.0)
             && closestPoint.x > (float)id.x && closestPoint.y > (float)id.y;
-        if(distToLine <= sqrt(2.0 * pow(.5, 2.)))_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
-        if (testCheck)_Results[uint3(id.x, id.y, j)] = float4(0.0, distToLine, 0.0, 1.0);
-        //if (isOnLine) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        testCheck = closestPoint.y > (testPoint.y - .5) && closestPoint.y < (testPoint.y + .5);
+        testCheck =  closestPoint.x <(testPoint.x - .5) && closestPoint.x > (testPoint.x + .5);
+        float m = strokeLine.y / strokeLine.x;
+        float y = m * (testPoint.x - .5) + lineStart.y-.5;
+
+        //if(distToLine <= sqrt(2.0 * pow(.5, 2.)))_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (mD)_Results[uint3(id.x, id.y, j)] = float4(0.0, 1, 0.0, 1.0);
+        //if (y >= testPoint.y-.5 && y <= testPoint.y+.5) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
         if (isPrevWhite && (_Results[uint3(id.x, id.y, j)].r < .95
             || _Results[uint3(id.x, id.y, j)].g < .95
             || _Results[uint3(id.x, id.y, j)].b < .95)) {

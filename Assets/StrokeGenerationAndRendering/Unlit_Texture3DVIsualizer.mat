@@ -30,6 +30,6 @@ Material:
     m_Floats:
     - _EnableSingle: 0
     - _MipLevel: 0.71
-    - _Slice: 0.32
+    - _Slice: -0.02
     m_Colors: []
   m_BuildTextureStacks: []
