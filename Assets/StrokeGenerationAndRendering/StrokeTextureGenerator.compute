@@ -76,10 +76,10 @@ float inverse_order_preserving_float_map(uint value)
     return asfloat(value ^ mask);
 }
 float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
-    float2 testSlope = float2(cos(radians(05)), sin(radians(05)));
+    float2 testSlope = float2(cos(radians(-15)), sin(radians(-15))); //Range has to be between -45 to 45 in order to work!
     float testLength = (float)mipRes;
     float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
-    float2 lineStart = float2(.0, .0); //s.pos goes here
+    float2 lineStart = float2(.0, 100.0); //s.pos goes here
     float2 lineEnd = lineStart + strokeLine;
     float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
     strokeLine = lineEnd - lineStart;
@@ -92,12 +92,12 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
         m = strokeLine.x / strokeLine.y;
         float x = m * (testPoint.y - .5) + lineStart.x;
         //midD = sign(m) * (x - testPoint.x);
-        isOnLine = x >= testPoint.x - .5 && x <= testPoint.x + .5;
+        isOnLine = x > testPoint.x - .5 && x <= testPoint.x + .5;
     }
     else {
         m = strokeLine.y / strokeLine.x;
         float y = m * (testPoint.x - .5) + lineStart.y;
-        isOnLine = y >= testPoint.y - .5 && y <= testPoint.y + .5;
+        isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
     }
     //bool isOnLine = m <= .5;
     return isOnLine;// isOnLine;
