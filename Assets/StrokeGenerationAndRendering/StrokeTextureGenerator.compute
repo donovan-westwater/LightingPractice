@@ -76,10 +76,10 @@ float inverse_order_preserving_float_map(uint value)
     return asfloat(value ^ mask);
 }
 float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
-    float2 testSlope = float2(cos(radians(-15)), sin(radians(-15))); //Range has to be between -45 to 45 in order to work!
-    float testLength = (float)mipRes/4.0;
+    float2 testSlope = float2(cos(radians(15)), sin(radians(15))); //Range has to be between -45 to 45 in order to work!
+    float testLength = (float)mipRes/2.0;
     float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
-    float2 lineStart = float2(50.0, 100.0); //s.pos goes here
+    float2 lineStart = float2(10., (float)mipRes-15.0); //s.pos goes here
     float2 lineEnd = lineStart + strokeLine;
     float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
     strokeLine = lineEnd - lineStart;
@@ -92,13 +92,32 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
     float b;
     float midD = 0;
     bool isOnLine = false;
-    bool inRange = length(testPoint - lineStart) < testLength;
+    //If lineEnd > mipRes -> test with fake line with same slope but different start pos
+    float fRes = (float)mipRes;
+    bool wrapExists = false;
+    float2 wrapStart = float2(-999.,-999.);
+    float2 wrapEnd = wrapStart;
+    //Setup the wrap line if it exists
+    if (lineEnd.x > fRes || lineEnd.y > fRes || lineEnd.y < 0) {
+        wrapExists = true;
+        wrapStart = float2(lineStart.x, lineStart.y+fRes);
+        wrapEnd = float2(lineEnd.x, lineEnd.y + fRes);
+        if (lineEnd.x > fRes) {
+            wrapStart.x = lineStart.x - fRes;
+            wrapStart.y = lineStart.y;
+            wrapEnd.x = lineEnd.x - fRes;
+        }
+        if (lineEnd.y > fRes) {
+            wrapStart.y = lineStart.y - fRes;
+            wrapEnd.y = lineEnd.y - fRes;
+        }
+    }
     if (s.isVertical) {
         m = strokeLine.x / strokeLine.y;
         b = lineStart.x - lineStart.y * m;
         float x = m * (testPoint.y - .5) + b;
         //midD = sign(m) * (x - testPoint.x);
-        isOnLine = x > testPoint.x - .5 && x <= testPoint.x + .5;
+        isOnLine = x >= testPoint.x - .5 && x < testPoint.x + .5;
         isOnLine = isOnLine && (testPoint.y-.5 > lineStart.y && testPoint.y-.5 < lineEnd.y);
     }
     else {
@@ -107,9 +126,16 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
         float y = m * (testPoint.x - .5) + b;
         isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
         isOnLine = isOnLine && (testPoint.x-.5 > lineStart.x && testPoint.x-.5 < lineEnd.x);
+        //Above test but with the wrapped line if it exists
+        if (wrapExists) {
+            b = wrapStart.y - wrapStart.x * m; //Adjust to new start
+            y = m * (testPoint.x - .5) + b; //Get y again
+            bool wrapTest = (testPoint.x - .5 > wrapStart.x && testPoint.x - .5 < wrapEnd.x) &&
+                (y > testPoint.y - .5 && y <= testPoint.y + .5);
+            isOnLine = isOnLine || wrapTest;
+        }
 
     }
-    isOnLine = isOnLine && inRange;
     //bool isOnLine = m <= .5;
     return isOnLine;// isOnLine;
 }
