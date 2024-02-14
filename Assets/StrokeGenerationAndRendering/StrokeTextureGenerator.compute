@@ -77,28 +77,35 @@ float inverse_order_preserving_float_map(uint value)
 }
 float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
     float2 testSlope = float2(cos(radians(-15)), sin(radians(-15))); //Range has to be between -45 to 45 in order to work!
-    float testLength = (float)mipRes;
+    float testLength = (float)mipRes/4.0;
     float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
-    float2 lineStart = float2(.0, 100.0); //s.pos goes here
+    float2 lineStart = float2(50.0, 100.0); //s.pos goes here
     float2 lineEnd = lineStart + strokeLine;
     float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
     strokeLine = lineEnd - lineStart;
-    //Find midpoint of yp and p+1 (for vert is x and x+1)
-    //Find y >= midpoint, chose upper pixel(, else chose lower pixel
+    //Check to see if line intersection with vertical (or horiontal when line is vertical) side of pixel is > p.y and <=p.y+1
+    //TO DO: Add a check to see if the point is the the radius of the circle formed by the line origin and length
+    //The check has to be able to wrap around the edges!!!!
+    //IDEA: If the endpoint goes off the edge, add a "new" line with the starting point off the edge, projected the opposite direction a set length
+   //This Other Line can then be tested against as well using the same method as before!
     float m;
     float midD = 0;
     bool isOnLine = false;
+    bool inRange = length(testPoint - lineStart) < testLength;
     if (s.isVertical) {
         m = strokeLine.x / strokeLine.y;
         float x = m * (testPoint.y - .5) + lineStart.x;
         //midD = sign(m) * (x - testPoint.x);
         isOnLine = x > testPoint.x - .5 && x <= testPoint.x + .5;
+        isOnLine = isOnLine && (testPoint.y-.5 > lineStart.y && testPoint.y-.5 < lineEnd.y);
     }
     else {
         m = strokeLine.y / strokeLine.x;
         float y = m * (testPoint.x - .5) + lineStart.y;
         isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
+        isOnLine = isOnLine && (testPoint.x-.5 > lineStart.x && testPoint.x-.5 < lineEnd.x);
     }
+    isOnLine = isOnLine && inRange;
     //bool isOnLine = m <= .5;
     return isOnLine;// isOnLine;
 }
