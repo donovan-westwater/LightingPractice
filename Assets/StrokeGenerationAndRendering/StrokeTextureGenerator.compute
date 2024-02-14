@@ -89,21 +89,25 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
     //IDEA: If the endpoint goes off the edge, add a "new" line with the starting point off the edge, projected the opposite direction a set length
    //This Other Line can then be tested against as well using the same method as before!
     float m;
+    float b;
     float midD = 0;
     bool isOnLine = false;
     bool inRange = length(testPoint - lineStart) < testLength;
     if (s.isVertical) {
         m = strokeLine.x / strokeLine.y;
-        float x = m * (testPoint.y - .5) + lineStart.x;
+        b = lineStart.x - lineStart.y * m;
+        float x = m * (testPoint.y - .5) + b;
         //midD = sign(m) * (x - testPoint.x);
         isOnLine = x > testPoint.x - .5 && x <= testPoint.x + .5;
         isOnLine = isOnLine && (testPoint.y-.5 > lineStart.y && testPoint.y-.5 < lineEnd.y);
     }
     else {
         m = strokeLine.y / strokeLine.x;
-        float y = m * (testPoint.x - .5) + lineStart.y;
+        b = lineStart.y - lineStart.x * m;
+        float y = m * (testPoint.x - .5) + b;
         isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
         isOnLine = isOnLine && (testPoint.x-.5 > lineStart.x && testPoint.x-.5 < lineEnd.x);
+
     }
     isOnLine = isOnLine && inRange;
     //bool isOnLine = m <= .5;
