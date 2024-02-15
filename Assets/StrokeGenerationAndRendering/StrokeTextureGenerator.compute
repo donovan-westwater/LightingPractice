@@ -173,14 +173,14 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     s.isVertical = goalVal < .5;
     uint seed = id.x + resolution * id.y;
     seed *= rng_state;
-    seed << ((id.x + id.y) % 6);
+    //seed << ((id.x + id.y) % 6);
     if (s.isVertical) {
         float angle = 90.0 * hash_rand(seed) + 45.0;
         s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
     else {
         float angle = 90.0 * hash_rand(seed) - 45.0;
-        s.xySlope = float2(cos(angle), sin(angle));
+        s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
     //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
