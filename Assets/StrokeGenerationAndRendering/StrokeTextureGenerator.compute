@@ -76,10 +76,10 @@ float inverse_order_preserving_float_map(uint value)
     return asfloat(value ^ mask);
 }
 float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
-    float2 testSlope = float2(cos(radians(15)), sin(radians(15))); //Range has to be between -45 to 45 in order to work!
-    float testLength = (float)mipRes/2.0;
+    float2 testSlope = s.xySlope; //Range has to be between -45 to 45 in order to work!
+    float testLength = s.normLength*(float)mipRes;
     float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
-    float2 lineStart = float2(10., (float)mipRes-15.0); //s.pos goes here
+    float2 lineStart = s.normPos*(float)mipRes; //s.pos goes here
     float2 lineEnd = lineStart + strokeLine;
     float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
     strokeLine = lineEnd - lineStart;
@@ -119,6 +119,14 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
         //midD = sign(m) * (x - testPoint.x);
         isOnLine = x >= testPoint.x - .5 && x < testPoint.x + .5;
         isOnLine = isOnLine && (testPoint.y-.5 > lineStart.y && testPoint.y-.5 < lineEnd.y);
+        //Above test but with the wrapped line if it exists
+        if (wrapExists) {
+            b = wrapStart.x - wrapStart.y * m; //Adjust to new start
+            x = m * (testPoint.y - .5) + b; //Get y again
+            bool wrapTest = (testPoint.y - .5 > wrapStart.y && testPoint.y - .5 < wrapEnd.y) &&
+                (x > testPoint.x - .5 && x <= testPoint.x + .5);
+            isOnLine = isOnLine || wrapTest;
+        }
     }
     else {
         m = strokeLine.y / strokeLine.x;
@@ -152,7 +160,7 @@ Stroke StrokeRandomizer(float2 uv) {
     float y = hash_rand(seed);
     seed = ~seed;
     seed = seed | 273809707u;
-    float l = .1+.7*hash_rand(seed); //(.3 - 1.0) range
+    float l = .1 + .7 * hash_rand(seed); //(.3 - 1.0) range
     Stroke s;
     s.normPos = float2(x, y);
     s.normLength = l;
@@ -165,12 +173,13 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     s.isVertical = goalVal < .5;
     uint seed = id.x + resolution * id.y;
     seed *= rng_state;
+    seed << ((id.x + id.y) % 6);
     if (s.isVertical) {
-        float angle = (3.14 / 4.0) * hash_rand(seed)+ (3.14 / 4.0);
-        s.xySlope = float2(cos(angle), sin(angle));
+        float angle = 90.0 * hash_rand(seed) + 45.0;
+        s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
     else {
-        float angle = (3.14 / 4.0) * hash_rand(seed);
+        float angle = 90.0 * hash_rand(seed) - 45.0;
         s.xySlope = float2(cos(angle), sin(angle));
     }
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
@@ -262,49 +271,15 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
 [numthreads(8, 8, 1)]
 void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
     //Take the currently selected final stroke and apply it!
-    //if(resolution == 0)_Results[id.xyz] = float4(finalStroke[0].normLength, 0.0, 0.0, 1.0);
-    if (id.x == 0 && id.y == 0) _Results[uint3(id.x, id.y, 0)] = float4(1, 0, 0, 1);
-    if (id.x == resolution-1 && id.y == resolution-1) _Results[uint3(id.x, id.y, 0)] = float4(1, 0, 0, 1);
     for (int j = 7; j >= 0; j--) {
         if (mipGoals[j] < goalVal) continue;
         int mipRes = resolution >> j;
         float totalPixels = (float)(mipRes * mipRes);
-        uint2 pixelPos = uint2((uint)(finalStroke[0].normPos.x * mipRes), (uint)(finalStroke[0].normPos.y * mipRes));
-        uint pixelLength = (uint)(mipRes * finalStroke[0].normLength);
-        /*
-        bool check = ((int)id.x < (int)(pixelPos.x + pixelLength) - mipRes
-            || (id.x >= pixelPos.x)) && id.x <= clamp(pixelPos.x + pixelLength, 0, mipRes)
-            && pixelPos.y == id.y;
-        if(finalStroke[0].isVertical) check = ((int)id.y < (int)(pixelPos.y + pixelLength) - mipRes
-            || (id.y >= pixelPos.y)) && id.y <= clamp(pixelPos.y + pixelLength,0,mipRes)
-            && pixelPos.x == id.x;
-        */
-        //Compare projected distance from center of pixel to line to see if it less than sqrt(2*.5^2)
-        float2 testSlope = float2(cos(radians(05)), sin(radians(05)));
-        float testLength = (float)mipRes;
-        float2 strokeLine = testSlope * testLength;//finalStroke[0].normLength;
-        float2 lineStart = float2(.5,.5);
-        float2 lineEnd = lineStart + strokeLine;
-        float2 testPoint = float2((float)id.x + .5, (float)id.y + .5);
-        strokeLine = lineEnd - lineStart;
-        float dUpLine = dot(strokeLine, testPoint) / dot(strokeLine, strokeLine);
-        float2 closestPoint = float2(lineStart.x+dUpLine * strokeLine.x,
-            lineStart.y + dUpLine * strokeLine.y);
-        float distToLine = length(testPoint - closestPoint);
-        bool mD = isPixelInStroke(finalStroke[0], mipRes, id.xy);
+        bool onLine = isPixelInStroke(finalStroke[0], mipRes, id.xy);
         bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
             && _Results[uint3(id.x, id.y, j)].g > .95
             && _Results[uint3(id.x, id.y, j)].b > .95;
-        bool testCheck = closestPoint.x <= (float)(id.x + 1.0) && closestPoint.y <= (float)(id.y + 1.0)
-            && closestPoint.x > (float)id.x && closestPoint.y > (float)id.y;
-        testCheck = closestPoint.y > (testPoint.y - .5) && closestPoint.y < (testPoint.y + .5);
-        testCheck =  closestPoint.x <(testPoint.x - .5) && closestPoint.x > (testPoint.x + .5);
-        float m = strokeLine.y / strokeLine.x;
-        float y = m * (testPoint.x - .5) + lineStart.y-.5;
-
-        //if(distToLine <= sqrt(2.0 * pow(.5, 2.)))_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
-        if (mD)_Results[uint3(id.x, id.y, j)] = float4(0.0, 1, 0.0, 1.0);
-        //if (y >= testPoint.y-.5 && y <= testPoint.y+.5) _Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (onLine)_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
         if (isPrevWhite && (_Results[uint3(id.x, id.y, j)].r < .95
             || _Results[uint3(id.x, id.y, j)].g < .95
             || _Results[uint3(id.x, id.y, j)].b < .95)) {
