@@ -171,7 +171,7 @@ Stroke StrokeRandomizer(float2 uv) {
 void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
     Stroke s = StrokeRandomizer(float2(id.x, id.y));
     s.isVertical = goalVal < .5;
-    uint seed = id.x + resolution * id.y;
+    uint seed = id.x % 16 + resolution * id.y;
     seed *= rng_state;
     //seed << ((id.x + id.y) % 6);
     if (s.isVertical) {

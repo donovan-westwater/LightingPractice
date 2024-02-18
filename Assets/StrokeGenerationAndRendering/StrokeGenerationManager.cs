@@ -124,7 +124,7 @@ public class StrokeGenerationManager : MonoBehaviour
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
-            while (strokeN < 100)//700)
+            while (strokeN < 700)//700)
             {
                 //NEW CODE start 1/5/24
                 //for(int cI = 0; cI < 8; cI++) { 
