@@ -280,10 +280,11 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             //Check is point is contained above or below
             if (isPixelInStroke(s, mipRes, currentPixel + adjustDir)) currentPixel += adjustDir;
             else if (isPixelInStroke(s, mipRes, currentPixel - adjustDir)) currentPixel -= adjustDir;
-
+            if(!isPixelInStroke(s, mipRes, currentPixel))continue;
             uint3 testPoint = uint3(currentPixel.x % mipRes
                 , currentPixel.y % mipRes, 0);
             if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
+            if (drawStrokes && sc == 0)_Results[testPoint] = float4(.4, .4, 0, 1);
             currentPixel += incrementDir;
         }
     }
