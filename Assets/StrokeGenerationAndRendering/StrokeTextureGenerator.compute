@@ -118,12 +118,12 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
         float x = m * (testPoint.y - .5) + b;
         //midD = sign(m) * (x - testPoint.x);
         isOnLine = x >= testPoint.x - .5 && x < testPoint.x + .5;
-        isOnLine = isOnLine && (testPoint.y-.5 > lineStart.y && testPoint.y-.5 < lineEnd.y);
+        isOnLine = isOnLine && (testPoint.y-.5 >= lineStart.y && testPoint.y-.5 <= lineEnd.y);
         //Above test but with the wrapped line if it exists
         if (wrapExists) {
             b = wrapStart.x - wrapStart.y * m; //Adjust to new start
             x = m * (testPoint.y - .5) + b; //Get y again
-            bool wrapTest = (testPoint.y - .5 > wrapStart.y && testPoint.y - .5 < wrapEnd.y) &&
+            bool wrapTest = (testPoint.y - .5 >= wrapStart.y && testPoint.y - .5 <= wrapEnd.y) &&
                 (x > testPoint.x - .5 && x <= testPoint.x + .5);
             isOnLine = isOnLine || wrapTest;
         }
@@ -133,12 +133,12 @@ float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
         b = lineStart.y - lineStart.x * m;
         float y = m * (testPoint.x - .5) + b;
         isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
-        isOnLine = isOnLine && (testPoint.x-.5 > lineStart.x && testPoint.x-.5 < lineEnd.x);
+        isOnLine = isOnLine && (testPoint.x-.5 >= lineStart.x && testPoint.x-.5 <= lineEnd.x);
         //Above test but with the wrapped line if it exists
         if (wrapExists) {
             b = wrapStart.y - wrapStart.x * m; //Adjust to new start
             y = m * (testPoint.x - .5) + b; //Get y again
-            bool wrapTest = (testPoint.x - .5 > wrapStart.x && testPoint.x - .5 < wrapEnd.x) &&
+            bool wrapTest = (testPoint.x - .5 >= wrapStart.x && testPoint.x - .5 <= wrapEnd.x) &&
                 (y > testPoint.y - .5 && y <= testPoint.y + .5);
             isOnLine = isOnLine || wrapTest;
         }
@@ -267,11 +267,12 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         //Debug Test
         int mipRes = resolution;
         float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
-        float pixelLength = (float)mipRes * s.normLength;
-        uint2 currentPixel = uint2((uint)pixelPos.x, (uint)pixelPos.y);
+        float pixelLength = (float)mipRes * s.normLength * s.xySlope.x;
+        uint2 currentPixel = uint2(round(pixelPos.x), round(pixelPos.y));
         uint2 incrementDir = uint2(1, 0);
         uint2 adjustDir = uint2(0, 1);
         if (abs(s.xySlope.y) > abs(s.xySlope.x)) {
+            pixelLength = (float)mipRes * s.normLength * s.xySlope.y;
             incrementDir = uint2(0, 1);
             adjustDir = uint2(1, 0);
         }
