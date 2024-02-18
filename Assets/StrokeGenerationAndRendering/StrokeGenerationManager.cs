@@ -14,6 +14,10 @@ public class StrokeGenerationManager : MonoBehaviour
     public ComputeShader debugShader;
     public int highestRes = 512;
     uint rng_state = 1245;
+    [Range(0,45)]
+    public float angleMax = 45f;
+    [Range(-45, 0)]
+    public float angleMin = -45f;
     Texture3D TAM;
     RenderTexture[] outArray = new RenderTexture[8]; //Each one is a mipMap layer
     Texture2DArray stor;
@@ -55,6 +59,7 @@ public class StrokeGenerationManager : MonoBehaviour
         //We wait for each to finish before moving on
         //strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSMain"), Shader.PropertyToID("_Results"),outArray[1]);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
+        strokeGenShader.SetVector(Shader.PropertyToID("angleRange"), new Vector4(angleMin, angleMax, 0, 0));
         ComputeBuffer pixelCountBuffer, mipGoalsBuffer, strokeBuffer;
         uint[] pixelCounts = Enumerable.Repeat(0u, 8).ToArray();
         pixelCountBuffer = new ComputeBuffer(pixelCounts.Length, sizeof(uint));

@@ -17,6 +17,7 @@ globallycoherent RWStructuredBuffer<float> mipGoals;
 globallycoherent RWStructuredBuffer<uint> mipPixels;
 uint rng_state = 0u;
 int drawStrokes = 0;
+float2 angleRange = float2(-45, 45);
 struct Stroke {
     float2 normPos;
     float2 xySlope;
@@ -175,11 +176,11 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     seed *= rng_state;
     //seed << ((id.x + id.y) % 6);
     if (s.isVertical) {
-        float angle = 90.0 * hash_rand(seed) + 45.0;
+        float angle = 90.0+ angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed);//90.0 * hash_rand(seed) + 45.0;
         s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
     else {
-        float angle = 90.0 * hash_rand(seed) - 45.0;
+        float angle = angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed); //90.0 * hash_rand(seed) - 45.0;
         s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
     //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
