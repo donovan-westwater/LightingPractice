@@ -218,7 +218,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     
                 }
                 
-                //if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
+                //if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Using layers above 5 might be causing issues? still not quite right
             //FIX THIS!
@@ -238,8 +238,8 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
    
     toneSum = debugSum / 16.;
     toneSum /= s.normLength;
-    if (drawStrokes)_Results[debugPoint] = float4(toneSum
-        , 0, 0, 1);
+    //if (drawStrokes)_Results[debugPoint] = float4(toneSum
+    //    , 0, 0, 1);
     //Wait for all the candidates to be found before comparing?
     //AllMemoryBarrierWithGroupSync();
      //AllMemoryBarrierWithGroupSync();
@@ -264,6 +264,27 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(finalStroke[0].xySlope.y, s.xySlope.y, og);
         int ogInt = 0;
         InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
+        //Debug Test
+        int mipRes = resolution;
+        float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
+        float pixelLength = (float)mipRes * s.normLength;
+        uint2 currentPixel = uint2((uint)pixelPos.x, (uint)pixelPos.y);
+        uint2 incrementDir = uint2(1, 0);
+        uint2 adjustDir = uint2(0, 1);
+        if (abs(s.xySlope.y) > abs(s.xySlope.x)) {
+            incrementDir = uint2(0, 1);
+            adjustDir = uint2(1, 0);
+        }
+        for (uint sc = 0; sc < (uint)pixelLength; sc++) {
+            //Check is point is contained above or below
+            if (isPixelInStroke(s, mipRes, currentPixel + adjustDir)) currentPixel += adjustDir;
+            else if (isPixelInStroke(s, mipRes, currentPixel - adjustDir)) currentPixel -= adjustDir;
+
+            uint3 testPoint = uint3(currentPixel.x % mipRes
+                , currentPixel.y % mipRes, 0);
+            if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
+            currentPixel += incrementDir;
+        }
     }
     
 }

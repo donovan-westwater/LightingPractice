@@ -124,7 +124,7 @@ public class StrokeGenerationManager : MonoBehaviour
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("_Results"), outArray[textNo]);
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
-            while (strokeN < 700)//700)
+            while (strokeN < 1)//700)
             {
                 //NEW CODE start 1/5/24
                 //for(int cI = 0; cI < 8; cI++) { 
@@ -132,7 +132,7 @@ public class StrokeGenerationManager : MonoBehaviour
                 //}
                 //colorPyramid.GenerateMips();
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
-                if (textNo == -4 && strokeN == 99) strokeGenShader.SetInt("drawStrokes", 1);
+                if (strokeN == 0) strokeGenShader.SetInt("drawStrokes", 1);
                 else strokeGenShader.SetInt("drawStrokes", 0);
                 //new code end
                 Graphics.ExecuteCommandBuffer(comBuff);

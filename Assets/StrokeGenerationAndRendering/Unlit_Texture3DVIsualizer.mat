@@ -20,7 +20,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 18700000, guid: 7d7f88d5e4ce45243a58ed1d45794f5a, type: 2}
+        m_Texture: {fileID: 18700000, guid: 17a0c7f429b082148a4e7df8bf995982, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SingleTex:
@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _EnableSingle: 0
-    - _MipLevel: 0.71
-    - _Slice: -0.02
+    - _MipLevel: 0.55
+    - _Slice: 0.73
     m_Colors: []
   m_BuildTextureStacks: []
