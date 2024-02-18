@@ -194,16 +194,32 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             int mipRes = resolution >> k;
             float totalPixels = (float)(mipRes * mipRes);
             if (mipGoals[k] < goalVal) continue;
-            uint2 pixelPos = uint2((uint)(s.normPos.x * mipRes), (uint)(s.normPos.y * mipRes));
+            float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
+            float pixelLength = (float)mipRes * s.normLength * s.xySlope.x;
+            uint2 currentPixel = uint2(round(pixelPos.x), round(pixelPos.y));
+            uint2 incrementDir = uint2(1, 0);
+            uint2 adjustDir = uint2(0, 1);
+            if (abs(s.xySlope.y) > abs(s.xySlope.x)) {
+                pixelLength = (float)mipRes * s.normLength * s.xySlope.y;
+                incrementDir = uint2(0, 1);
+                adjustDir = uint2(1, 0);
+            }
             debugPoint = uint3(pixelPos.x,pixelPos.y,0);
-            uint pixelLength = (uint)(mipRes * s.normLength);
             uint pixelsAdded = 0;
+            float totalLength = pixelLength;
             float debugtest = 0.0;
-            for (uint sc = 0; sc < pixelLength; sc++) {
+            for (uint sc = 0; sc < (uint)pixelLength; sc++) {
                 float newPixels = (float)(pixelsAdded + mipPixels[k]);
                 float newToneAvg = (totalPixels - newPixels) / totalPixels;
-                uint3 testPoint = uint3(round((float)pixelPos.x + (float)sc*s.xySlope.x) % mipRes
-                    , round((float)pixelPos.y + (float)sc* s.xySlope.y) % mipRes, k);
+                //Adjust the current pixel
+                if (isPixelInStroke(s, mipRes, currentPixel + adjustDir)) currentPixel += adjustDir;
+                else if (isPixelInStroke(s, mipRes, currentPixel - adjustDir)) currentPixel -= adjustDir;
+                if (!isPixelInStroke(s, mipRes, currentPixel)) {
+                    totalLength -= 1;
+                    continue;
+                }
+                uint3 testPoint = uint3(currentPixel.x % mipRes
+                    , currentPixel.y % mipRes, k);
                 //if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
                 //if (newToneAvg < goalVal) break;
                 float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
@@ -213,11 +229,12 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                     && colorCheck.g > .99
                     && colorCheck.b > .99) {
                     pixelsAdded++;
-                    debugtest = (float)pixelsAdded/(float)pixelLength;
+                    debugtest = (float)pixelsAdded/totalLength;
 
                     
                 }
-                
+                //Increment pixel
+                currentPixel += incrementDir;
                 //if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
             }//The pixel evaluation system seems like it isn't working at all
             //Using layers above 5 might be causing issues? still not quite right
@@ -265,6 +282,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         int ogInt = 0;
         InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
         //Debug Test
+        /*
         int mipRes = resolution;
         float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
         float pixelLength = (float)mipRes * s.normLength * s.xySlope.x;
@@ -287,6 +305,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
             if (drawStrokes && sc == 0)_Results[testPoint] = float4(.4, .4, 0, 1);
             currentPixel += incrementDir;
         }
+        */
     }
     
 }
