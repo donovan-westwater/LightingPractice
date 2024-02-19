@@ -174,7 +174,6 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
     s.isVertical = goalVal < .5;
     uint seed = id.x % 16 + resolution * id.y;
     seed *= rng_state;
-    //seed << ((id.x + id.y) % 6);
     if (s.isVertical) {
         float angle = 90.0+ angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed);//90.0 * hash_rand(seed) + 45.0;
         s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
@@ -183,10 +182,6 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         float angle = angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed); //90.0 * hash_rand(seed) - 45.0;
         s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
     }
-    //_Results[uint3(id.x % 256, id.x / 256, 0)] = float4(s.normLength, s.normPos.x, s.normPos.y, 1.0);
-    //if (id.x == 0 && id.y == 0 && id.z == 0) s = finalStroke[0];
-    //float sampleTest = colorPyramid.mips[1][id.xy].z;
-    //if (sampleTest > 0) s.isVertical = !s.isVertical;
     float toneSum = 0;
     float debugSum = 0.0;
     uint3 debugPoint = uint3(0, 0,0);
@@ -221,8 +216,6 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                 }
                 uint3 testPoint = uint3(currentPixel.x % mipRes
                     , currentPixel.y % mipRes, k);
-                //if (s.isVertical) testPoint = uint3(pixelPos.x, (pixelPos.y + sc) % mipRes, k);
-                //if (newToneAvg < goalVal) break;
                 float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
                 normPoint = float3(normPoint.x / (float)(1 << k), normPoint.y / (float)(1 << k), k);
                 float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
@@ -236,18 +229,12 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
                 }
                 //Increment pixel
                 currentPixel += incrementDir;
-                //if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
-            }//The pixel evaluation system seems like it isn't working at all
-            //Using layers above 5 might be causing issues? still not quite right
-            //FIX THIS!
+                
+            }
             float newPixels = (float)(pixelsAdded);
             debugSum += debugtest;
-            //if (pixelsAdded == 0) newPixels = .85;
-            //float newPixels = (float)(pixelsAdded + mipPixels[j]);
-            //float goalResult = (totalPixels - newPixels) / totalPixels;
-            toneSum += newPixels;// mipGoals[j] - goalResult;
-            //debugSum += (float)pixelLength;
-            //_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest, 0.0, 0, 1);
+            
+            toneSum += newPixels;
         }
         toneSum /= 8.0;
     }
@@ -256,11 +243,6 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
    
     toneSum = debugSum / 16.;
     toneSum /= s.normLength;
-    //if (drawStrokes)_Results[debugPoint] = float4(toneSum
-    //    , 0, 0, 1);
-    //Wait for all the candidates to be found before comparing?
-    //AllMemoryBarrierWithGroupSync();
-     //AllMemoryBarrierWithGroupSync();
     uint convertTone = order_preserving_float_map(toneSum);
     uint ogUint = 0u;
     //Assign the higher uint to the uint val
@@ -282,31 +264,7 @@ void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadI
         InterlockedExchange(finalStroke[0].xySlope.y, s.xySlope.y, og);
         int ogInt = 0;
         InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
-        //Debug Test
-        /*
-        int mipRes = resolution;
-        float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
-        float pixelLength = (float)mipRes * s.normLength * s.xySlope.x;
-        uint2 currentPixel = uint2(round(pixelPos.x), round(pixelPos.y));
-        uint2 incrementDir = uint2(1, 0);
-        uint2 adjustDir = uint2(0, 1);
-        if (abs(s.xySlope.y) > abs(s.xySlope.x)) {
-            pixelLength = (float)mipRes * s.normLength * s.xySlope.y;
-            incrementDir = uint2(0, 1);
-            adjustDir = uint2(1, 0);
-        }
-        for (uint sc = 0; sc < (uint)pixelLength; sc++) {
-            //Check is point is contained above or below
-            if (isPixelInStroke(s, mipRes, currentPixel + adjustDir)) currentPixel += adjustDir;
-            else if (isPixelInStroke(s, mipRes, currentPixel - adjustDir)) currentPixel -= adjustDir;
-            if(!isPixelInStroke(s, mipRes, currentPixel))continue;
-            uint3 testPoint = uint3(currentPixel.x % mipRes
-                , currentPixel.y % mipRes, 0);
-            if(drawStrokes)_Results[testPoint] = float4(0, 1, 0, 1);
-            if (drawStrokes && sc == 0)_Results[testPoint] = float4(.4, .4, 0, 1);
-            currentPixel += incrementDir;
-        }
-        */
+        
     }
     
 }
@@ -333,6 +291,7 @@ void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
         }
     }
 }
+//This kernal is unused. I haven't deleted it because it looking for a CSMain. Please ignore this kernal!
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
 {

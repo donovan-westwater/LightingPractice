@@ -535,6 +535,7 @@ MonoBehaviour:
   resetShader: {fileID: 7200000, guid: 4db56f72c9a085449b0c11589b89743e, type: 3}
   debugShader: {fileID: 7200000, guid: d3674633e85d0694689b1dc63ac77261, type: 3}
   highestRes: 256
+  randomizeWithTime: 1
   angleMax: 15
   angleMin: -15
   testMat: {fileID: 2100000, guid: 92a998f6065fb8e43b0367dcfeaa02a1, type: 2}
