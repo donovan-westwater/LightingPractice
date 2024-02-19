@@ -176,11 +176,13 @@ public class StrokeGenerationManager : MonoBehaviour
         {
             string suffix = "_Tone" + (toneN + 1);
             string name = "StrokeGenerationAndRendering/TAM" + suffix;
-            SaveRT3DToTexture3DAsset(outArray[toneN], name,TextureCreationFlags.None);
-            outArray[toneN].Release();
+            outArray[toneN] = CombineCustomMipsIntoTexture(outArray[toneN]);
+            //SaveRT3DToTexture3DAsset(outArray[toneN], name,TextureCreationFlags.None);
+            //outArray[toneN].Release();
         }
         //colorPyramid.GenerateMips();
-        return SaveRTWrapper(TmpMipPyramid, "StrokeGenerationAndRendering/TAM_MIPS");
+        RenderTexture outputArray = CombineTexturesIntoArray(outArray);
+        return SaveRTWrapper(outputArray, "StrokeGenerationAndRendering/TAM_FINAL");
         //SaveRT3DToTexture3DAsset(saveHighestResSingle, "StrokeGenerationAndRendering/TAM_SINGLE_DEBUG");
         //colorPyramid.Release();
         //saveHighestResSingle.Release();
@@ -190,7 +192,41 @@ public class StrokeGenerationManager : MonoBehaviour
         //outArray[1].Release();
         //outArray[2].Release();
     }
+    //NOT TESTED!
+    RenderTexture CombineCustomMipsIntoTexture(RenderTexture texArray)
+    {
+        RenderTextureDescriptor descriptor = texArray.descriptor;
+        descriptor.useMipMap = true;
+        descriptor.autoGenerateMips = false;
+        descriptor.mipCount = texArray.volumeDepth;
+        descriptor.dimension = TextureDimension.Tex2D;
+        descriptor.volumeDepth = 1;
+        RenderTexture output = new RenderTexture(descriptor);
+        //Need to go through the texture in the array and add it to the output texture at differnt mip levels
+        for(int i = 0; i < texArray.volumeDepth; i++)
+        {
+            Graphics.CopyTexture(texArray, i, 0, 0, 0, texArray.width >> i, texArray.height >> i
+            , output, 0, i, 0, 0);
 
+        }
+        texArray.Release();
+        return output;
+    }
+    RenderTexture CombineTexturesIntoArray(RenderTexture[] singleTexs)
+    {
+        RenderTextureDescriptor descriptor = singleTexs[0].descriptor;
+        descriptor.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray;
+        descriptor.volumeDepth = 8;
+        RenderTexture outputArray = new RenderTexture(descriptor);    
+        for (int i = 0; i < singleTexs.Length; i++)
+        {
+            Graphics.CopyTexture(singleTexs[i], 0, outputArray, i);
+            //for (int k = 0;k < singleTexs[i].mipmapCount; k++) { 
+            //    Graphics.CopyTexture(singleTexs[i], 0,k, outputArray, i,k);
+            //}
+        }
+        return outputArray;
+    }
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,TextureCreationFlags flag)
     {
         int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
