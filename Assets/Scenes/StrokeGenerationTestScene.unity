@@ -536,8 +536,8 @@ MonoBehaviour:
   debugShader: {fileID: 7200000, guid: d3674633e85d0694689b1dc63ac77261, type: 3}
   highestRes: 256
   randomizeWithTime: 1
-  angleMax: 15
-  angleMin: -15
+  angleMax: 45
+  angleMin: -45
   testMat: {fileID: 2100000, guid: 92a998f6065fb8e43b0367dcfeaa02a1, type: 2}
 --- !u!4 &1851101522
 Transform:
