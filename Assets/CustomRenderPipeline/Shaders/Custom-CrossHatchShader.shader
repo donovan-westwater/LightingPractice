@@ -46,11 +46,25 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 float2 uv : TEXCOORD0;
                 //UNITY_FOG_COORDS(1)
                 float4 vertex : SV_POSITION;
+                float4 adjColor : COLOR;
             };
-
-            sampler2D _MainTex;
+            struct Triangle {
+                int id;
+                float3 adjVertIds;
+            };
+            Texture2DArray _MainTex;
+            SamplerState sampler_MainTex;
             float4 _MainTex_ST;
-
+            StructuredBuffer<Triangle> triangleBuffer;
+            int bufferCount;
+            //Store the vertex ID in the v2g output
+            //also create a UAV which is populated over time by the vertex stage
+            //Once we have all the vertices, we can figure out which ones are adj to 
+            //NEW PLAN: For now, we will just have to create a script which at the start/ on awake, 
+            //searches goes through all the vertices and finds the adjcent verts/triangles. This infomation should then be
+            //send over to this shader as an UAV
+            //Also add an editor feature which automatically adds the script to all objects that use the shader!
+            //Maybe do it on awake or on start?
             v2g vert(appdata v)
             {
                 v2g o;
@@ -68,7 +82,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
             //(The idea is that the larger dot production of the sources should determine which direction to point to)
             //STUDY HOW CROSS HATCHING IN REALITY IS DONE!
             [maxvertexcount(3)]
-            void geom(triangle v2g IN[3], inout TriangleStream<g2f> triStream)
+            void geom(triangleadj v2g IN[6],uint id : SV_PrimitiveID, inout TriangleStream<g2f> triStream)
             {
                 g2f o;
                 float3 norm = cross(IN[1].vertex - IN[0].vertex, IN[2].vertex - IN[0].vertex);
@@ -83,13 +97,14 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 //Positional + spotlights [DO LATER!]
                 int otherCount = GetOtherLightCount();
 
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 3; i+=1)
                 {
                     float3 projLight = (lightDir - norm) * dot(lightDir, norm);
                     float3 tangent = cross(projLight, norm);
 
                     o.vertex = IN[i].vertex;// UnityObjectToClipPos(IN[i].vertex);
-
+                    float3 adj = triangleBuffer[id].adjVertIds;
+                    o.adjColor = float4(adj.x, adj.y, adj.z, 1);
                     o.uv = float2(dot(tangent, IN[i].vertex), dot(projLight, IN[i].vertex));
                     triStream.Append(o);
                 }
@@ -101,6 +116,8 @@ Shader "Custom RP/Custom-CrossHatchShader"
             {
                 // sample the texture
                 float4 col = float4(i.uv.x,i.uv.y,0,1);//tex2D(_MainTex, i.uv);
+                col = _MainTex.Sample(sampler_MainTex,float3(i.uv.x, i.uv.y,1));
+                col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
