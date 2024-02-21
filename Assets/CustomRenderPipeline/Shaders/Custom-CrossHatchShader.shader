@@ -69,7 +69,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
             {
                 v2g o;
                 float3 p = TransformObjectToWorld(v.vertex);
-                o.vertex = TransformWorldToHClip(p);
+                o.vertex = float4(p, 1);// TransformWorldToHClip(p);
                     
                 o.uv = v.uv;
                 return o;
@@ -82,7 +82,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
             //(The idea is that the larger dot production of the sources should determine which direction to point to)
             //STUDY HOW CROSS HATCHING IN REALITY IS DONE!
             [maxvertexcount(3)]
-            void geom(triangleadj v2g IN[6],uint id : SV_PrimitiveID, inout TriangleStream<g2f> triStream)
+            void geom(triangle v2g IN[3],uint id : SV_PrimitiveID, inout TriangleStream<g2f> triStream)
             {
                 g2f o;
                 float3 norm = cross(IN[1].vertex - IN[0].vertex, IN[2].vertex - IN[0].vertex);
@@ -102,9 +102,9 @@ Shader "Custom RP/Custom-CrossHatchShader"
                     float3 projLight = (lightDir - norm) * dot(lightDir, norm);
                     float3 tangent = cross(projLight, norm);
 
-                    o.vertex = IN[i].vertex;// UnityObjectToClipPos(IN[i].vertex);
+                    o.vertex = TransformWorldToHClip(IN[i].vertex);// UnityObjectToClipPos(IN[i].vertex);
                     float3 adj = triangleBuffer[id].adjVertIds;
-                    o.adjColor = float4(adj.x, adj.y, adj.z, 1);
+                    o.adjColor = float4(norm.x, norm.y, norm.z,1);// float4(adj.x, adj.y, adj.z, 1);
                     o.uv = float2(dot(tangent, IN[i].vertex), dot(projLight, IN[i].vertex));
                     triStream.Append(o);
                 }
@@ -117,7 +117,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 // sample the texture
                 float4 col = float4(i.uv.x,i.uv.y,0,1);//tex2D(_MainTex, i.uv);
                 col = _MainTex.Sample(sampler_MainTex,float3(i.uv.x, i.uv.y,1));
-                col = i.adjColor;
+                //col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
