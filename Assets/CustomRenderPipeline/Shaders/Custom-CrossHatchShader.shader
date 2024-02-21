@@ -117,7 +117,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 // sample the texture
                 float4 col = float4(i.uv.x,i.uv.y,0,1);//tex2D(_MainTex, i.uv);
                 col = _MainTex.Sample(sampler_MainTex,float3(i.uv.x, i.uv.y,1));
-                //col = i.adjColor;
+                col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;

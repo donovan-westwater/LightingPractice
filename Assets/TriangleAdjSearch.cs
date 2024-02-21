@@ -93,46 +93,42 @@ public class TriangleAdjSearch : MonoBehaviour
         adjcentTriDict = new Dictionary<Vector2Int, List<int>>();
         //Add the triangles to the triangles
         int tId = 0;
-        for (int i = 0; i < readOnlyMesh.triangles.Length; i++)
+        for (int i = 2; i < readOnlyMesh.triangles.Length; i+=3)
         {
-            if ((i + 1) % 3 == 0)
-            {
-                Triangle t = new Triangle();
-                t.adjVertIds = new Vector3(-1, -1, -1);
-                t.id = tId;
-                addTri(CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 1])
-                    , tId);
-                addTri(CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 0])
-                    , tId);
-                addTri(CreateEdge(readOnlyMesh.triangles[i - 1], readOnlyMesh.triangles[i - 0])
-                    , tId);
-                triangles.Add(t);
-                tId++;
-                Debug.Log(tId);
-            }
+            Triangle t = new Triangle();
+            t.adjVertIds = new Vector3(-1, -1, -1);
+            t.id = tId;
+            addTri(CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 1])
+                , tId);
+            addTri(CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 0])
+                , tId);
+            addTri(CreateEdge(readOnlyMesh.triangles[i - 1], readOnlyMesh.triangles[i - 0])
+                , tId);
+            triangles.Add(t);
+            tId++;
+            Debug.Log(tId);
         }
         //Populate adj Vector in triangles by going through the edges
         //of each triangle and finding their associated traingles which aren't the current one
         tId = 0;
-        for (int i = 0; i < readOnlyMesh.triangles.Length; i++)
+        for (int i = 2; i < readOnlyMesh.triangles.Length; i+=3)
         {
-            if ((i + 1) % 3 == 0)
-            {
-                Vector2Int e1 = CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 1]);
-                Vector2Int e2 = CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 0]);
-                Vector2Int e3 = CreateEdge(readOnlyMesh.triangles[i - 1], readOnlyMesh.triangles[i - 0]);
-                //Isolate the remaining vert
-                int v1 = IsolateRemainingVert(e1, tId);
-                int v2 = IsolateRemainingVert(e2, tId);
-                int v3 = IsolateRemainingVert(e3, tId);
-                Debug.Assert(v1 > 0 && v2 > 0 && v3 > 0);
-                //Add the adjcent triangle ids to triangles
-                Triangle tmp = triangles[tId];
-                tmp.adjVertIds = new Vector3(v1, v2, v3);
-                triangles[tId] = tmp;
-                tId++;
-                Debug.Log("Round 2: "+tId);
-            }
+            
+            Vector2Int e1 = CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 1]);
+            Vector2Int e2 = CreateEdge(readOnlyMesh.triangles[i - 2], readOnlyMesh.triangles[i - 0]);
+            Vector2Int e3 = CreateEdge(readOnlyMesh.triangles[i - 1], readOnlyMesh.triangles[i - 0]);
+            //Isolate the remaining vert
+            int v1 = IsolateRemainingVert(e1, tId);
+            int v2 = IsolateRemainingVert(e2, tId);
+            int v3 = IsolateRemainingVert(e3, tId);
+            Debug.Assert(v1 > 0 && v2 > 0 && v3 > 0);
+            //Add the adjcent triangle ids to triangles
+            Triangle tmp = triangles[tId];
+            tmp.adjVertIds = new Vector3(v1, v2, v3);
+            triangles[tId] = tmp;
+            tId++;
+            Debug.Log("Round 2: "+tId);
+            
         }
         int stride = sizeof(float)*3+sizeof(int);
         triangleBuffer = new ComputeBuffer(triangles.Count,stride);
