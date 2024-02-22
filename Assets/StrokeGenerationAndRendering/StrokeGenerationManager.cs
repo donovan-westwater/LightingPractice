@@ -50,7 +50,7 @@ public class StrokeGenerationManager : MonoBehaviour
         CreateRenderTexture(0);
         CreateRenderTexture(1);
         resetShader.SetTexture(resetShader.FindKernel("CSReset"), Shader.PropertyToID("ResetResults"), outArray[0]);
-        resetShader.Dispatch(resetShader.FindKernel("CSReset"), 32, 32, 1);
+        resetShader.Dispatch(resetShader.FindKernel("CSReset"), (int)(highestRes/8), (int)(highestRes / 8), 1);
         strokeGenShader.SetInt(Shader.PropertyToID("resolution"), highestRes);
         strokeGenShader.SetVector(Shader.PropertyToID("angleRange"), new Vector4(angleMin, angleMax, 0, 0));
         ComputeBuffer pixelCountBuffer, mipGoalsBuffer, strokeBuffer;
@@ -85,7 +85,8 @@ public class StrokeGenerationManager : MonoBehaviour
         comBuff.SetComputeFloatParam(strokeGenShader, Shader.PropertyToID("maxCanidateToneVal"), 0f);
         comBuff.SetComputeIntParam(strokeGenShader, Shader.PropertyToID("maxCanidateToneVal_uint"), (int)0u);
         comBuff.DispatchCompute(strokeGenShader,strokeGenShader.FindKernel("CSGatherStrokes"), 1, 1, 1);
-        comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke"), 32, 32, 1);
+        comBuff.DispatchCompute(strokeGenShader, strokeGenShader.FindKernel("CSApplyStroke")
+            , (int)(highestRes / 8), (int)(highestRes / 8), 1);
         //Create color pyramid used to test canidate strokes via mips
         RenderTexture colorPyramid = new RenderTexture(highestRes, highestRes,0);
         colorPyramid.dimension = TextureDimension.Tex2DArray;

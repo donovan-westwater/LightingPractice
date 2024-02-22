@@ -64,11 +64,12 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 //Sticking to directional for now
                 float d = max(0
                     ,dot(normalize(o.normal), normalize(_DirectionalLightDirectionsAndMasks[0])));
-                float t = saturate(1.-d) * 8.0;
+                float t = saturate(1.-d) * 7.0;
                 float tf = frac(t);
                 //Find the hash value for tone
                 int index = floor(t);
                 o.hashAndBlend = float3((float)index, tf, 1. - tf);
+                if (t < 1.0) o.hashAndBlend.yz = float2(1,0);
                 //Find the tangent vector [WIP: Goal: Find way to blend tang (found via vert norm plane) with other verts]
                 return o;
             }
