@@ -111,7 +111,7 @@ public class StrokeGenerationManager : MonoBehaviour
             strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSApplyStroke"), Shader.PropertyToID("_Results"), outArray[textNo]);
             int strokeN = 0;
             //Apply the strokes 1 at a time, building up until we reach the correct tone
-            while (strokeN < 700)
+            while (strokeN < 5000) //700
             {
                 strokeGenShader.SetTexture(strokeGenShader.FindKernel("CSGatherStrokes"), Shader.PropertyToID("colorPyramid"), colorPyramid);
                 Graphics.ExecuteCommandBuffer(comBuff);

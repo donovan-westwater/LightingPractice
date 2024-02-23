@@ -41,6 +41,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 float3 normal : NORMAL;
                 float2 uv : TEXCOORD0;
                 float3 hashAndBlend : TEXCOORD1;
+                float  dotVal : COLOR;
             };
             Texture2DArray _MainTex;
             SamplerState sampler_MainTex;
@@ -59,31 +60,42 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 v2f o;
                 float3 p = TransformObjectToWorld(v.vertex);
                 o.vertex = TransformWorldToHClip(p);
-                o.normal = v.normal;// TransformObjectToWorld(v.normal);
+                o.normal = TransformObjectToWorldNormal(v.normal);
                 o.uv = v.uv;
                 //Sticking to directional for now
                 float d = max(0
                     ,dot(normalize(o.normal), normalize(_DirectionalLightDirectionsAndMasks[0])));
-                float t = saturate(1.-d) * 7.0;
+                float t = saturate(1.-d) * 8.0;
+                o.dotVal = t;
+                /*
                 float tf = frac(t);
                 //Find the hash value for tone
                 int index = floor(t);
-                o.hashAndBlend = float3((float)index, tf, 1. - tf);
+                //When the frac starts to approch the next tone, the previous tone should have less of a weight!
+                o.hashAndBlend = float3((float)index, 1.-tf, tf);
                 if (t < 1.0) o.hashAndBlend.yz = float2(1,0);
                 //Find the tangent vector [WIP: Goal: Find way to blend tang (found via vert norm plane) with other verts]
+                */
                 return o;
             }
             
             float4 frag(v2f i) : SV_Target
             {
+                //Hash the dotVal
+                float tf = frac(i.dotVal);
+                //Find the hash value for tone
+                int index = floor(i.dotVal);
+                //When the frac starts to approch the next tone, the previous tone should have less of a weight!
+                i.hashAndBlend = float3((float)index, 1. - tf, tf);
+                //if (i.dotVal < 0.5) i.hashAndBlend.yz = float2(1,0);
                 // sample the texture
                 float4 col = float4(0,0,i.hashAndBlend.x/8.0,1);//tex2D(_MainTex, i.uv);
                 //col.rgb = float4(1,1,1,1)* max(0
                 //    , dot(normalize(i.normal), normalize(_DirectionalLightDirectionsAndMasks[0])));
                 //col.rgb = normalize(i.normal).rgb;
-                col = _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x))
+                col = _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x-1))
                     *i.hashAndBlend.y;
-                col += _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x + 1))
+                col += _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x))
                     * i.hashAndBlend.z;
                 //col = i.adjColor;
                 // apply fog
