@@ -22,6 +22,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
             ENDHLSL
             HLSLPROGRAM
             #pragma shader_feature _RECEIVE_SHADOWS
+            #pragma multi_compile _ LOD_FADE_CROSSFADE 
             #pragma vertex vert
             #pragma fragment frag
             // make fog work
@@ -133,9 +134,13 @@ Shader "Custom RP/Custom-CrossHatchShader"
             }
             HLSLINCLUDE
             #include "../ShaderLibrary/Common.hlsl"
+            #include "../ShaderLibrary/LitInput.hlsl"
             ENDHLSL
-            HLSLPROGRAM
             ColorMask 0
+            HLSLPROGRAM
+            #pragma vertex ShadowCasterPassVertex
+            #pragma fragment ShadowCasterPassFragment
+            
             struct Attributes {
                 float3 positionOS : POSITION;
                 float2 baseUV : TEXCOORD0;
