@@ -55,6 +55,8 @@ Shader "Custom RP/Custom-CrossHatchShader"
             //send over to this shader as an UAV
             //Also add an editor feature which automatically adds the script to all objects that use the shader!
             //Maybe do it on awake or on start?
+            //IDEA: Make simple surface and then do all the nessceary steps to get the shadow. Multiply result with dot
+            //to get shadowed value
             v2f vert(appdata v)
             {
                 v2f o;
@@ -104,6 +106,54 @@ Shader "Custom RP/Custom-CrossHatchShader"
             }
         ENDHLSL
         }
+        Pass {
+            Tags {
+                "LightMode" = "ShadowCaster"
+            }
+            HLSLINCLUDE
+            #include "../ShaderLibrary/Common.hlsl"
+            ENDHLSL
+            HLSLPROGRAM
+            ColorMask 0
+            struct Attributes {
+                float3 positionOS : POSITION;
+                float2 baseUV : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+            //Custom output
+            struct Varyings {
+                float4 positionCS : SV_POSITION;
+                float2 baseUV : VAR_BASE_UV; //Basically declaring that it has no special meaning
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+            bool _ShadowPancaking;
+            //output is for homogenous clip space
+            Varyings ShadowCasterPassVertex(Attributes input) {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input); //For GPU instancing
+                UNITY_TRANSFER_INSTANCE_ID(input, output); //copy index from input to output for GPU instancing
+                float3 positionWS = TransformObjectToWorld(input.positionOS);
+                output.positionCS = TransformWorldToHClip(positionWS);
+                if (_ShadowPancaking) {
+                    //Prevents shadows from being clipped by the near plane of cam
+                    output.positionCS.z =
+                        max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+                }
+                //float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
+                output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
+                return output;
+            }
 
+            void ShadowCasterPassFragment(Varyings input) {
+                UNITY_SETUP_INSTANCE_ID(input);
+                //float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV); //Samples texture
+                //float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseColor); //Get color from instance
+                InputConfig config = GetInputConfig(input.positionCS,input.baseUV);
+                ClipLOD(config.fragment, unity_LODFade.x);
+                float4 base = GetBase(config);
+
+            }
+            ENDHLSL
+        }
     }
 }
