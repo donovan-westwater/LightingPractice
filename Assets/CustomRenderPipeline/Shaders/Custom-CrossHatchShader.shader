@@ -46,6 +46,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
             struct v2f
             {
                 float4 vertex : SV_POSITION;
+                float3 vertexW : VAR_POSITION;
                 float3 normal : NORMAL;
                 float2 uv : TEXCOORD0;
                 float3 hashAndBlend : TEXCOORD1;
@@ -69,32 +70,15 @@ Shader "Custom RP/Custom-CrossHatchShader"
             {
                 v2f o;
                 float3 p = TransformObjectToWorld(v.vertex);
+                o.vertexW = p;
                 o.vertex = TransformWorldToHClip(p);
                 o.normal = TransformObjectToWorldNormal(v.normal);
                 o.uv = v.uv;
-                //Populate surface
-                Surface surface;
-                surface.position = p; //pixel position for shadows
-                surface.normal = normalize(o.normal);
-                surface.interpolatedNormal = surface.normal;
-                surface.viewDirection = normalize(_WorldSpaceCameraPos - p);
-                surface.depth = -TransformWorldToView(p).z;
-                surface.color = float3(1,1,1);
-                surface.alpha = 1.0;
-                surface.metallic = 0; //we aren't bothering with specular lighting
-                surface.smoothness = 0; //We aren't bothering with specular lighting
-                surface.occlusion = 0;
-                surface.fresnelStrength = 0;
-                surface.dither = 0;
-                surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
-                //Get directional light info
-                ShadowData sd = GetShadowData(surface);
-                Light dl = GetDirectionalLight(0, surface, sd);
+                
                 //Sticking to directional for now
                 float d = max(0
-                    ,dot(normalize(o.normal), normalize(_DirectionalLightDirectionsAndMasks[0])))
-                    * dl.attenuation;
-                float t = saturate(1.-d) * 8.0;
+                    ,dot(normalize(o.normal), normalize(_DirectionalLightDirectionsAndMasks[0])));
+                float t = d;// saturate(1. - d) * 8.0;
                 o.dotVal = t;
                 /*
                 float tf = frac(t);
@@ -110,6 +94,26 @@ Shader "Custom RP/Custom-CrossHatchShader"
             
             float4 frag(v2f i) : SV_Target
             {
+                //Populate surface
+                Surface surface;
+                surface.position = i.vertexW; //pixel position for shadows
+                surface.normal = normalize(i.normal);
+                surface.interpolatedNormal = surface.normal;
+                surface.viewDirection = normalize(_WorldSpaceCameraPos - i.vertexW);
+                surface.depth = -TransformWorldToView(i.vertexW).z;
+                surface.color = float3(1,1,1);
+                surface.alpha = 1.0;
+                surface.metallic = 0; //we aren't bothering with specular lighting
+                surface.smoothness = 0; //We aren't bothering with specular lighting
+                surface.occlusion = 0;
+                surface.fresnelStrength = 0;
+                surface.dither = 0;
+                surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
+                //Get directional light info
+                ShadowData sd = GetShadowData(surface);
+                Light dl = GetDirectionalLight(0, surface, sd);
+                i.dotVal = i.dotVal * dl.attenuation;
+                i.dotVal = saturate(1. - i.dotVal) * 8.0;
                 //Hash the dotVal
                 float tf = frac(i.dotVal);
                 //Find the hash value for tone
