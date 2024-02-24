@@ -22,7 +22,12 @@ Shader "Custom RP/Custom-CrossHatchShader"
             ENDHLSL
             HLSLPROGRAM
             #pragma shader_feature _RECEIVE_SHADOWS
-            #pragma multi_compile _ LOD_FADE_CROSSFADE 
+            #pragma multi_compile _ _LIGHTS_PER_OBJECT
+            #pragma multi_compile _ _OTHER_PCF3 _OTHER_PCF5 _OTHER_PCF7
+            #pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
+            #pragma multi_compile _ _SHADOW_MASK_ALWAYS _SHADOW_MASK_DISTANCE
+            #pragma multi_compile _ LOD_FADE_CROSSFADE //Enables cross fade for this shader for LOD
+            #pragma multi_compile _ LIGHTMAP_ON
             #pragma vertex vert
             #pragma fragment frag
             // make fog work
@@ -162,8 +167,13 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 output.positionCS = TransformWorldToHClip(positionWS);
                 if (_ShadowPancaking) {
                     //Prevents shadows from being clipped by the near plane of cam
+                    #if UNITY_REVERSED_Z
+                    output.positionCS.z =
+                        min(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+                    #else
                     output.positionCS.z =
                         max(output.positionCS.z, output.positionCS.w * UNITY_NEAR_CLIP_VALUE);
+                    #endif
                 }
                 //float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseMap_ST);
                 output.baseUV = TransformBaseUV(input.baseUV); //Transform UVs
