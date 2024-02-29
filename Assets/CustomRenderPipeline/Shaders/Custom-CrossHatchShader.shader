@@ -77,6 +77,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 o.uv = v.uv;
                 
                 //Look to see what lights exist
+                /*
                 o.lightIndices = float2(-1, -1);                
                 float d = -1;
                 for (int i = 0; i < GetDirectionalLightCount(); i++) {
@@ -94,6 +95,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 d = max(0,d);
                 float t = d;// saturate(1. - d) * 8.0;
                 o.dotVal = t;
+                */
                 /*
                 float tf = frac(t);
                 //Find the hash value for tone
@@ -127,16 +129,18 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 ShadowData sd = GetShadowData(surface);
                 int lightIndex = -1;
                 Light dl;
-                if (i.lightIndices.x >= 0) {
-                    lightIndex = i.lightIndices.x;
-                    dl = GetDirectionalLight(lightIndex, surface, sd);
+                float d = 0;
+                for (int li = 0; li < GetDirectionalLightCount(); li++) {
+                    dl = GetDirectionalLight(li, surface, sd);
+                    d += dot(i.normal, dl.direction) * dl.attenuation;
                 }
-                if (i.lightIndices.y >= 0) {
-                    lightIndex = i.lightIndices.y;
-                    dl = GetOtherLight(lightIndex, surface, sd);
+                for (int li = 0; li < GetOtherLightCount(); li++) {
+                    dl = GetOtherLight(li, surface, sd);
+                    d += dot(i.normal, dl.direction) * dl.attenuation;
                 }
-                float testV = i.dotVal *dl.attenuation;
-                i.dotVal = i.dotVal * dl.attenuation;
+                i.dotVal = d;
+                float testV = i.dotVal;// *dl.attenuation;
+                //i.dotVal = i.dotVal * dl.attenuation;
                 i.dotVal = saturate(1. - i.dotVal) * 8.0;
                 //Hash the dotVal
                 float tf = frac(i.dotVal);
