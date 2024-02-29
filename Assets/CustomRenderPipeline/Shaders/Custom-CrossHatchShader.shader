@@ -76,40 +76,22 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 o.normal = TransformObjectToWorldNormal(v.normal);
                 o.uv = v.uv;
                 
-                //Sticking to directional for now
-                o.lightIndices = float2(0, -1);
-                
+                //Look to see what lights exist
+                o.lightIndices = float2(-1, -1);                
                 float d = -1;
                 for (int i = 0; i < GetDirectionalLightCount(); i++) {
                     float prev = d;
                     d = max(d, dot(normalize(o.normal), normalize(_DirectionalLightDirectionsAndMasks[i])));
                     if (prev < d) o.lightIndices.x = i;
                 }
-                Surface surface;
-                surface.position = p; //pixel position for shadows
-                surface.normal = normalize(o.normal);
-                surface.interpolatedNormal = surface.normal;
-                surface.viewDirection = normalize(_WorldSpaceCameraPos - p);
-                surface.depth = -TransformWorldToView(p).z;
-                surface.color = float3(1, 1, 1);
-                surface.alpha = 1.0;
-                surface.metallic = 0; //we aren't bothering with specular lighting
-                surface.smoothness = 0; //We aren't bothering with specular lighting
-                surface.occlusion = 0;
-                surface.fresnelStrength = 0;
-                surface.dither = 0;
-                surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
-                
                 //Other point lights
-                ShadowData sd = GetShadowData(surface);
                 for (int i = 0; i < GetOtherLightCount(); i++) {
-                    Light dl = GetOtherLight(i, surface, sd);
                     float prev = d;
-                    float dir = dl.direction;// _OtherLightPositions[i].xyz - p;
+                    float3 dir = _OtherLightPositions[i].xyz - p;
                     d = max(d, dot(normalize(o.normal), normalize(dir)));
                     if (prev < d) o.lightIndices.y = i;
                 }
-                d = max(0, d);
+                d = max(0,d);
                 float t = d;// saturate(1. - d) * 8.0;
                 o.dotVal = t;
                 /*
@@ -141,15 +123,19 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 surface.fresnelStrength = 0;
                 surface.dither = 0;
                 surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
-                //Get light info
+                //Get light info (if it exists
                 ShadowData sd = GetShadowData(surface);
-                int lightIndex = i.lightIndices.x;
-                Light dl = GetDirectionalLight(lightIndex, surface, sd);
-                if (GetDirectionalLightCount() < 1) dl.attenuation = 0;
+                int lightIndex = -1;
+                Light dl;
+                if (i.lightIndices.x >= 0) {
+                    lightIndex = i.lightIndices.x;
+                    dl = GetDirectionalLight(lightIndex, surface, sd);
+                }
                 if (i.lightIndices.y >= 0) {
                     lightIndex = i.lightIndices.y;
                     dl = GetOtherLight(lightIndex, surface, sd);
                 }
+                float testV = i.dotVal *dl.attenuation;
                 i.dotVal = i.dotVal * dl.attenuation;
                 i.dotVal = saturate(1. - i.dotVal) * 8.0;
                 //Hash the dotVal
@@ -168,8 +154,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                     *i.hashAndBlend.y;
                 col += _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x))
                     * i.hashAndBlend.z;
-                if(i.lightIndices.y >= 0) col = float4(dl.attenuation, 0, 0, 1);
-                else col = float4(0,dl.attenuation, 0, 1);
+                //col = float4(testV, 0, 0, 1);
                 //col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
