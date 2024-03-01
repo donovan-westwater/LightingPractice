@@ -1,0 +1,13 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSReset
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2DArray<float4> ResetResults : register(u0);
+
+[numthreads(8,8,8)]
+void CSReset (uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    ResetResults[id.xyz] = float4(1.0, 1.0, 1.0, 1.0);
+}

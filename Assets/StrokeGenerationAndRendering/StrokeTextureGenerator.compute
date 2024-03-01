@@ -1,0 +1,348 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSGatherStrokes
+#pragma kernel CSApplyStroke
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2DArray<float4> _Results : register(u0);
+Texture2DArray colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
+int resolution;
+SamplerState sampler_LinearClamp;
+
+//THE GOAL IS TO MAKE A SINGLE STROKE ATOMIC!
+//This way we know that a stroke has not been partially applied
+float goalVal = 1.995;//0.875;
+globallycoherent RWStructuredBuffer<float> mipGoals;
+globallycoherent RWStructuredBuffer<uint> mipPixels;
+uint rng_state = 0u;
+int drawStrokes = 0;
+float2 angleRange = float2(-45, 45);
+struct Stroke {
+    float2 normPos;
+    float2 xySlope;
+    float normLength;
+    int isVertical;
+    //Add angle and use cos and sin to rotate the line
+    //Add more strange stroke behavior later via compliler derectives in functions/ this struct
+};
+RWStructuredBuffer<Stroke> finalStroke: register(u1);
+groupshared float maxCanidateToneVal = 0.0;
+groupshared uint maxCanidateToneVal_uint = 0u;
+//Found here:https://gist.github.com/keijiro/ee7bc388272548396870#file-prng-cginc-L1
+//VERY COMMON PSUEDO RANDOM FUNCTION!
+float nrand(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+}
+//From this article: https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
+uint rand_pcg()
+{
+    uint state = rng_state;
+    rng_state = rng_state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+uint pcg_hash(uint input)
+{
+    uint state = input * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+float hash_rand(uint input) {
+    uint r = pcg_hash(input);
+    return abs((float)r * (1.0 / 4294967296.0));
+}
+float pcg_float() {
+    uint r = rand_pcg();
+    return (float)r * (1.0 / 4294967296.0);
+}
+//Conversion from uint to float and vise versea
+//This conversion is bijective and perseverves ordering
+// Check isnan(value) before use.
+uint order_preserving_float_map(float value)
+{
+    // For negative values, the mask becomes 0xffffffff.
+    // For positive values, the mask becomes 0x80000000.
+    uint uvalue = asuint(value);
+    uint mask = -int(uvalue >> 31) | 0x80000000;
+    return uvalue ^ mask;
+}
+
+float inverse_order_preserving_float_map(uint value)
+{
+    // If the msb is set, the mask becomes 0x80000000.
+    // If the msb is unset, the mask becomes 0xffffffff.
+    uint mask = ((value >> 31) - 1) | 0x80000000;
+    return asfloat(value ^ mask);
+}
+float isPixelInStroke(Stroke s, int mipRes,uint2 pixelCoord) {
+    float2 testSlope = s.xySlope; //Range has to be between -45 to 45 in order to work!
+    float testLength = s.normLength*(float)mipRes;
+    float2 strokeLine = testSlope * testLength;//s.xySlope*s.normLength*mipRes;
+    float2 lineStart = s.normPos*(float)mipRes; //s.pos goes here
+    float2 lineEnd = lineStart + strokeLine;
+    float2 testPoint = float2((float)pixelCoord.x + .5, (float)pixelCoord.y + .5);
+    strokeLine = lineEnd - lineStart;
+    //Check to see if line intersection with vertical (or horiontal when line is vertical) side of pixel is > p.y and <=p.y+1
+    //TO DO: Add a check to see if the point is the the radius of the circle formed by the line origin and length
+    //The check has to be able to wrap around the edges!!!!
+    //IDEA: If the endpoint goes off the edge, add a "new" line with the starting point off the edge, projected the opposite direction a set length
+   //This Other Line can then be tested against as well using the same method as before!
+    float m;
+    float b;
+    float midD = 0;
+    bool isOnLine = false;
+    //If lineEnd > mipRes -> test with fake line with same slope but different start pos
+    float fRes = (float)mipRes;
+    bool wrapExists = false;
+    float2 wrapStart = float2(-999.,-999.);
+    float2 wrapEnd = wrapStart;
+    //Setup the wrap line if it exists
+    if (lineEnd.x > fRes || lineEnd.y > fRes || lineEnd.y < 0) {
+        wrapExists = true;
+        wrapStart = float2(lineStart.x, lineStart.y+fRes);
+        wrapEnd = float2(lineEnd.x, lineEnd.y + fRes);
+        if (lineEnd.x > fRes) {
+            wrapStart.x = lineStart.x - fRes;
+            wrapStart.y = lineStart.y;
+            wrapEnd.x = lineEnd.x - fRes;
+        }
+        if (lineEnd.y > fRes) {
+            wrapStart.y = lineStart.y - fRes;
+            wrapEnd.y = lineEnd.y - fRes;
+        }
+    }
+    if (s.isVertical) {
+        m = strokeLine.x / strokeLine.y;
+        b = lineStart.x - lineStart.y * m;
+        float x = m * (testPoint.y - .5) + b;
+        //midD = sign(m) * (x - testPoint.x);
+        isOnLine = x >= testPoint.x - .5 && x < testPoint.x + .5;
+        isOnLine = isOnLine && (testPoint.y-.5 >= lineStart.y && testPoint.y-.5 <= lineEnd.y);
+        //Above test but with the wrapped line if it exists
+        if (wrapExists) {
+            b = wrapStart.x - wrapStart.y * m; //Adjust to new start
+            x = m * (testPoint.y - .5) + b; //Get y again
+            bool wrapTest = (testPoint.y - .5 >= wrapStart.y && testPoint.y - .5 <= wrapEnd.y) &&
+                (x > testPoint.x - .5 && x <= testPoint.x + .5);
+            isOnLine = isOnLine || wrapTest;
+        }
+    }
+    else {
+        m = strokeLine.y / strokeLine.x;
+        b = lineStart.y - lineStart.x * m;
+        float y = m * (testPoint.x - .5) + b;
+        isOnLine = y > testPoint.y - .5 && y <= testPoint.y + .5;
+        isOnLine = isOnLine && (testPoint.x-.5 >= lineStart.x && testPoint.x-.5 <= lineEnd.x);
+        //Above test but with the wrapped line if it exists
+        if (wrapExists) {
+            b = wrapStart.y - wrapStart.x * m; //Adjust to new start
+            y = m * (testPoint.x - .5) + b; //Get y again
+            bool wrapTest = (testPoint.x - .5 >= wrapStart.x && testPoint.x - .5 <= wrapEnd.x) &&
+                (y > testPoint.y - .5 && y <= testPoint.y + .5);
+            isOnLine = isOnLine || wrapTest;
+        }
+
+    }
+    //bool isOnLine = m <= .5;
+    return isOnLine;// isOnLine;
+}
+//(EDIT THE STROKE DISTRIBUTION FIRST!!!! IT ISN'T THE BEST YET!)
+//Add a rectanglar area sweep where we check to see if the pixels are inside the area of the stroke
+//We need a function to calculate if the pixel is inside the enclosed area
+//We need a function to sweep a specfic section of the stroke to look for pixels
+//The above need to use normalized length/width which is adjusted by resolution
+Stroke StrokeRandomizer(float2 uv) {
+    uint seed = (uint)uv.x + resolution * (uint)uv.y;
+    seed *= rng_state;
+    float x = hash_rand(seed);
+    seed = seed << 3;
+    float y = hash_rand(seed);
+    seed = ~seed;
+    seed = seed | 273809707u;
+    float l = .1 + .7 * hash_rand(seed); //(.3 - 1.0) range
+    Stroke s;
+    s.normPos = float2(x, y);
+    s.normLength = l;
+    return s;
+}
+
+[numthreads(1000,1,1)]
+void CSGatherStrokes(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
+    Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    s.isVertical = goalVal < .5;
+    uint seed = id.x % 16 + resolution * id.y;
+    seed *= rng_state;
+    if (s.isVertical) {
+        float angle = 90.0+ angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed);//90.0 * hash_rand(seed) + 45.0;
+        s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
+    }
+    else {
+        float angle = angleRange.x + (angleRange.y - angleRange.x) * hash_rand(seed); //90.0 * hash_rand(seed) - 45.0;
+        s.xySlope = float2(cos(radians(angle)), sin(radians(angle)));
+    }
+    float toneSum = 0;
+    float debugSum = 0.0;
+    uint3 debugPoint = uint3(0, 0,0);
+    for (int j = 0; j < 4; j++) { //Mip Levels 0-8
+        for(int k = 7; k >= 0; k--){ //Tone Levels 7-0
+            int mipRes = resolution >> k;
+            float totalPixels = (float)(mipRes * mipRes);
+            if (mipGoals[k] < goalVal) continue;
+            float2 pixelPos = float2(s.normPos.x * (float)mipRes, s.normPos.y * (float)mipRes);
+            float pixelLength = (float)mipRes * s.normLength * s.xySlope.x;
+            uint2 currentPixel = uint2(round(pixelPos.x), round(pixelPos.y));
+            uint2 incrementDir = uint2(1, 0);
+            uint2 adjustDir = uint2(0, 1);
+            if (abs(s.xySlope.y) > abs(s.xySlope.x)) {
+                pixelLength = (float)mipRes * s.normLength * s.xySlope.y;
+                incrementDir = uint2(0, 1);
+                adjustDir = uint2(1, 0);
+            }
+            debugPoint = uint3(pixelPos.x,pixelPos.y,0);
+            uint pixelsAdded = 0;
+            float totalLength = pixelLength;
+            float debugtest = 0.0;
+            for (uint sc = 0; sc < (uint)pixelLength; sc++) {
+                float newPixels = (float)(pixelsAdded + mipPixels[k]);
+                float newToneAvg = (totalPixels - newPixels) / totalPixels;
+                //Adjust the current pixel
+                if (isPixelInStroke(s, mipRes, currentPixel + adjustDir)) currentPixel += adjustDir;
+                else if (isPixelInStroke(s, mipRes, currentPixel - adjustDir)) currentPixel -= adjustDir;
+                if (!isPixelInStroke(s, mipRes, currentPixel)) {
+                    totalLength -= 1;
+                    continue;
+                }
+                uint3 testPoint = uint3(currentPixel.x % mipRes
+                    , currentPixel.y % mipRes, k);
+                float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes,k);
+                normPoint = float3(normPoint.x / (float)(1 << k), normPoint.y / (float)(1 << k), k);
+                float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
+                if (colorCheck.r > .99
+                    && colorCheck.g > .99
+                    && colorCheck.b > .99) {
+                    pixelsAdded++;
+                    debugtest = (float)pixelsAdded/totalLength;
+
+                    
+                }
+                //Increment pixel
+                currentPixel += incrementDir;
+                
+            }
+            float newPixels = (float)(pixelsAdded);
+            debugSum += debugtest;
+            
+            toneSum += newPixels;
+        }
+        toneSum /= 8.0;
+    }
+    toneSum /= 8.0;
+    toneSum /= s.normLength;
+   
+    toneSum = debugSum / 16.;
+    toneSum /= s.normLength;
+    uint convertTone = order_preserving_float_map(toneSum);
+    uint ogUint = 0u;
+    //Assign the higher uint to the uint val
+    InterlockedMax(maxCanidateToneVal_uint,convertTone ,ogUint);
+    //Make sure all the max operations are finished
+    AllMemoryBarrierWithGroupSync();
+    ogUint = maxCanidateToneVal_uint;
+    //Get back the assigned value to assign to float values
+    float ogTone = toneSum;
+    toneSum = inverse_order_preserving_float_map(ogUint);
+    //Figure out which treat is the correct one
+    if(abs(ogTone-toneSum) < 0.0001){
+        float og = 0.0;
+        InterlockedExchange(maxCanidateToneVal, toneSum, og);
+        InterlockedExchange(finalStroke[0].normLength, s.normLength,og);
+        InterlockedExchange(finalStroke[0].normPos.x, s.normPos.x, og);
+        InterlockedExchange(finalStroke[0].normPos.y, s.normPos.y, og);
+        InterlockedExchange(finalStroke[0].xySlope.x, s.xySlope.x, og);
+        InterlockedExchange(finalStroke[0].xySlope.y, s.xySlope.y, og);
+        int ogInt = 0;
+        InterlockedExchange(finalStroke[0].isVertical, s.isVertical, ogInt);
+        
+    }
+    
+}
+//Diagonal Drawing isn't working. Need to fix it!
+[numthreads(8, 8, 1)]
+void CSApplyStroke(uint3 id : SV_DispatchThreadID) {
+    //Take the currently selected final stroke and apply it!
+    for (int j = 7; j >= 0; j--) {
+        if (mipGoals[j] < goalVal) continue;
+        int mipRes = resolution >> j;
+        float totalPixels = (float)(mipRes * mipRes);
+        bool onLine = isPixelInStroke(finalStroke[0], mipRes, id.xy);
+        bool isPrevWhite = _Results[uint3(id.x, id.y, j)].r > .95
+            && _Results[uint3(id.x, id.y, j)].g > .95
+            && _Results[uint3(id.x, id.y, j)].b > .95;
+        if (onLine)_Results[uint3(id.x, id.y, j)] = float4(0.0, 0.0, 1.0, 1.0);
+        if (isPrevWhite && (_Results[uint3(id.x, id.y, j)].r < .95
+            || _Results[uint3(id.x, id.y, j)].g < .95
+            || _Results[uint3(id.x, id.y, j)].b < .95)) {
+            InterlockedAdd(mipPixels[j], 1);
+            float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+            float og = 0.0;
+            InterlockedExchange(mipGoals[j], goalResult, og);
+        }
+    }
+}
+//This kernal is unused. I haven't deleted it because it looking for a CSMain. Please ignore this kernal!
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
+{
+    //Once we generate the Strokes, we check to see if any of the pixels lie on the stroke 
+    // Assoiated with z and then add the pixel to the texture and increment the 
+
+    Stroke s = StrokeRandomizer(float2(id.x, id.y));
+    //AllMemoryBarrierWithGroupSync();
+    for (int j = 7; j >= 0; j--) {
+        //AllMemoryBarrierWithGroupSync();
+        int mipRes = resolution >> j;
+        if ((id.x > mipRes || id.y > mipRes)) _Results[uint3(id.x, id.y, j)] = 1.0;
+        else {
+            //_Results[uint3(id.x, id.y, j)] = float4(j / 7.0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+            //Current Bug: Continue isn't being continued correctly
+            if (mipGoals[j] < goalVal) continue; //BUG: goalVal doesn't match earlier assignment!!!!!!!!!
+            uint2 pixelPos = uint2((uint)(s.normPos.x*mipRes), (uint)(s.normPos.y * mipRes));
+            uint pixelLength = (uint)(mipRes * s.normLength);
+            uint endPoint = pixelPos.x + pixelLength;
+            endPoint = clamp(endPoint, 0u, mipRes);
+            pixelLength = endPoint - pixelPos.x;
+            //InterlockedAdd(mipPixels[j], pixelLength);
+            //float totalPixels = (float)(mipRes * mipRes);
+            //float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+            //float og = 0.0;
+            //InterlockedExchange(mipGoals[j], goalResult, og);
+            //InterlockedExchange(mipGoals[j], goalVal, og);
+            //if (goalResult < goalVal) continue;
+            //if(mipGoals[j] < goalVal) break;
+            for (int sc = 0; sc < pixelLength; sc++) {
+                float totalPixels = (float)(mipRes * mipRes);
+                float goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+                if (goalResult < goalVal) break;
+                if (_Results[uint3(pixelPos.x + sc, pixelPos.y, j)].r > .95
+                    && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].g > .95
+                    && _Results[uint3(pixelPos.x + sc, pixelPos.y, j)].b > .95) {
+                    InterlockedAdd(mipPixels[j], 1);
+                    goalResult = (totalPixels - (float)mipPixels[j]) / totalPixels;
+                    float og = 0.0;
+                    InterlockedExchange(mipGoals[j], goalResult, og);
+                }
+                //InterlockedAdd(mipPixels[j], 1);//mipPixels[j]++;            
+                float pixelPct = (float)mipPixels[j] / totalPixels; //DEBUG VAR
+                _Results[uint3(pixelPos.x + sc, pixelPos.y, j)] = float4(pixelPct, 0.0, 1.0, 1.0);
+            }
+            
+        }
+        //AllMemoryBarrierWithGroupSync();
+    }
+    //_Results[uint3(id.x,id.y,0)] = float4(0, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 1.0);
+    //_Results[uint3(id.x, id.y, 1)] = float4(1.0, 0.0,0.0, 0.0);
+    //if (id.z > 0)_Results[uint3(id.x, id.y, id.z)] = float4(0, 0, 0, 0);
+    
+}

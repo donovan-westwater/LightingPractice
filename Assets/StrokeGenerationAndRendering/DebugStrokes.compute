@@ -1,0 +1,40 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2DArray<float4> _Results;
+Texture2DArray colorPyramid; //We use this to "sample" adjacent to look for overlaps to improve spacing
+int resolution;
+SamplerState sampler_LinearClamp;
+//Writing over a couple pixels instead of a single pixel. Should fix this and make sure main one doesn't have same issue
+[numthreads(16, 16, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID) {
+    float debugSum[8] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    uint2 pixelPos = uint2(id.x, id.y);
+    float2 uniNorm = float2((float)id.x/(float)resolution, (float)id.y / (float)resolution);
+    for (int j = 0; j < 8; j++) { //Mip Levels 0-8
+        for (int k = 7; k >= 0; k--) { //Tone Levels 7-0
+            int mipRes = resolution >> k;
+            float totalPixels = (float)(mipRes * mipRes);
+            uint pixelsAdded = 0;
+            uint3 testPoint = uint3(pixelPos.x, pixelPos.y, k);
+            float3 normPoint = float3((float)testPoint.x / (float)mipRes, (float)testPoint.y / (float)mipRes, k);
+            normPoint = float3(uniNorm.x / (float)(1 << k), uniNorm.y / (float)(1 << k), k);
+            float4 colorCheck = colorPyramid.SampleLevel(sampler_LinearClamp, normPoint, j);
+            if (colorCheck.r > .99
+                && colorCheck.g > .99
+                && colorCheck.b > .99) {
+                pixelsAdded++;
+                debugSum[k] += 1.0/8.0;//1.0;
+            }
+            //if(drawStrokes)_Results[uint3(pixelPos.x, pixelPos.y, k)] = float4(fuckingtest,0, 0, 1);
+            uint3 writePoint = uint3(uniNorm.x * (float)mipRes, uniNorm.y * (float)mipRes, k);
+            float r = _Results[writePoint].r;
+            if(r.x > 0.0)_Results[writePoint] = float4(debugSum[k] , 0, 0, 1);
+        }        
+    }
+    //float b = _Results[uint3(pixelPos.x, pixelPos.y, 0)].g;
+    //if (b > 0.0)_Results[uint3(pixelPos.x, pixelPos.y, 0)] = float4(debugSum / 8.0, 0, 0, 1);
+    
+}
