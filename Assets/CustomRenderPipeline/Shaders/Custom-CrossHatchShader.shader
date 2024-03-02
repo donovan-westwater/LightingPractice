@@ -3,17 +3,23 @@ Shader "Custom RP/Custom-CrossHatchShader"
     Properties
     {
         _MainTex ("Texture", 2DArray) = "white" {}
+        _OutlineColor("OutlineColor",Color) = (0,0,1,1)
+        _Thickness("Thickness of Outline",Float) = 1
         [Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
     }
     SubShader
     {
         Tags { "RenderType"="Opaque" }
         LOD 100
+        
         //We are going to start with a simple naive setup just to see if we can draw the textures on the triangles
         //Once that is done, we will restructure this to look like Custom-Lit or Custom-Unlit
         //This means making a cross-hatch vertex and fragment functions in a seperate hlsl file
         Pass
         {
+            Tags {
+                "LightMode" = "CustomLit"
+            }
             HLSLINCLUDE
             #include "../ShaderLibrary/Common.hlsl"
             #include "../ShaderLibrary/CustomSurface.hlsl"
@@ -162,6 +168,50 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 //col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
+                return col;
+            }
+        ENDHLSL
+        }
+        Pass{
+            Tags {
+                "LightMode" = "Outline"
+            }
+            Cull front
+            HLSLINCLUDE
+            #include "../ShaderLibrary/Common.hlsl"
+            ENDHLSL
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float4 normal : NORMAL;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+            };
+            float4 _OutlineColor;
+            float _Thickness;
+            v2f vert(appdata v)
+            {
+                v2f o;
+                float3 p = TransformObjectToWorld(v.vertex);
+                float3 nc = mul((float3x3) UNITY_MATRIX_VP, mul((float3x3) UNITY_MATRIX_M, v.normal));
+                o.vertex = TransformWorldToHClip(p);
+                //nc /= nc.w;
+                o.vertex.xyz += normalize(nc) * _Thickness;
+                return o;
+            }
+
+            float4 frag(v2f i) : SV_Target
+            {
+                float4 col = _OutlineColor;
                 return col;
             }
         ENDHLSL
