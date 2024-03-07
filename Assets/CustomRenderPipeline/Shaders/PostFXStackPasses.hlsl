@@ -353,6 +353,20 @@ float4 CopyPassFragment(Varyings input) : SV_TARGET{
 	//color = pow(color / Y, 0.6) * y;
 	return color;
 }
+TEXTURE2D(_EdgeGBuffer);
+TEXTURE2D(_PostFxDepthBuffer);
+//TEXTURE2D(_NormalBuffer)
+//Assemble GBuffer by calculated normals via depth buffer
+float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
+	float4 gSample = SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV,0);
+	float depth = gSample.x;
+	return float4(0,depth,0,1);
+
+}
+float4 FindEdgesFragment(Varyings input) : SV_TARGET{
+	float4 gSample = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
+	return gSample;
+}
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
 float3 ApplyColorGradingLUT(float3 color) {

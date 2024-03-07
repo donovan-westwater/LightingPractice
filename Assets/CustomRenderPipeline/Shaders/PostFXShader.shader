@@ -186,5 +186,16 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#include "FXAAPass.hlsl"
 			ENDHLSL
 		}
+		Pass{
+			Name "DepthNormalAssembly"
+			//Tags{
+			//	"LightMode" = "DepthNormalsOnly"
+			//}
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment AssembleGBufferFragment
+			ENDHLSL
+		}
 	}
 }

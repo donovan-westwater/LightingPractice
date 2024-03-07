@@ -50,6 +50,10 @@ public partial class PostFXStack
 	int colorGradingResultId = Shader.PropertyToID("_ColorGradingResult");
 	int finalResultId = Shader.PropertyToID("_FinalResult");
 	int copyBicubicId = Shader.PropertyToID("_CopyBicubic");
+	//Outline and Edge Detection
+	int depthId = 0;
+	int edgeGBufferId = Shader.PropertyToID("_EdgeGBuffer");
+	int postFxDepthId = Shader.PropertyToID("_PostFxDepthBuffer");
 	//FXAA
 	int fxaaConfigId = Shader.PropertyToID("_FXAAConfig");
 	const string
@@ -85,8 +89,9 @@ public partial class PostFXStack
 		ApplyColorGradingWithLuma,
 		FinalRescale,
 		FXAA,
-		FXAAWithLuma
-    }
+		FXAAWithLuma,
+		DepthNormalAssembly
+	}
 	public bool IsActive => settings != null; //Keeps track of if there is post fx
 
 	public PostFXStack()
@@ -364,6 +369,10 @@ public partial class PostFXStack
 			fxaa.fixedThreshold, fxaa.relativeThreshold, fxaa.subpixelBlending
 		));
 	}
+	public void PassDepthId(int depthId)
+    {
+		this.depthId = depthId;
+    }
 	void DoFinal(int sourceId)
     {
 		ConfigureColorAdjustments();
@@ -381,6 +390,12 @@ public partial class PostFXStack
 		buffer.SetGlobalVector(colorGradingLUTParametersId, new Vector4(
 			lutHeight, 0.5f / lutWidth, 0.5f / lutHeight, lutHeight / (lutHeight - 1f)
 		));
+		//Depth Map Render Test + Normal Test
+		buffer.GetTemporaryRT(edgeGBufferId, bufferSize.x, bufferSize.y, 32, FilterMode.Point, RenderTextureFormat.DefaultHDR);
+		buffer.SetGlobalTexture(postFxDepthId, depthId);
+		Draw(postFxDepthId, edgeGBufferId, Pass.DepthNormalAssembly);
+		Draw(edgeGBufferId, sourceId, Pass.Copy);
+		buffer.ReleaseTemporaryRT(edgeGBufferId);
 		//Tone Mapping pass used if enabled
 		ToneMappingSettings.Mode mode = settings.ToneMapping.mode;
 		Pass pass = mode < 0 ? Pass.Copy : Pass.ColorGradingNone + (int)mode;

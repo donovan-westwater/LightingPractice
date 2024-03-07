@@ -81,10 +81,10 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 o.vertex = TransformWorldToHClip(p);
                 o.normal = TransformObjectToWorldNormal(v.normal);
                 o.uv = v.uv;
-                
+
                 //Look to see what lights exist
                 /*
-                o.lightIndices = float2(-1, -1);                
+                o.lightIndices = float2(-1, -1);
                 float d = -1;
                 for (int i = 0; i < GetDirectionalLightCount(); i++) {
                     float prev = d;
@@ -113,7 +113,7 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 */
                 return o;
             }
-            
+
             float4 frag(v2f i) : SV_Target
             {
                 //Populate surface
@@ -156,62 +156,18 @@ Shader "Custom RP/Custom-CrossHatchShader"
                 i.hashAndBlend = float3((float)index, 1. - tf, tf);
                 //if (i.dotVal < 0.5) i.hashAndBlend.yz = float2(1,0);
                 // sample the texture
-                float4 col = float4(0,0,i.hashAndBlend.x/8.0,1);//tex2D(_MainTex, i.uv);
+                float4 col = float4(0,0,i.hashAndBlend.x / 8.0,1);//tex2D(_MainTex, i.uv);
                 //col.rgb = float4(1,1,1,1)* max(0
                 //    , dot(normalize(i.normal), normalize(_DirectionalLightDirectionsAndMasks[0])));
                 //col.rgb = normalize(i.normal).rgb;
-                col = _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x-1))
-                    *i.hashAndBlend.y;
+                col = _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x - 1))
+                    * i.hashAndBlend.y;
                 col += _MainTex.Sample(sampler_MainTex, float3(i.uv.x, i.uv.y, i.hashAndBlend.x))
                     * i.hashAndBlend.z;
                 //col = float4(testV, 0, 0, 1);
                 //col = i.adjColor;
                 // apply fog
                 //UNITY_APPLY_FOG(i.fogCoord, col);
-                return col;
-            }
-        ENDHLSL
-        }
-        Pass{
-            Tags {
-                "LightMode" = "Outline"
-            }
-            Cull front
-            HLSLINCLUDE
-            #include "../ShaderLibrary/Common.hlsl"
-            ENDHLSL
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-
-            struct appdata
-            {
-                float4 vertex : POSITION;
-                float4 normal : NORMAL;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct v2f
-            {
-                float2 uv : TEXCOORD0;
-                float4 vertex : SV_POSITION;
-            };
-            float4 _OutlineColor;
-            float _Thickness;
-            v2f vert(appdata v)
-            {
-                v2f o;
-                float3 p = TransformObjectToWorld(v.vertex);
-                float3 nc = mul((float3x3) UNITY_MATRIX_VP, mul((float3x3) UNITY_MATRIX_M, v.normal));
-                o.vertex = TransformWorldToHClip(p);
-                //nc /= nc.w;
-                o.vertex.xyz += normalize(nc) * _Thickness;
-                return o;
-            }
-
-            float4 frag(v2f i) : SV_Target
-            {
-                float4 col = _OutlineColor;
                 return col;
             }
         ENDHLSL

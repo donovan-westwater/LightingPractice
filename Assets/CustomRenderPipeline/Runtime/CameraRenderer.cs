@@ -9,7 +9,6 @@ public partial class CameraRenderer
 	const string bufferName = "Render Camera";
 	//The unlit and lit tags used for our pipeline
 	static ShaderTagId
-		outlineShaderTagID = new ShaderTagId("Outline"),
 		unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit"),
 		litShaderTagId = new ShaderTagId("CustomLit");
 
@@ -86,6 +85,8 @@ public partial class CameraRenderer
 	{
 		this.context = context;
 		this.camera = camera;
+		//Force depth normals
+		this.camera.depthTextureMode = DepthTextureMode.DepthNormals;
 		//Assign Custom Camera Settings
 		var crpCamera = camera.GetComponent<CustomRenderPipelineCamera>();
 		//use our default if nothing is found
@@ -149,6 +150,7 @@ public partial class CameraRenderer
 		//Render the Post FX at the very end
 		if (postFXStack.IsActive)
 		{
+			postFXStack.PassDepthId(depthAttachmentId);
 			postFXStack.Render(colorAttachmentId);
 		}else if (useIntermediateBuffer) //Draw our final output into the buffer for sampling depth for particles
         {
@@ -278,7 +280,6 @@ public partial class CameraRenderer
 			| PerObjectData.OcclusionProbeProxyVolume
 			| lightsPerObjectFlags
 		};
-		drawingSettings.SetShaderPassName(1, outlineShaderTagID);
 		drawingSettings.SetShaderPassName(2, litShaderTagId);
 		
 		var filteringSettings = new FilteringSettings(RenderQueueRange.opaque
