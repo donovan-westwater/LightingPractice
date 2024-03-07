@@ -360,9 +360,15 @@ TEXTURE2D(_PostFxDepthBuffer);
 float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	float4 gSample = SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV,0);
 	float depth = gSample.x;
-	return float4(0,depth,0,1);
+	//Reconstruct world pos
+	float4x4 invMat = Inverse(UNITY_MATRIX_VP);
+	float3 posV = ComputeWorldSpacePosition(input.screenUV, depth, invMat).xyz;
+	//Calc normal
+	float3 normal = normalize(cross(ddx(posV), ddy(posV)));
+	return float4(normal.x,normal.y,normal.z,1);
 
 }
+//Goal is to replicate this: https://www.youtube.com/watch?v=5VozHerlOQw
 float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float4 gSample = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
 	return gSample;

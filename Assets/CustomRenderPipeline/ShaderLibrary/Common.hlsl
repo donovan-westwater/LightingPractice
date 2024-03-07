@@ -10,7 +10,6 @@
 #define UNITY_MATRIX_V unity_MatrixV //See above
 #define UNITY_MATRIX_VP unity_MatrixVP //See above
 #define UNITY_MATRIX_P glstate_matrix_projection //See above
-#define UNITY_MATRIX_I_VP unity_CameraInvProjection
 #if defined(_SHADOW_MASK_DISTANCE) || defined(_SHADOW_MASK_ALWAYS)
 	#define SHADOWS_SHADOWMASK
 #endif
