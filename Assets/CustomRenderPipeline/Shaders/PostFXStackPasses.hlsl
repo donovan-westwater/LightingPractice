@@ -355,6 +355,7 @@ float4 CopyPassFragment(Varyings input) : SV_TARGET{
 }
 TEXTURE2D(_EdgeGBuffer);
 TEXTURE2D(_PostFxDepthBuffer);
+float2 depthDiamensions;
 //TEXTURE2D(_NormalBuffer)
 //Assemble GBuffer by calculated normals via depth buffer
 float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
@@ -362,10 +363,40 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	float depth = gSample.x;
 	//Reconstruct world pos
 	float4x4 invMat = Inverse(UNITY_MATRIX_VP);
+	float2 offsetUp = float2(0, 1) / depthDiamensions.y;
+	float2 offsetSide = float2(1,0) / depthDiamensions.x;
 	float3 posV = ComputeWorldSpacePosition(input.screenUV, depth, invMat).xyz;
+	float2 depthVerts = float2(SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV + offsetUp, 0).x,
+		SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV - offsetUp, 0).x);
+	float2 depthHori = float2(SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV + offsetSide, 0).x,
+		SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV - offsetSide, 0).x);
+	//Find the correct Points for the triangle
+	float2 uv_v = input.screenUV + offsetUp;
+	float2 uv_h = input.screenUV + offsetSide;
+	float depthSide = depthHori.x;
+	float depthVert = depthVerts.x;
+	float v = 1.0;
+	float h = 1.0;
+	if (depthVerts.x > depthVerts.y) {
+		uv_v = input.screenUV - offsetUp;
+		depthVert = depthVerts.y;
+		v = -1.0;
+	}
+	if (depthHori.x > depthHori.y) {
+		uv_h = input.screenUV - offsetSide;
+		depthSide = depthHori.y;
+		h = -1.0;
+	}
+	float3 posVert = ComputeWorldSpacePosition(uv_v, depthVert, invMat).xyz;
+	float3 posSide = ComputeWorldSpacePosition(uv_h, depthSide, invMat).xyz;
 	//Calc normal
-	float3 normal = normalize(cross(ddx(posV), ddy(posV)));
-	return float4(normal.x,normal.y,normal.z,1);
+	float3 normal = float3(0,0,0);
+	//normal = normalize(cross(posVert - posV, posSide - posV));
+	if (v > 0 && h > 0) normal = normalize(cross(posVert - posV, posSide - posV));
+	if (v > 0 && h < 0) normal = normalize(cross(posSide - posV, posVert - posV));
+	if (v < 0 && h > 0) normal = normalize(cross(posSide - posV, posVert - posV));
+	if (v < 0 && h < 0) normal = normalize(cross(posVert - posV, posSide - posV));
+	return float4(normal.x,normal.y,normal.z,depth);
 
 }
 //Goal is to replicate this: https://www.youtube.com/watch?v=5VozHerlOQw
