@@ -36,4 +36,6 @@ public partial class CustomRenderPipelineAsset : RenderPipelineAsset {
 		return new CustomRenderPipeline(cameraBuffer,useDynamicBatching, useGPUInstancing, useSRPBatcher,
 			useLightsPerObject,shadows, postFXSettings, (int)colorLUTResolution,cameraRendererShader);
 	}
+    public override Shader defaultShader => Shader.Find("Custom RP/Custom-Lit");
+    public override Material defaultMaterial => Resources.Load<Material>("Materials/CustomRP-DefaultMat");
 }
