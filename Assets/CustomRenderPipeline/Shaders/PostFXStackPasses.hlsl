@@ -362,7 +362,7 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	float4 gSample = SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV,0);
 	float depth = gSample.x;
 	//Reconstruct world pos
-	float4x4 invMat = Inverse(UNITY_MATRIX_VP);
+	float4x4 invMat = Inverse(UNITY_MATRIX_P);
 	float2 offsetUp = float2(0, 1) / depthDiamensions.y;
 	float2 offsetSide = float2(1,0) / depthDiamensions.x;
 	float3 posV = ComputeWorldSpacePosition(input.screenUV, depth, invMat).xyz;
@@ -396,6 +396,7 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	if (v > 0 && h < 0) normal = normalize(cross(posSide - posV, posVert - posV));
 	if (v < 0 && h > 0) normal = normalize(cross(posSide - posV, posVert - posV));
 	if (v < 0 && h < 0) normal = normalize(cross(posVert - posV, posSide - posV));
+	normal = -normal;
 	return float4(normal.x,normal.y,normal.z,depth);
 
 }
