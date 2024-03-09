@@ -197,5 +197,16 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#pragma fragment AssembleGBufferFragment
 			ENDHLSL
 		}
+		Pass{
+			Name "EdgeDetection"
+			//Tags{
+			//	"LightMode" = "DepthNormalsOnly"
+			//}
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment FindEdgesFragment
+			ENDHLSL
+		}
 	}
 }

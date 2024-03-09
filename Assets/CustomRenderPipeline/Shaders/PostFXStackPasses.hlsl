@@ -355,9 +355,11 @@ float4 CopyPassFragment(Varyings input) : SV_TARGET{
 }
 TEXTURE2D(_EdgeGBuffer);
 TEXTURE2D(_PostFxDepthBuffer);
+TEXTURE2D(_EdgeOutBuffer);
 float2 depthDiamensions;
 //TEXTURE2D(_NormalBuffer)
 //Assemble GBuffer by calculated normals via depth buffer
+//Based on this: https://wickedengine.net/2019/09/22/improved-normal-reconstruction-from-depth/
 float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	float4 gSample = SAMPLE_TEXTURE2D_LOD(_PostFxDepthBuffer, sampler_linear_clamp, input.screenUV,0);
 	float depth = gSample.x;
@@ -400,10 +402,43 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	return float4(normal.x,normal.y,normal.z,depth);
 
 }
+
 //Goal is to replicate this: https://www.youtube.com/watch?v=5VozHerlOQw
 float4 FindEdgesFragment(Varyings input) : SV_TARGET{
-	float4 gSample = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
-	return gSample;
+	float4 gCNormDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
+	float4x4 invMat = Inverse(mul(UNITY_MATRIX_V,UNITY_MATRIX_P));
+	float3 gCPos = ComputeWorldSpacePosition(input.screenUV, gCNormDepth.w, invMat).xyz;
+	float outputColor[4] = { 0, 0, 0, 0 }; //Left right up down
+	float2 adjOffsets[4];
+	adjOffsets[0] = float2(1,0) / depthDiamensions.x;
+	adjOffsets[1] = float2(-1,0) / depthDiamensions.x;
+	adjOffsets[2] = float2(0,1) / depthDiamensions.y;
+	adjOffsets[3] = float2(0,-1) / depthDiamensions.y;
+	
+	//Go through the offsets and calculate the curvature
+	for (int i = 0; i < 4; i++) {
+		float4 normDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV+adjOffsets[i], 0);
+		float3 wPos = ComputeWorldSpacePosition(input.screenUV + adjOffsets[i], normDepth.w, invMat).xyz;
+		//Part 1:Find Tangent to Normal Plane
+		//Step A) find dS or wPos - gCPos & project onto plane.
+		float3 ds = wPos - gCPos;
+		float3 projAdj = wPos - dot(ds, gCNormDepth.xyz) * gCNormDepth.xyz;
+		//Calculate the tangent for the center
+		float3 cTan = projAdj - gCPos;
+		//Step B) Repeat step A) but reversed. Project gCPos onto norm of adj
+		float3 projC = gCPos - dot(-ds, normDepth.xyz) * normDepth.xyz;
+		//Calcuate the tangent for the adj
+		float3 adjTan = wPos - projC;
+		//Step C) find the curvature of the between the 2 pixels
+		float3 dTan = normalize(adjTan) - normalize(cTan);
+		//dTan = normalize(dTan);
+		dTan /= length(ds);
+		float k = length(dTan);
+		outputColor[i] = k / 100000;
+		//outputColor[i] = k;
+	}
+	//outputColor[2], outputColor[3]
+	return float4(outputColor[1], outputColor[2], outputColor[3],1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
