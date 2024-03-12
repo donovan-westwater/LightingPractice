@@ -5,6 +5,7 @@ using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
 public class StrokeGenerationManager : MonoBehaviour
@@ -44,6 +45,7 @@ public class StrokeGenerationManager : MonoBehaviour
     // Start is called before the first frame update
     IEnumerator Start()
     {
+        Profiler.BeginSample("Stroke Gen Start");
         if(randomizeWithTime) rng_state *= (uint)System.DateTime.Now.Millisecond;
         //Create Asset to store our art map in
         TAM = new Texture3D(highestRes, highestRes,8 , TextureFormat.ARGB32,1);
@@ -120,8 +122,8 @@ public class StrokeGenerationManager : MonoBehaviour
                     Graphics.CopyTexture(outArray[textNo], cI, 0, colorPyramid, cI, 0);
                 }
                 colorPyramid.GenerateMips();
-                strokeBuffer.GetData(inital);
-                Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
+                //strokeBuffer.GetData(inital);
+                //Debug.Log("Stroke choice: " + inital[0].normPos + " " + inital[0].normLength);
                 strokeN++;
                 rng_state = rng_state * 747796405u + 2891336453u;
                 strokeGenShader.SetInt("rng_state", (int)rng_state);
@@ -167,6 +169,7 @@ public class StrokeGenerationManager : MonoBehaviour
             //    Graphics.CopyTexture(singleTexs[i], 0,k, outputArray, i,k);
             //}
         }
+        Profiler.EndSample();
         return outputArray;
     }
     void SaveRT3DToTexture3DAsset(RenderTexture rt3D, string pathWithoutAssetsAndExtension,TextureCreationFlags flag)

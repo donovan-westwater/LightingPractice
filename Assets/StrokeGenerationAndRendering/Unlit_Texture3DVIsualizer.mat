@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _EnableSingle: 0
-    - _MipLevel: 0
-    - _Slice: 7
+    - _MipLevel: -0.11
+    - _Slice: 1.54
     m_Colors: []
   m_BuildTextureStacks: []

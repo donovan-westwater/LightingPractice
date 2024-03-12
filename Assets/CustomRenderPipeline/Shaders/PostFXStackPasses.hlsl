@@ -399,14 +399,17 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	if (v < 0 && h > 0) normal = normalize(cross(posSide - posV, posVert - posV));
 	if (v < 0 && h < 0) normal = normalize(cross(posVert - posV, posSide - posV));
 	normal = -normal;
+	normal = normalize(normal);
 	return float4(normal.x,normal.y,normal.z,depth);
 
 }
 
 //Goal is to replicate this: https://www.youtube.com/watch?v=5VozHerlOQw
+//Useful guide on curvature: http://wordpress.discretization.de/geometryprocessingandapplicationsws19/a-quick-and-dirty-introduction-to-the-curvature-of-surfaces/
 float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float4 gCNormDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
 	float4x4 invMat = Inverse(mul(UNITY_MATRIX_V,UNITY_MATRIX_P));
+	invMat = Inverse(UNITY_MATRIX_P);
 	float3 gCPos = ComputeWorldSpacePosition(input.screenUV, gCNormDepth.w, invMat).xyz;
 	float outputColor[4] = { 0, 0, 0, 0 }; //Left right up down
 	float2 adjOffsets[4];
@@ -416,6 +419,7 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	adjOffsets[3] = float2(0,-1) / depthDiamensions.y;
 	
 	//Go through the offsets and calculate the curvature
+	float outFloat = 0.0;
 	for (int i = 0; i < 4; i++) {
 		float4 normDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV+adjOffsets[i], 0);
 		float3 wPos = ComputeWorldSpacePosition(input.screenUV + adjOffsets[i], normDepth.w, invMat).xyz;
@@ -431,14 +435,33 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		float3 adjTan = wPos - projC;
 		//Step C) find the curvature of the between the 2 pixels
 		float3 dTan = normalize(adjTan) - normalize(cTan);
-		//dTan = normalize(dTan);
+		float3 dNorm = normDepth.xyz - gCNormDepth.xyz;
+		float dDepth = gCNormDepth.w - normDepth.w;
+		float projk = 0;
+		if (i < 2) {
+			dNorm.y = 0;
+			projk = cross(float3(1, 0, 0), dNorm).y; //k value in horizontal direction
+		}
+		else {
+			dNorm.x = 0;
+			projk = cross(float3(0, 1, 0), dNorm).x; //t value in vertical direction
+		}
+		float dotK = -dot(dNorm, normalize(cTan));
 		dTan /= length(ds);
 		float k = length(dTan);
-		outputColor[i] = k / 100000;
+		float k90 = length(float3(1, 0, -1)) / length(ds);
+		outputColor[i] = k90 - k < 9 ? 1 : 0;//k / 100;
+		outFloat += projk;
+		outputColor[i] = projk;
+		//outputColor[i] = testK / 100;
+		//if (dTan.z < 0) outputColor[i] = 0.0;
+		//else outputColor[i] = 0;
 		//outputColor[i] = k;
 	}
+	outFloat /= 4;
+	outFloat = (outputColor[0] - outputColor[1]) * (outputColor[2] - outputColor[3]);
 	//outputColor[2], outputColor[3]
-	return float4(outputColor[1], outputColor[2], outputColor[3],1);
+	return float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
