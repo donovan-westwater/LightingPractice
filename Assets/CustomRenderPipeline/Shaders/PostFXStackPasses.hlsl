@@ -452,16 +452,22 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		float dotK = -dot(dNorm, normalize(cTan));
 		dTan /= length(ds);
 		float k = length(dTan);
+		k = length(dNorm);
+		float p = 1 / k;
+		float pCenter = gCPos - gCNormDepth.xyz * p;
+		float sphDist = length(wPos - pCenter) - p;
 		float k90 = length(float3(1, 0, -1)) / length(ds);
-		outputColor[i] = k90 - k < 9 ? 1 : 0;//k / 100;
-		outFloat += projk;
+		outputColor[i] = 1000 - k < 9  ? 1 : 0;//k / 100;
+		//outFloat += k90 - k < 9 ? 1 : 0;
+		//outFloat += k;
+		if (k > 1 || sphDist > -1) outFloat = 1;
 		outputColor[i] = projk;
 		//outputColor[i] = testK / 100;
 		//if (dTan.z < 0) outputColor[i] = 0.0;
 		//else outputColor[i] = 0;
 		//outputColor[i] = k;
 	}
-	outFloat /= 4;
+	//outFloat /= 4;
 	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
 	//if (outFloat < .2) outFloat = 0;
 	//if (outFloat > 0) outFloat = 1;
@@ -471,10 +477,12 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float v = outputColor[2] - outputColor[3];
 	h = (h + 1) / 2;
 	v = (v + 1) / 2;
+	outFloat = abs(v - h);
+	if (outFloat < .4) outFloat = 0;
 	//v = 1 - v;
 	//h = 1 - h;
 	
-	return float4(h, v, 0, 1);//float4(outFloat, outFloat, outFloat,1);
+	return float4(0, 0, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
