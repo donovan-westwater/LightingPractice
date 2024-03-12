@@ -438,14 +438,17 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		float3 dNorm = normDepth.xyz - gCNormDepth.xyz;
 		float dDepth = gCNormDepth.w - normDepth.w;
 		float projk = 0;
+		//Math found here: https://inst.eecs.berkeley.edu/~cs283/fa10/lectures/283-lecture19.pdf
+		//dN = -kT+tB -> -kT when dNorm is projected onto dir of motion. get comp from cross to get K
 		if (i < 2) {
 			dNorm.y = 0;
-			projk = cross(float3(1, 0, 0), dNorm).y; //k value in horizontal direction
+			projk = cross(normalize(float3(0,0, 1)), dNorm).y; //k value -- hori
 		}
 		else {
 			dNorm.x = 0;
-			projk = cross(float3(0, 1, 0), dNorm).x; //t value in vertical direction
+			projk = cross(normalize(float3(0,0, 1)), dNorm).x; //t value -- vertical
 		}
+		 
 		float dotK = -dot(dNorm, normalize(cTan));
 		dTan /= length(ds);
 		float k = length(dTan);
@@ -459,9 +462,19 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//outputColor[i] = k;
 	}
 	outFloat /= 4;
-	outFloat = (outputColor[0] - outputColor[1]) * (outputColor[2] - outputColor[3]);
-	//outputColor[2], outputColor[3]
-	return float4(outFloat, outFloat, outFloat,1);
+	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
+	//if (outFloat < .2) outFloat = 0;
+	//if (outFloat > 0) outFloat = 1;
+	//outputColor[1] = -outputColor[1];
+	//outputColor[3] = -outputColor[3];
+	float h = outputColor[0] - outputColor[1];
+	float v = outputColor[2] - outputColor[3];
+	h = (h + 1) / 2;
+	v = (v + 1) / 2;
+	//v = 1 - v;
+	//h = 1 - h;
+	
+	return float4(h, v, 0, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
