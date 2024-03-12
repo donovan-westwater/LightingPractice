@@ -399,8 +399,8 @@ public partial class PostFXStack
 		buffer.SetGlobalTexture(postFxDepthId, depthId);
 		buffer.SetGlobalVector(depthDiaId, new Vector4(bufferSize.x, bufferSize.y, 0, 0));
 		Draw(postFxDepthId, edgeGBufferId, Pass.DepthNormalAssembly);
-		Draw(sourceId, edgeOutBufferId, Pass.EdgeDetection);
-		Draw(edgeOutBufferId, sourceId, Pass.Copy);
+		//Draw(sourceId, edgeOutBufferId, Pass.EdgeDetection);
+		Draw(edgeGBufferId, sourceId, Pass.Copy);
 		buffer.ReleaseTemporaryRT(edgeGBufferId);
 		buffer.ReleaseTemporaryRT(edgeOutBufferId);
 		//Tone Mapping pass used if enabled

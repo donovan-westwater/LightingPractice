@@ -379,12 +379,14 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 	float depthVert = depthVerts.x;
 	float v = 1.0;
 	float h = 1.0;
-	if (depthVerts.x > depthVerts.y) {
+	float2 relHori = float2(abs(depth - depthHori.x), abs(depth - depthHori.y));
+	float2 relVerts = float2(abs(depth - depthVerts.x), abs(depth - depthVerts.y));
+	if (relVerts.x > relVerts.y) {
 		uv_v = input.screenUV - offsetUp;
 		depthVert = depthVerts.y;
 		v = -1.0;
 	}
-	if (depthHori.x > depthHori.y) {
+	if (relHori.x > relHori.y) {
 		uv_h = input.screenUV - offsetSide;
 		depthSide = depthHori.y;
 		h = -1.0;
@@ -482,7 +484,7 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	//v = 1 - v;
 	//h = 1 - h;
 	
-	return float4(0, 0, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
+	return float4(h, v, 0, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
