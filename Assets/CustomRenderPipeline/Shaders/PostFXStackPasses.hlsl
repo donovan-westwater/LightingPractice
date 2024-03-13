@@ -485,7 +485,14 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//outputColor[i] = k;
 	}
 	outFloat /= 4;
-	outDepth = abs((outputDepths[0] - outputDepths[1])  - (outputDepths[2] - outputDepths[3]));
+	float hd = outputDepths[0] - outputDepths[1];
+	float hv = outputDepths[2] - outputDepths[3];
+	hd = (hd + 1) / 2;
+	hv = (hv + 1) / 2;
+	outDepth = abs(hv - hd);
+	if (outDepth > 1.2) outDepth = 0;
+	outDepth = saturate(outDepth);
+	//outDepth = abs((outputDepths[0] - outputDepths[1])  - (outputDepths[2] - outputDepths[3]));
 	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
 	//if (outFloat < .2) outFloat = 0;
 	//if (outFloat > 0) outFloat = 1;
