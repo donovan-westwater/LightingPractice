@@ -414,6 +414,7 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	invMat = Inverse(UNITY_MATRIX_P);
 	float3 gCPos = ComputeWorldSpacePosition(input.screenUV, gCNormDepth.w, invMat).xyz;
 	float outputColor[4] = { 0, 0, 0, 0 }; //Left right up down
+	float outputDepths[4] = { 0, 0, 0, 0 };
 	float2 adjOffsets[4];
 	adjOffsets[0] = float2(1,0) / depthDiamensions.x;
 	adjOffsets[1] = float2(-1,0) / depthDiamensions.x;
@@ -445,19 +446,27 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//dN = -kT+tB -> -kT when dNorm is projected onto dir of motion. get comp from cross to get K
 		if (i < 2) {
 			dNorm.y = 0;
+			dNorm.y = 0;
+			gCPos.y = 0;
+			gCNormDepth.y = 0;
+			wPos.y = 0;
 			projk = cross(normalize(float3(0,0, 1)), dNorm).y; //k value -- hori
 		}
 		else {
 			dNorm.x = 0;
+			gCPos.x = 0;
+			gCNormDepth.x = 0;
+			wPos.x = 0;
 			projk = cross(normalize(float3(0,0, 1)), dNorm).x; //t value -- vertical
+			
 		}
 		 
 		float dotK = -dot(dNorm, normalize(cTan));
 		dTan /= length(ds);
 		float k = length(dTan);
 		k = length(dNorm);
-		float p = 1 / k;
-		float pCenter = gCPos - gCNormDepth.xyz * p;
+		float p = k < .001 ? 0 : 1/k;
+		float3 pCenter = gCPos - normalize(gCNormDepth.xyz) * p;
 		float sphDist = length(wPos - pCenter) - p;
 		float k90 = length(float3(1, 0, -1)) / length(ds);
 		outputColor[i] = 1000 - k < 9  ? 1 : 0;//k / 100;
@@ -465,14 +474,18 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//outFloat += k;
 		if (k > 1 || sphDist > -1) outFloat = 1;
 		outputColor[i] = projk;
-		outDepth += abs(gCNormDepth.w - normDepth.w);
+		//outDepth += abs(gCNormDepth.w - normDepth.w);
+		//if (sphDist < 80) outDepth = 0;
+		//outDepth = max(outDepth,sphDist);
+		outputDepths[i] = sphDist;
+
 		//outputColor[i] = testK / 100;
 		//if (dTan.z < 0) outputColor[i] = 0.0;
 		//else outputColor[i] = 0;
 		//outputColor[i] = k;
 	}
 	outFloat /= 4;
-	outDepth /= 4;
+	outDepth = abs((outputDepths[0] - outputDepths[1])  - (outputDepths[2] - outputDepths[3]));
 	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
 	//if (outFloat < .2) outFloat = 0;
 	//if (outFloat > 0) outFloat = 1;
