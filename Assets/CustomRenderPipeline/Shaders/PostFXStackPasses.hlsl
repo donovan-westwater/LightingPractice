@@ -422,6 +422,7 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	
 	//Go through the offsets and calculate the curvature
 	float outFloat = 0.0;
+	float outDepth = 0.0;
 	for (int i = 0; i < 4; i++) {
 		float4 normDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV+adjOffsets[i], 0);
 		float3 wPos = ComputeWorldSpacePosition(input.screenUV + adjOffsets[i], normDepth.w, invMat).xyz;
@@ -464,12 +465,14 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//outFloat += k;
 		if (k > 1 || sphDist > -1) outFloat = 1;
 		outputColor[i] = projk;
+		outDepth += abs(gCNormDepth.w - normDepth.w);
 		//outputColor[i] = testK / 100;
 		//if (dTan.z < 0) outputColor[i] = 0.0;
 		//else outputColor[i] = 0;
 		//outputColor[i] = k;
 	}
-	//outFloat /= 4;
+	outFloat /= 4;
+	outDepth /= 4;
 	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
 	//if (outFloat < .2) outFloat = 0;
 	//if (outFloat > 0) outFloat = 1;
@@ -481,10 +484,12 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	v = (v + 1) / 2;
 	outFloat = abs(v - h);
 	if (outFloat < .4) outFloat = 0;
+	//outDepth *= 10;
+	outFloat = max(outDepth, outFloat);
 	//v = 1 - v;
 	//h = 1 - h;
 	
-	return float4(h, v, 0, 1);//float4(outFloat, outFloat, outFloat,1);
+	return float4(0, 0, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
