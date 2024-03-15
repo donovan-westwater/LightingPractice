@@ -454,6 +454,8 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 			cNorm.y = 0;
 			wPos.y = 0;
 			projk = cross(normalize(float3(0,0, 1)), dNorm).y; //k value -- hori
+			float3 tdNorm = dNorm;
+			projk = dot(normalize(float3(0, 0, 1)), tdNorm);
 		}
 		else {
 			dNorm.x = 0;
@@ -461,7 +463,7 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 			cNorm.x = 0;
 			wPos.x = 0;
 			projk = cross(normalize(float3(0,0, 1)), dNorm).x; //t value -- vertical
-			
+			projk = dot(normalize(float3(0, 0, 1)), dNorm);
 		}
 		 
 		float dotK = -dot(dNorm, normalize(cTan));
@@ -478,20 +480,21 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		outputColor[i] = 1000 - k < 9  ? 1 : 0;//k / 100;
 		//outFloat += k90 - k < 9 ? 1 : 0;
 		//outFloat += k;
-		if (k > 1 || sphDist > -1) outFloat = 1;
 		outputColor[i] = projk;
 		//outDepth += abs(gCNormDepth.w - normDepth.w);
 		//if (sphDist < 80) outDepth = 0;
 		//outDepth = max(outDepth,sphDist);
 		outputDepths[i] = sphDist;//dot(normalize(normDepth.xyz), normalize(gCNormDepth.xyz));// sphDist;
 		//if (sphDist > 1) outDepth = 1;
-		if (abs(sphDist) > .5) outDepth = 1;
+		if (abs(sphDist) > .05) outDepth = 1;
+		//projk for i = 0 and i = 1 seems to be broken. need to investigate
+		if (projk > .5) outFloat = 1;
+		//else outFloat = 0;
 		//outputColor[i] = testK / 100;
 		//if (dTan.z < 0) outputColor[i] = 0.0;
 		//else outputColor[i] = 0;
 		//outputColor[i] = k;
 	}
-	outFloat /= 4;
 	float hd = outputDepths[0] - outputDepths[1];
 	float hv = outputDepths[2] - outputDepths[3];
 	hd = (hd + 1) / 2;
@@ -510,14 +513,11 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float v = outputColor[2] - outputColor[3];
 	h = (h + 1) / 2;
 	v = (v + 1) / 2;
-	outFloat = abs(v - h);
-	if (outFloat < .4) outFloat = 0;
-	//outDepth *= 10;
+	//outFloat = abs(v - h);
+	//if (outFloat < .4) outFloat = 0;
 	//outFloat = outDepth;// max(outDepth, outFloat);
-	//v = 1 - v;
-	//h = 1 - h;
-	
-	return float4(outDepth, 0, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
+	outDepth = 0;
+	return float4(outDepth, testD, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
