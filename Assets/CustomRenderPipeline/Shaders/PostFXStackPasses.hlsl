@@ -408,6 +408,9 @@ float4 AssembleGBufferFragment(Varyings input) : SV_TARGET{
 
 //Goal is to replicate this: https://www.youtube.com/watch?v=5VozHerlOQw
 //Useful guide on curvature: http://wordpress.discretization.de/geometryprocessingandapplicationsws19/a-quick-and-dirty-introduction-to-the-curvature-of-surfaces/
+//TO DO: Generalize normal check by taking dN and projecting it onto the xz and yz planes.  
+//Pick the highest result and that will be k and the curvature will be tested againest that plane
+//This will allow for diagonal tests
 float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float4 gCNormDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV,0);
 	float4x4 invMat = Inverse(mul(UNITY_MATRIX_V,UNITY_MATRIX_P));
@@ -429,95 +432,39 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		float3 cwPos = gCPos;
 		float4 normDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV+adjOffsets[i], 0);
 		float3 wPos = ComputeWorldSpacePosition(input.screenUV + adjOffsets[i], normDepth.w, invMat).xyz;
-		//Part 1:Find Tangent to Normal Plane
-		//Step A) find dS or wPos - gCPos & project onto plane.
 		float3 ds = wPos - cwPos;
-		float3 projAdj = wPos - dot(ds, cNorm.xyz) * cNorm.xyz;
-		//Calculate the tangent for the center
-		float3 cTan = projAdj - cwPos;
-		//Step B) Repeat step A) but reversed. Project gCPos onto norm of adj
-		float3 projC = cwPos - dot(-ds, normDepth.xyz) * normDepth.xyz;
-		//Calcuate the tangent for the adj
-		float3 adjTan = wPos - projC;
-		//Step C) find the curvature of the between the 2 pixels
-		float3 dTan = normalize(adjTan) - normalize(cTan);
 		float3 dNorm = normalize(normDepth.xyz) - normalize(cNorm.xyz);
-		float dDepth = gCNormDepth.w - normDepth.w;
 		float projk = 0;
 		//Math found here: https://inst.eecs.berkeley.edu/~cs283/fa10/lectures/283-lecture19.pdf
 		//dN = -kT+tB -> -kT when dNorm is projected onto dir of motion. get comp from cross to get K
 		float3 planeN = normalize(cNorm.xyz);
-		float3 testdNorm = dNorm;
 		if (i < 2) {
 			dNorm.y = 0;
 			cwPos.y = 0;
 			cNorm.y = 0;
 			wPos.y = 0;
-			projk = cross(normalize(float3(0,0, 1)), dNorm).y; //k value -- hori
-			float3 tdNorm = dNorm;
-			projk = dot(normalize(float3(0, 0, 1)), tdNorm);
+			projk = dot(normalize(float3(0, 0, 1)), dNorm);//k value -- hori
 		}
 		else {
 			dNorm.x = 0;
 			cwPos.x = 0;
 			cNorm.x = 0;
 			wPos.x = 0;
-			projk = cross(normalize(float3(0,0, 1)), dNorm).x; //t value -- vertical
-			projk = dot(normalize(float3(0, 0, 1)), dNorm);
+			projk = dot(normalize(float3(0, 0, 1)), dNorm);//t value -- vertical
 		}
-		 
-		float dotK = -dot(dNorm, normalize(cTan));
-		dTan /= length(ds);
-		float k = length(dTan);
-		k = length(dNorm);
+		float k = length(dNorm);
 		float p = k < .005 ? 0 : 1 / k;
 		float3 pCenter = cwPos - normalize(cNorm.xyz) * p;
 		float sphDist = length(wPos - pCenter) - p;
 		if (p == 0) {
 			sphDist = dot(normalize(planeN), ds); //Plane fit if the surface is flat
 		}
-		float k90 = length(float3(1, 0, -1)) / length(ds);
-		outputColor[i] = 1000 - k < 9  ? 1 : 0;//k / 100;
-		//outFloat += k90 - k < 9 ? 1 : 0;
-		//outFloat += k;
-		outputColor[i] = projk;
-		//outDepth += abs(gCNormDepth.w - normDepth.w);
-		//if (sphDist < 80) outDepth = 0;
-		//outDepth = max(outDepth,sphDist);
-		outputDepths[i] = sphDist;//dot(normalize(normDepth.xyz), normalize(gCNormDepth.xyz));// sphDist;
-		//if (sphDist > 1) outDepth = 1;
 		if (abs(sphDist) > .05) outDepth = 1;
-		//projk for i = 0 and i = 1 seems to be broken. need to investigate
 		if (projk > .5) outFloat = 1;
-		//else outFloat = 0;
-		//outputColor[i] = testK / 100;
-		//if (dTan.z < 0) outputColor[i] = 0.0;
-		//else outputColor[i] = 0;
-		//outputColor[i] = k;
 	}
-	float hd = outputDepths[0] - outputDepths[1];
-	float hv = outputDepths[2] - outputDepths[3];
-	hd = (hd + 1) / 2;
-	hv = (hv + 1) / 2;
-	float testD = outDepth;
-	outDepth = abs(hv - hd);
-	//if (outDepth > 1.2 || outDepth < .2) outDepth = 0;
-	outDepth = saturate(outDepth);
-	//outDepth = abs((outputDepths[0] - outputDepths[1])  - (outputDepths[2] - outputDepths[3]));
-	//outFloat = 4*(outputColor[0] - outputColor[1]) - (outputColor[2] - outputColor[3])/gCNormDepth.w;
-	//if (outFloat < .2) outFloat = 0;
-	//if (outFloat > 0) outFloat = 1;
-	//outputColor[1] = -outputColor[1];
-	//outputColor[3] = -outputColor[3];
-	float h = outputColor[0] - outputColor[1];
-	float v = outputColor[2] - outputColor[3];
-	h = (h + 1) / 2;
-	v = (v + 1) / 2;
-	//outFloat = abs(v - h);
-	//if (outFloat < .4) outFloat = 0;
-	//outFloat = outDepth;// max(outDepth, outFloat);
-	outDepth = 0;
-	return float4(outDepth, testD, outFloat, 1);//float4(outFloat, outFloat, outFloat,1);
+	
+	float result = max(outDepth, outFloat);
+	return float4(result, result, result, 1);//float4(outFloat, outFloat, outFloat,1);
 }
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
