@@ -469,6 +469,35 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float result = max(outDepth, outFloat);
 	return float4(result, result, result, 1);//float4(outFloat, outFloat, outFloat,1);
 }
+float4 ThickenOutlineFragment(Varyings input) : SV_TARGET{
+	float2 adjOffsets[8];
+	adjOffsets[0] = float2(1,0) / depthDiamensions.x;
+	adjOffsets[1] = float2(-1,0) / depthDiamensions.x;
+	adjOffsets[2] = float2(0,1) / depthDiamensions.y;
+	adjOffsets[3] = float2(0,-1) / depthDiamensions.y;
+	adjOffsets[4] = float2(1, 1) / depthDiamensions;
+	adjOffsets[5] = float2(1, -1) / depthDiamensions;
+	adjOffsets[6] = float2(-1, 1) / depthDiamensions;
+	adjOffsets[7] = float2(-1, -1) / depthDiamensions;
+	int thicken = 0;
+	for (int i = 0; i < 8; i++) {
+		float2 offset = adjOffsets[i];
+		float4 testC = GetSource(input.screenUV
+			+offset);
+		if (testC.x > 0) {
+			thicken = 1;
+			break;
+		}
+	}
+	if (thicken == 0) return float4(0, 0, 0, 1);
+	return float4(1, 1, 1, 1);
+}
+float4 ApplyEdgeFragment(Varyings input) : SV_TARGET{
+	float4 srcColor = GetSource(input.screenUV);
+	float4 outline = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV, 0);
+	if(outline.x > 0)return outline*float4(0,0,1,1);
+	return srcColor;
+}
 TEXTURE2D(_ColorGradingLUT);
 //Time to apply the post process effects to the image via the LUT
 float3 ApplyColorGradingLUT(float3 color) {

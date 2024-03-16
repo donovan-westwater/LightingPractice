@@ -208,5 +208,21 @@ Shader "Hidden/Custom RP/Post FX Stack" {
 				#pragma fragment FindEdgesFragment
 			ENDHLSL
 		}
+		Pass{
+			Name "ThickenOutline"
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ThickenOutlineFragment
+			ENDHLSL
+		}
+		Pass{
+			Name "ApplyEdge"
+			HLSLPROGRAM
+				#pragma target 3.5
+				#pragma vertex DefaultPassVertex
+				#pragma fragment ApplyEdgeFragment
+			ENDHLSL
+		}
 	}
 }
