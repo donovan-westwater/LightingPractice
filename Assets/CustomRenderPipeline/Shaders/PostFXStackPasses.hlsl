@@ -416,18 +416,19 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 	float4x4 invMat = Inverse(mul(UNITY_MATRIX_V,UNITY_MATRIX_P));
 	invMat = Inverse(UNITY_MATRIX_P);
 	float3 gCPos = ComputeWorldSpacePosition(input.screenUV, gCNormDepth.w, invMat).xyz;
-	float outputColor[4] = { 0, 0, 0, 0 }; //Left right up down
-	float outputDepths[4] = { 0, 0, 0, 0 };
-	float2 adjOffsets[4];
+	float2 adjOffsets[8];
 	adjOffsets[0] = float2(1,0) / depthDiamensions.x;
 	adjOffsets[1] = float2(-1,0) / depthDiamensions.x;
 	adjOffsets[2] = float2(0,1) / depthDiamensions.y;
 	adjOffsets[3] = float2(0,-1) / depthDiamensions.y;
-	
+	adjOffsets[4] = float2(1, 1) / depthDiamensions;
+	adjOffsets[5] = float2(1, -1) / depthDiamensions;
+	adjOffsets[6] = float2(-1, 1) / depthDiamensions;
+	adjOffsets[7] = float2(-1, -1) / depthDiamensions;
 	//Go through the offsets and calculate the curvature
 	float outFloat = 0.0;
 	float outDepth = 0.0;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 8; i++) {
 		float3 cNorm = gCNormDepth.xyz;
 		float3 cwPos = gCPos;
 		float4 normDepth = SAMPLE_TEXTURE2D_LOD(_EdgeGBuffer, sampler_linear_clamp, input.screenUV+adjOffsets[i], 0);
@@ -438,7 +439,9 @@ float4 FindEdgesFragment(Varyings input) : SV_TARGET{
 		//Math found here: https://inst.eecs.berkeley.edu/~cs283/fa10/lectures/283-lecture19.pdf
 		//dN = -kT+tB -> -kT when dNorm is projected onto dir of motion. get comp from cross to get K
 		float3 planeN = normalize(cNorm.xyz);
-		if (i < 2) {
+		float yk = dot(normalize(float3(0, 1, 0)), dNorm);
+		float xk = dot(normalize(float3(1, 0, 0)), dNorm);
+		if (abs(xk) > abs(yk)) {
 			dNorm.y = 0;
 			cwPos.y = 0;
 			cNorm.y = 0;
